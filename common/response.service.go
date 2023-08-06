@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 )
@@ -16,6 +17,19 @@ type Result[T any] struct {
 	Writer http.ResponseWriter
 	Data   T
 	Error  error
+}
+
+type successCallback[T any] func(T)
+
+func ParseBody[T any](w http.ResponseWriter, body io.ReadCloser, onSuccess successCallback[T]) {
+	var data T
+	err := json.NewDecoder(body).Decode(&data)
+	if err != nil {
+		log.Printf("failed to parse body: %s", err.Error())
+		WriteResponseFromError(w, NewInternalServerError())
+		return
+	}
+	onSuccess(data)
 }
 
 /*
@@ -40,7 +54,7 @@ so the pattern is always:
 */
 func WriteResponse[T any](result Result[T]) {
 	if result.Error != nil {
-		WriteResponseFromError(result.Error, result.Writer)
+		WriteResponseFromError(result.Writer, result.Error)
 		return
 	}
 	json.NewEncoder(result.Writer).Encode(result.Data)
@@ -48,7 +62,7 @@ func WriteResponse[T any](result Result[T]) {
 
 func WriteCreatedResponse(result EmptyResult) {
 	if result.Error != nil {
-		WriteResponseFromError(result.Error, result.Writer)
+		WriteResponseFromError(result.Writer, result.Error)
 		return
 	}
 	writeResponse(result, 401)
@@ -56,7 +70,7 @@ func WriteCreatedResponse(result EmptyResult) {
 }
 func WriteEmptyResponse(result EmptyResult) {
 	if result.Error != nil {
-		WriteResponseFromError(result.Error, result.Writer)
+		WriteResponseFromError(result.Writer, result.Error)
 		return
 	}
 	writeResponse(result, 400)
@@ -68,7 +82,7 @@ func writeResponse(result EmptyResult, status int) {
 	json.NewEncoder(result.Writer).Encode(body)
 }
 
-func WriteResponseFromError(e error, w http.ResponseWriter) {
+func WriteResponseFromError(w http.ResponseWriter, e error) {
 	defer handleInternalError(w)
 	if apiError, ok := e.(ApiError); ok {
 		w.WriteHeader(apiError.Status)
