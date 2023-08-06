@@ -65,7 +65,7 @@ func WriteCreatedResponse(result EmptyResult) {
 		WriteResponseFromError(result.Writer, result.Error)
 		return
 	}
-	writeResponse(result, 401)
+	writeResponse(result, 201)
 
 }
 func WriteEmptyResponse(result EmptyResult) {
@@ -73,7 +73,7 @@ func WriteEmptyResponse(result EmptyResult) {
 		WriteResponseFromError(result.Writer, result.Error)
 		return
 	}
-	writeResponse(result, 400)
+	writeResponse(result, 200)
 }
 
 func writeResponse(result EmptyResult, status int) {
