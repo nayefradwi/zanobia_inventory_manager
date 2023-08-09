@@ -29,6 +29,6 @@ func LoadEnv(env string) ApiConfig {
 		log.Fatalf("failed to load environment: %s", err.Error())
 	}
 	return ApiConfig{
-		Host: os.Getenv("HOST"),
+		Host: os.Getenv("HOST_ADDRESS"),
 	}
 }

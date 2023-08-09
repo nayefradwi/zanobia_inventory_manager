@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 )
@@ -15,6 +16,7 @@ func main() {
 	RegisteredServiceProvider.initiate(RegisteredApiConfig)
 	r := RegisterRoutes(RegisteredServiceProvider)
 	defer RegisteredServiceProvider.cleanUp()
+	log.Printf("listening on: %s", RegisteredApiConfig.Host)
 	http.ListenAndServe(RegisteredApiConfig.Host, r)
 }
 

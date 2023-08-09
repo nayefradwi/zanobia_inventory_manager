@@ -15,5 +15,6 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	ok, _ := json.Marshal(map[string]interface{}{"status": "ok"})
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(ok)
 }
