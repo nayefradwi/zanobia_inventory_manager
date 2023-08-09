@@ -23,6 +23,7 @@ func LoadEnv(env string) ApiConfig {
 		ENV = DEV
 	}
 	envFileName := "." + ENV + ".env"
+	log.Printf("loading environment: %s", envFileName)
 	err := godotenv.Load(envFileName)
 	if err != nil {
 		log.Fatalf("failed to load environment: %s", err.Error())
