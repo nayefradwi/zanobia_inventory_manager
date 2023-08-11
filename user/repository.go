@@ -5,7 +5,6 @@ import (
 )
 
 type IUserRepository interface {
-	cleanUp()
 }
 
 type UserRepository struct {
@@ -14,8 +13,4 @@ type UserRepository struct {
 
 func NewUserRepository(dbPool *pgxpool.Pool) IUserRepository {
 	return &UserRepository{Pool: dbPool}
-}
-
-func (r *UserRepository) cleanUp() {
-	r.Pool.Close()
 }

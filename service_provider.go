@@ -8,6 +8,8 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 )
 
+var connections systemConnections
+
 type systemConnections struct {
 	dbPool *pgxpool.Pool
 }
@@ -23,7 +25,7 @@ type ServiceProvider struct {
 }
 
 func (s *ServiceProvider) initiate(config ApiConfig) {
-	connections := s.setUpConnections(config)
+	connections = s.setUpConnections(config)
 	repositories := s.registerRepositories(connections)
 	s.registerServices(repositories)
 }
@@ -50,7 +52,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 }
 
 func (s *ServiceProvider) cleanUp() {
-	s.services.userService.CleanUp()
+	connections.dbPool.Close()
 }
 
 func connectDatabasePool(ctx context.Context, connectionUrl string) *pgxpool.Pool {
