@@ -23,7 +23,6 @@ func NewTokenOptions(accessTokenExpiry time.Time, refreshTokenExpiry time.Time) 
 	}
 }
 func DefaultTokenOptions() *TokenOptions {
-	// TODO: make expiry configurable
 	return &TokenOptions{
 		AccessTokenExpiry:  time.Now().Add(AccessTokenDuration),
 		RefreshTokenExpiry: time.Now().Add(RefreshTokenDuration),

@@ -15,7 +15,8 @@ const (
 var ENV = PROD
 
 type ApiConfig struct {
-	Host string
+	Host            string
+	DbConnectionUrl string
 }
 
 func LoadEnv(env string) ApiConfig {
@@ -29,6 +30,7 @@ func LoadEnv(env string) ApiConfig {
 		log.Fatalf("failed to load environment: %s", err.Error())
 	}
 	return ApiConfig{
-		Host: os.Getenv("HOST_ADDRESS"),
+		Host:            os.Getenv("HOST_ADDRESS"),
+		DbConnectionUrl: os.Getenv("DB_CONNECTION_URL"),
 	}
 }
