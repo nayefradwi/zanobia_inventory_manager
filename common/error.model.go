@@ -10,16 +10,26 @@ const (
 	INTERNAL_SERVER_ERROR int = 500
 )
 
+const (
+	NOT_FOUND_CODE      = "NOT_FOUND"
+	BAD_REQUEST_CODE    = "BAD_REQUEST"
+	UNAUTHORIZED_CODE   = "UNAUTHORIZED"
+	FORBIDDEN_CODE      = "FORBIDDEN"
+	INTERNAL_ERROR_CODE = "INTERNAL_ERROR"
+	INVALID_INPUT_CODE  = "INVALID_INPUT"
+	UNKNOWN_ERROR_CODE  = "UNKNOWN_ERROR"
+)
+
 type ApiError struct {
 	Message string         `json:"message"`
 	Status  int            `json:"status"`
-	Code    int            `json:"code,omitempty"`
+	Code    string         `json:"code,omitempty"`
 	Errors  []ErrorDetails `json:"errors,omitempty"`
 }
 
 type ErrorDetails struct {
 	Message string `json:"message"`
-	Code    int    `json:"code,omitempty"`
+	Code    string `json:"code,omitempty"`
 	Field   string `json:"field,omitempty"`
 }
 
