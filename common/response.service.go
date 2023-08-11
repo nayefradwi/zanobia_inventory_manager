@@ -84,7 +84,7 @@ func writeResponse(result EmptyResult, status int) {
 
 func WriteResponseFromError(w http.ResponseWriter, e error) {
 	defer handleInternalError(w)
-	if apiError, ok := e.(ApiError); ok {
+	if apiError, ok := e.(*ApiError); ok {
 		w.WriteHeader(apiError.Status)
 		w.Write(apiError.GenerateResponse())
 	}

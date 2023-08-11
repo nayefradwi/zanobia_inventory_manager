@@ -1,15 +1,15 @@
 package common
 
-func newError(message string, status int) ApiError {
-	return ApiError{
+func newError(message string, status int) *ApiError {
+	return &ApiError{
 		Message: message,
 		Status:  status,
 		Code:    status,
 	}
 }
 
-func NewCustomError(message string, status int, code int, errors ...ErrorDetails) ApiError {
-	return ApiError{
+func NewCustomError(message string, status int, code int, errors ...ErrorDetails) *ApiError {
+	return &ApiError{
 		Message: message,
 		Status:  status,
 		Code:    code,
@@ -17,31 +17,31 @@ func NewCustomError(message string, status int, code int, errors ...ErrorDetails
 	}
 }
 
-func NewUnAuthorizedError(message string) ApiError {
+func NewUnAuthorizedError(message string) *ApiError {
 	return newError(message, UNAUTHORIZED)
 }
 
-func NewInternalServerError() ApiError {
+func NewInternalServerError() *ApiError {
 	return newError("Internal server error", INTERNAL_SERVER_ERROR)
 }
 
-func NewNotFoundError(message string) ApiError {
+func NewNotFoundError(message string) *ApiError {
 	return newError(message, NOT_FOUND)
 }
 
-func NewBadRequestError(message string, code int) ApiError {
+func NewBadRequestError(message string, code int) *ApiError {
 	return newError(message, BAD_REQUEST)
 }
 
-func NewForbiddenError(message string, code int) ApiError {
+func NewForbiddenError(message string, code int) *ApiError {
 	return newError(message, FORBIDDEN)
 }
 
-func NewValidationError(message string, errors ...ErrorDetails) ApiError {
+func NewValidationError(message string, errors ...ErrorDetails) *ApiError {
 	return NewCustomError(message, BAD_REQUEST, 0, errors...)
 }
 
-func GenerateErrorFromStatus(status int) ApiError {
+func GenerateErrorFromStatus(status int) *ApiError {
 	switch status {
 	case UNAUTHORIZED:
 		return NewUnAuthorizedError("Unauthorized")

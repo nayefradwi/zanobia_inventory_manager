@@ -23,6 +23,6 @@ type ErrorDetails struct {
 	Field   string `json:"field,omitempty"`
 }
 
-func (e ApiError) Error() string {
+func (e *ApiError) Error() string {
 	return e.Message
 }
