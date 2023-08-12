@@ -18,6 +18,7 @@ type IPermissionRepository interface {
 	FindByHandle(ctx context.Context, handle string) (Permission, error)
 	DoesPermissionExist(ctx context.Context, handle string) bool
 	CreatePermssion(ctx context.Context, permission Permission) error
+	GetAllPermissions(ctx context.Context) ([]Permission, error)
 }
 
 type PermissionRepository struct {
@@ -78,4 +79,25 @@ func (r *PermissionRepository) CreatePermssion(ctx context.Context, permission P
 		return common.NewInternalServerError()
 	}
 	return nil
+}
+
+func (r *PermissionRepository) GetAllPermissions(ctx context.Context) ([]Permission, error) {
+	sql := "SELECT id, handle, name, description, is_secret FROM permissions where is_secret = false"
+	rows, err := r.Query(ctx, sql)
+	if err != nil {
+		log.Printf("failed to get all permissions: %s", err.Error())
+		return nil, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	var permissions []Permission
+	for rows.Next() {
+		var permission Permission
+		err := rows.Scan(&permission.Id, &permission.Handle, &permission.Name, &permission.Description, &permission.IsSecret)
+		if err != nil {
+			log.Printf("failed to get all permissions: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		permissions = append(permissions, permission)
+	}
+	return permissions, nil
 }

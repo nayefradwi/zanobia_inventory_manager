@@ -50,3 +50,12 @@ func (c PermissionController) GetPermissionByHandle(w http.ResponseWriter, r *ht
 		Error:  err,
 	})
 }
+
+func (c PermissionController) GetAllPermissions(w http.ResponseWriter, r *http.Request) {
+	permissions, err := c.service.GetAllPermissions(r.Context())
+	common.WriteResponse(common.Result[[]Permission]{
+		Writer: w,
+		Data:   permissions,
+		Error:  err,
+	})
+}

@@ -33,6 +33,7 @@ func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	permissionRouter := chi.NewRouter()
 	permissionRouter.Post("/initial-permissions", permissionController.InitiateInitialPermissions)
 	permissionRouter.Post("/", permissionController.CreatePermission)
+	permissionRouter.Get("/", permissionController.GetAllPermissions)
 	getPermissionByHandleRoute := fmt.Sprintf("/{%s}", user.PermissionHandleParam)
 	permissionRouter.Get(getPermissionByHandleRoute, permissionController.GetPermissionByHandle)
 	mainRouter.Mount("/permissions", permissionRouter)
