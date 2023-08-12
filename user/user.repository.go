@@ -12,6 +12,7 @@ import (
 
 type IUserRepository interface {
 	Create(ctx context.Context, user UserInput) error
+	GetAllUsers(ctx context.Context) ([]User, error)
 }
 
 type UserRepository struct {
@@ -61,4 +62,25 @@ func (r *UserRepository) _addPermissionsToUser(ctx context.Context, tx pgx.Tx, u
 		}
 	}
 	return nil
+}
+
+func (s *UserRepository) GetAllUsers(ctx context.Context) ([]User, error) {
+	sql := "SELECT id, email, first_name, last_name, is_active FROM users"
+	rows, err := s.Query(ctx, sql)
+	if err != nil {
+		log.Printf("failed to get users: %s", err.Error())
+		return nil, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	var users []User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(&user.Id, &user.Email, &user.FirstName, &user.LastName, &user.IsActive)
+		if err != nil {
+			log.Printf("failed to scan user: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		users = append(users, user)
+	}
+	return users, nil
 }

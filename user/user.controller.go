@@ -35,3 +35,12 @@ func (c UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 }
+
+func (c UserController) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := c.service.GetAllUsers(r.Context())
+	common.WriteResponse(common.Result[[]User]{
+		Writer: w,
+		Data:   users,
+		Error:  err,
+	})
+}

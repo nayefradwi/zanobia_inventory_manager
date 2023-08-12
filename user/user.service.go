@@ -10,6 +10,7 @@ import (
 type IUserService interface {
 	Create(ctx context.Context, user UserInput) error
 	InitiateSystemAdmin(ctx context.Context) error
+	GetAllUsers(ctx context.Context) ([]User, error)
 }
 
 type UserServiceInput struct {
@@ -55,4 +56,8 @@ func (s *UserService) InitiateSystemAdmin(ctx context.Context) error {
 		PermissionHandles: []string{sysAdminPermissionHandle},
 	}
 	return s.Create(ctx, userInput)
+}
+
+func (s *UserService) GetAllUsers(ctx context.Context) ([]User, error) {
+	return s.Repository.GetAllUsers(ctx)
 }
