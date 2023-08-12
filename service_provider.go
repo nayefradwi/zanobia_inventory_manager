@@ -6,12 +6,14 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
+	"github.com/redis/go-redis/v9"
 )
 
 var connections systemConnections
 
 type systemConnections struct {
-	dbPool *pgxpool.Pool
+	dbPool      *pgxpool.Pool
+	redisClient *redis.Client
 }
 type systemRepositories struct {
 	userRepository user.IUserRepository
@@ -33,8 +35,10 @@ func (s *ServiceProvider) initiate(config ApiConfig) {
 func (s *ServiceProvider) setUpConnections(config ApiConfig) systemConnections {
 	ctx := context.Background()
 	dbPool := connectDatabasePool(ctx, config.DbConnectionUrl)
+	redisClient := connectRedis(ctx, config.RedisUrl)
 	return systemConnections{
-		dbPool: dbPool,
+		dbPool:      dbPool,
+		redisClient: redisClient,
 	}
 }
 
@@ -62,4 +66,18 @@ func connectDatabasePool(ctx context.Context, connectionUrl string) *pgxpool.Poo
 	}
 	log.Print("connected to database successfully")
 	return dbPool
+}
+
+func connectRedis(ctx context.Context, connectionUrl string) *redis.Client {
+	opt, parsingErr := redis.ParseURL(connectionUrl)
+	if parsingErr != nil {
+		log.Fatalf("failed to parse redis connection url: %s", parsingErr)
+	}
+	redisClient := redis.NewClient(opt)
+	_, connectionErr := redisClient.Ping(ctx).Result()
+	if connectionErr != nil {
+		log.Fatalf("failed to set up redis connection: %s", connectionErr)
+	}
+	log.Print("connected to redis successfully")
+	return redisClient
 }

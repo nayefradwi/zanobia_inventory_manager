@@ -10,3 +10,14 @@ CREATE TABLE users (
 
 DROP INDEX IF EXISTS idx_email;
 CREATE UNIQUE INDEX idx_email ON users(email);
+
+DROP TABLE IF EXISTS permissions;
+CREATE TABLE permissions (
+    id SERIAL PRIMARY KEY,
+    handle VARCHAR(50) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NOT NULL
+);
+
+DROP INDEX IF EXISTS idx_handle;
+CREATE UNIQUE INDEX idx_handle ON permissions(handle);

@@ -19,6 +19,7 @@ type ApiConfig struct {
 	DbConnectionUrl      string
 	InitialSysAdminEmail string
 	InitialSysAdminPass  string
+	RedisUrl             string
 }
 
 func LoadEnv(env string) ApiConfig {
@@ -36,5 +37,6 @@ func LoadEnv(env string) ApiConfig {
 		DbConnectionUrl:      os.Getenv("DB_CONNECTION_URL"),
 		InitialSysAdminEmail: os.Getenv("INITIAL_SYSTEM_ADMIN_EMAIL"),
 		InitialSysAdminPass:  os.Getenv("INITIAL_SYSTEM_ADMIN_PASSWORD"),
+		RedisUrl:             os.Getenv("REDIS_CACHE_URL"),
 	}
 }
