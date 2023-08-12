@@ -37,3 +37,37 @@ CREATE TABLE user_permissions (
 
 DROP INDEX IF EXISTS idx_user_permission;
 CREATE UNIQUE INDEX idx_user_permission ON user_permissions(user_id, permission_handle);
+
+DROP TABLE IF EXISTS roles;
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP INDEX IF EXISTS idx_name;
+CREATE UNIQUE INDEX idx_name ON roles(name);
+
+DROP TABLE IF EXISTS role_permissions;
+CREATE TABLE role_permissions (
+    id SERIAL PRIMARY KEY,
+    role_id INTEGER NOT NULL REFERENCES roles(id),
+    permission_handle VARCHAR(50) NOT NULL REFERENCES permissions(handle),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP INDEX IF EXISTS idx_role_permission;
+CREATE UNIQUE INDEX idx_role_permission ON role_permissions(role_id, permission_handle);
+
+DROP TABLE IF EXISTS user_roles;
+CREATE TABLE user_roles (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    role_id INTEGER NOT NULL REFERENCES roles(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP INDEX IF EXISTS idx_user_role;
+CREATE UNIQUE INDEX idx_user_role ON user_roles(user_id, role_id);
