@@ -66,8 +66,9 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	}
 }
 
-func (s *ServiceProvider) cleanUp() {
+func cleanUp() {
 	connections.dbPool.Close()
+	connections.redisClient.Close()
 }
 
 func connectDatabasePool(ctx context.Context, connectionUrl string) *pgxpool.Pool {
