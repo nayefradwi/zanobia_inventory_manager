@@ -17,6 +17,7 @@ CREATE TABLE permissions (
     handle VARCHAR(50) NOT NULL,
     name VARCHAR(50) NOT NULL,
     description VARCHAR(255) NOT NULL
+    is_secret BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 DROP INDEX IF EXISTS idx_handle;

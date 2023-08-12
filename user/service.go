@@ -1,6 +1,11 @@
 package user
 
-import "context"
+import (
+	"context"
+	"log"
+
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+)
 
 type IUserService interface {
 	Create(ctx context.Context, user UserInput) error
@@ -25,6 +30,12 @@ func (s *UserService) Create(ctx context.Context, user UserInput) error {
 	if validationError != nil {
 		return validationError
 	}
+	hashPassword, hashError := common.Hash(user.Password)
+	if hashError != nil {
+		log.Printf("failed to hash: %s", hashError.Error())
+		return common.NewInternalServerError()
+	}
+	user.Password = hashPassword
 	creationError := s.repository.Create(ctx, user)
 	if creationError != nil {
 		return creationError
