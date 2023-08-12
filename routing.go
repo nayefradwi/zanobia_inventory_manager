@@ -14,8 +14,17 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	r := chi.NewRouter()
 	r.Use(common.JsonResponseMiddleware)
 	r.Get("/health-check", healthCheck)
+	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)
 	return r
+}
+
+func registerUserRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	userController := user.NewUserController(provider.services.userService)
+	userRouter := chi.NewRouter()
+	userRouter.Post("/", userController.CreateUser)
+	userRouter.Post("/initial-sys-admin", userController.InitiateSysAdminUser)
+	mainRouter.Mount("/users", userRouter)
 }
 
 func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
