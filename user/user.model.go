@@ -1,10 +1,11 @@
 package user
 
 type UserInput struct {
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
+	Email             string   `json:"email"`
+	Password          string   `json:"password"`
+	FirstName         string   `json:"firstName"`
+	LastName          string   `json:"lastName"`
+	PermissionHandles []string `json:"permissionHandles"`
 }
 
 type User struct {

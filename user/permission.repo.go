@@ -81,4 +81,5 @@ func (r *PermissionRepository) CreatePermssion(ctx context.Context, permission P
 		return common.NewInternalServerError()
 	}
 	return nil
+
 }

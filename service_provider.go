@@ -53,7 +53,12 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	}
 }
 func (s *ServiceProvider) registerServices(repositories systemRepositories) {
-	userService := user.NewUserService(repositories.userRepository)
+	userServiceInput := user.UserServiceInput{
+		Repository:       repositories.userRepository,
+		SysAdminEmail:    RegisteredApiConfig.InitialSysAdminEmail,
+		SysAdminPassword: RegisteredApiConfig.InitialSysAdminPass,
+	}
+	userService := user.NewUserService(userServiceInput)
 	permissionService := user.NewPermissionService(repositories.permissionRepository)
 	s.services = systemServices{
 		userService:       userService,

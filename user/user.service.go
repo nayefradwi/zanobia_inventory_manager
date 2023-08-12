@@ -9,20 +9,23 @@ import (
 
 type IUserService interface {
 	Create(ctx context.Context, user UserInput) error
+	InitiateSystemAdmin(ctx context.Context) error
+}
+
+type UserServiceInput struct {
+	Repository       IUserRepository
+	SysAdminEmail    string
+	SysAdminPassword string
 }
 
 type UserService struct {
-	repository IUserRepository
+	UserServiceInput
 }
 
-func NewUserService(repository IUserRepository) IUserService {
+func NewUserService(input UserServiceInput) IUserService {
 	return &UserService{
-		repository: repository,
+		UserServiceInput: input,
 	}
-}
-
-func (s *UserService) CreateSysAdmin() error {
-	return nil
 }
 
 func (s *UserService) Create(ctx context.Context, user UserInput) error {
@@ -36,9 +39,20 @@ func (s *UserService) Create(ctx context.Context, user UserInput) error {
 		return common.NewInternalServerError()
 	}
 	user.Password = hashPassword
-	creationError := s.repository.Create(ctx, user)
+	creationError := s.Repository.Create(ctx, user)
 	if creationError != nil {
 		return creationError
 	}
 	return nil
+}
+
+func (s *UserService) InitiateSystemAdmin(ctx context.Context) error {
+	userInput := UserInput{
+		Email:             s.SysAdminEmail,
+		Password:          s.SysAdminPassword,
+		FirstName:         "System",
+		LastName:          "Admin",
+		PermissionHandles: []string{sysAdminPermissionHandle},
+	}
+	return s.Create(ctx, userInput)
 }
