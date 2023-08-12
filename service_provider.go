@@ -16,11 +16,13 @@ type systemConnections struct {
 	redisClient *redis.Client
 }
 type systemRepositories struct {
-	userRepository user.IUserRepository
+	userRepository       user.IUserRepository
+	permissionRepository user.IPermissionRepository
 }
 
 type systemServices struct {
-	userService user.IUserService
+	userService       user.IUserService
+	permissionService user.IPermissionService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -44,14 +46,18 @@ func (s *ServiceProvider) setUpConnections(config ApiConfig) systemConnections {
 
 func (s *ServiceProvider) registerRepositories(connections systemConnections) systemRepositories {
 	userRepo := user.NewUserRepository(connections.dbPool)
+	permssionRepo := user.NewPermissionRepository(connections.dbPool)
 	return systemRepositories{
-		userRepository: userRepo,
+		userRepository:       userRepo,
+		permissionRepository: permssionRepo,
 	}
 }
 func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	userService := user.NewUserService(repositories.userRepository)
+	permissionService := user.NewPermissionService(repositories.permissionRepository)
 	s.services = systemServices{
-		userService: userService,
+		userService:       userService,
+		permissionService: permissionService,
 	}
 }
 
