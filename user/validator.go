@@ -7,17 +7,21 @@ import (
 )
 
 func ValidateUser(userInput UserInput) error {
-	errors := make([]common.ErrorDetails, 0)
-	errors = append(errors,
+	validationResults := make([]common.ErrorDetails, 0)
+	validationResults = append(validationResults,
 		ValidateEmail(userInput.Email),
 		ValidatePassword(userInput.Password),
 		ValidateFirstName(userInput.FirstName),
 		ValidateLastName(userInput.LastName),
 	)
-	for _, err := range errors {
-		if len(err.Message) > 0 {
-			return common.NewValidationError("invalid user input", errors...)
+	errors := make([]common.ErrorDetails, 0)
+	for _, result := range validationResults {
+		if len(result.Message) > 0 {
+			errors = append(errors, result)
 		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid user input", errors...)
 	}
 	return nil
 }
