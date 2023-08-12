@@ -17,6 +17,7 @@ type IPermissionRepository interface {
 	AddAll(ctx context.Context, permissions []Permission) error
 	FindByHandle(ctx context.Context, handle string) (Permission, error)
 	DoesPermissionExist(ctx context.Context, handle string) bool
+	CreatePermssion(ctx context.Context, permission Permission) error
 }
 
 type PermissionRepository struct {
@@ -64,6 +65,19 @@ func (r *PermissionRepository) AddAll(ctx context.Context, permissions []Permiss
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
+		return common.NewInternalServerError()
+	}
+	return nil
+}
+
+func (r *PermissionRepository) CreatePermssion(ctx context.Context, permission Permission) error {
+	sql := "INSERT INTO permissions (handle, name, description, is_secret) VALUES ($1, $2, $3, $4)"
+	c, err := r.Exec(ctx, sql, permission.Handle, permission.Name, permission.Description, permission.IsSecret)
+	if err != nil {
+		log.Printf("failed to add permission: %s", err.Error())
+		return common.NewBadRequestError("failed to add permissions", zimutils.GetErrorCodeFromError(err))
+	}
+	if c.RowsAffected() == 0 {
 		return common.NewInternalServerError()
 	}
 	return nil

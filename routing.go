@@ -21,6 +21,7 @@ func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	permissionController := user.NewPermissionController(provider.services.permissionService)
 	permissionRouter := chi.NewRouter()
 	permissionRouter.Post("/initial-permissions", permissionController.InitiateInitialPermissions)
+	permissionRouter.Post("/", permissionController.CreatePermission)
 	mainRouter.Mount("/permissions", permissionRouter)
 }
 

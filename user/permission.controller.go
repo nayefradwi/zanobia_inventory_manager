@@ -24,3 +24,14 @@ func (c PermissionController) InitiateInitialPermissions(w http.ResponseWriter, 
 		Error:   err,
 	})
 }
+
+func (c PermissionController) CreatePermission(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[Permission](w, r.Body, func(data Permission) {
+		err := c.service.CreatePermission(r.Context(), data)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Message: "Permission created successfully",
+			Writer:  w,
+			Error:   err,
+		})
+	})
+}

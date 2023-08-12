@@ -1,5 +1,7 @@
 package user
 
+import "strings"
+
 type Permission struct {
 	Id          *int   `json:"id,omitempty"`
 	Handle      string `json:"handle"`
@@ -12,4 +14,10 @@ func generateInitialPermissions() []Permission {
 	return []Permission{
 		{Name: "system admin", IsSecret: true, Handle: sysAdminPermissionHandle},
 	}
+}
+
+func generateHandle(name string) string {
+	name = strings.ReplaceAll(name, " ", "_")
+	name = strings.ToLower(name)
+	return name
 }

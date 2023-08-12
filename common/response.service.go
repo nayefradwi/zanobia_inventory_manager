@@ -79,6 +79,7 @@ func WriteEmptyResponse(result EmptyResult) {
 func writeResponse(result EmptyResult, status int) {
 	body := make(map[string]interface{})
 	body["message"] = result.Message
+	body["status"] = status
 	json.NewEncoder(result.Writer).Encode(body)
 }
 
