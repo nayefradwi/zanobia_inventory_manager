@@ -14,12 +14,12 @@ const (
 func GetErrorCodeFromError(err error) string {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
-		return common.NOT_FOUND_CODE
+		return common.UNKNOWN_ERROR_CODE
 	}
 	switch pgErr.Code {
 	case "23505":
 		return duplicateErrorCode
 	default:
-		return common.NOT_FOUND_CODE
+		return common.UNKNOWN_ERROR_CODE
 	}
 }

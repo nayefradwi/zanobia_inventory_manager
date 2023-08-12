@@ -46,7 +46,7 @@ func (r *UserRepository) _createUser(ctx context.Context, tx pgx.Tx, user UserIn
 	err := tx.QueryRow(ctx, sql, user.Email, user.Password, user.FirstName, user.LastName, true).Scan(&id)
 	if err != nil {
 		log.Printf("failed to create user: %s", err.Error())
-		return 0, common.NewBadRequestError(err.Error(), zimutils.GetErrorCodeFromError(err))
+		return 0, common.NewBadRequestError("Failed to create user", zimutils.GetErrorCodeFromError(err))
 	}
 	return id, nil
 }
