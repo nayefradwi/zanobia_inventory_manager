@@ -3,7 +3,12 @@ package user
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+)
+
+const (
+	PermissionHandleParam = "permissionHandle"
 )
 
 type PermissionController struct {
@@ -33,5 +38,15 @@ func (c PermissionController) CreatePermission(w http.ResponseWriter, r *http.Re
 			Writer:  w,
 			Error:   err,
 		})
+	})
+}
+
+func (c PermissionController) GetPermissionByHandle(w http.ResponseWriter, r *http.Request) {
+	handle := chi.URLParam(r, PermissionHandleParam)
+	permission, err := c.service.FindPermissionByHandle(r.Context(), handle)
+	common.WriteResponse(common.Result[Permission]{
+		Writer: w,
+		Data:   permission,
+		Error:  err,
 	})
 }

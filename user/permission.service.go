@@ -5,6 +5,7 @@ import "context"
 type IPermissionService interface {
 	InitiateInitialPermissions(ctx context.Context) error
 	CreatePermission(ctx context.Context, permission Permission) error
+	FindPermissionByHandle(ctx context.Context, handle string) (Permission, error)
 }
 
 type PermissionService struct {
@@ -37,4 +38,8 @@ func (s *PermissionService) CreatePermission(ctx context.Context, permission Per
 		return err
 	}
 	return nil
+}
+
+func (s *PermissionService) FindPermissionByHandle(ctx context.Context, handle string) (Permission, error) {
+	return s.repository.FindByHandle(ctx, handle)
 }

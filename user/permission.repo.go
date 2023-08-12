@@ -37,12 +37,9 @@ func (r *PermissionRepository) FindByHandle(ctx context.Context, handle string) 
 	sql := "SELECT id, handle, name, description, is_secret FROM permissions WHERE handle = $1"
 	row := r.QueryRow(ctx, sql, handle)
 	var permission Permission
-	err := row.Scan(permission.Id, &permission.Handle, &permission.Name, &permission.Description, &permission.IsSecret)
+	err := row.Scan(&permission.Id, &permission.Handle, &permission.Name, &permission.Description, &permission.IsSecret)
 	if err != nil {
 		log.Printf("failed to find permission by handle: %s", err.Error())
-		return Permission{}, common.NewInternalServerError()
-	}
-	if permission.Id == nil {
 		return Permission{}, common.NewNotFoundError("permission not found")
 	}
 	return permission, nil
@@ -81,5 +78,4 @@ func (r *PermissionRepository) CreatePermssion(ctx context.Context, permission P
 		return common.NewInternalServerError()
 	}
 	return nil
-
 }

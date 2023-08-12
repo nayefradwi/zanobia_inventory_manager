@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -22,6 +23,8 @@ func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	permissionRouter := chi.NewRouter()
 	permissionRouter.Post("/initial-permissions", permissionController.InitiateInitialPermissions)
 	permissionRouter.Post("/", permissionController.CreatePermission)
+	getPermissionByHandleRoute := fmt.Sprintf("/{%s}", user.PermissionHandleParam)
+	permissionRouter.Get(getPermissionByHandleRoute, permissionController.GetPermissionByHandle)
 	mainRouter.Mount("/permissions", permissionRouter)
 }
 
