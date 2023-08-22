@@ -18,11 +18,13 @@ type systemConnections struct {
 type systemRepositories struct {
 	userRepository       user.IUserRepository
 	permissionRepository user.IPermissionRepository
+	roleRepository       user.IRoleRepository
 }
 
 type systemServices struct {
 	userService       user.IUserService
 	permissionService user.IPermissionService
+	roleService       user.IRoleService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -47,9 +49,11 @@ func (s *ServiceProvider) setUpConnections(config ApiConfig) systemConnections {
 func (s *ServiceProvider) registerRepositories(connections systemConnections) systemRepositories {
 	userRepo := user.NewUserRepository(connections.dbPool)
 	permssionRepo := user.NewPermissionRepository(connections.dbPool)
+	roleRepo := user.NewRoleRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
 		permissionRepository: permssionRepo,
+		roleRepository:       roleRepo,
 	}
 }
 func (s *ServiceProvider) registerServices(repositories systemRepositories) {
@@ -60,9 +64,11 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	}
 	userService := user.NewUserService(userServiceInput)
 	permissionService := user.NewPermissionService(repositories.permissionRepository)
+	roleService := user.NewRoleService(repositories.roleRepository)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,
+		roleService:       roleService,
 	}
 }
 

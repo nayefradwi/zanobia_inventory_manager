@@ -6,6 +6,57 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
+func ValidateRole(roleInput RoleInput) error {
+	validationResults := make([]common.ErrorDetails, 0)
+	validationResults = append(validationResults,
+		ValidateRoleName(roleInput.Name),
+		ValidateRoleDescription(roleInput.Description),
+		ValidatePermissions(roleInput.PermissionHandles),
+	)
+	errors := make([]common.ErrorDetails, 0)
+	for _, result := range validationResults {
+		if len(result.Message) > 0 {
+			errors = append(errors, result)
+		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid role input", errors...)
+	}
+	return nil
+}
+
+func ValidateRoleName(name string) common.ErrorDetails {
+	pattern := "^[a-z]{3,50}$"
+	regex := regexp.MustCompile(pattern)
+	if !regex.MatchString(name) {
+		return common.ErrorDetails{
+			Message: "role name must be between 3 and 50 lower case characters",
+			Field:   "name",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
+func ValidateRoleDescription(description string) common.ErrorDetails {
+	if len(description) > 255 {
+		return common.ErrorDetails{
+			Message: "role description must be less than 255 characters",
+			Field:   "description",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
+func ValidatePermissions(permissions []string) common.ErrorDetails {
+	if len(permissions) == 0 {
+		return common.ErrorDetails{
+			Message: "role must have at least one permission",
+			Field:   "handles",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
 func ValidateUser(userInput UserInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,

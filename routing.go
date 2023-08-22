@@ -16,6 +16,7 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	r.Get("/health-check", healthCheck)
 	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)
+	registerRoleRoutes(r, provider)
 	return r
 }
 
@@ -37,6 +38,13 @@ func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	getPermissionByHandleRoute := fmt.Sprintf("/{%s}", user.PermissionHandleParam)
 	permissionRouter.Get(getPermissionByHandleRoute, permissionController.GetPermissionByHandle)
 	mainRouter.Mount("/permissions", permissionRouter)
+}
+
+func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	roleController := user.NewRoleController(provider.services.roleService)
+	roleRouter := chi.NewRouter()
+	roleRouter.Post("/", roleController.CreateRole)
+	mainRouter.Mount("/roles", roleRouter)
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {

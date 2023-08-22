@@ -60,14 +60,3 @@ CREATE TABLE role_permissions (
 
 DROP INDEX IF EXISTS idx_role_permission;
 CREATE UNIQUE INDEX idx_role_permission ON role_permissions(role_id, permission_handle);
-
-DROP TABLE IF EXISTS user_roles;
-CREATE TABLE user_roles (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    role_id INTEGER NOT NULL REFERENCES roles(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-DROP INDEX IF EXISTS idx_user_role;
-CREATE UNIQUE INDEX idx_user_role ON user_roles(user_id, role_id);
