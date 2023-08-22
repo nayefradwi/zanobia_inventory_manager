@@ -11,7 +11,8 @@ import (
 )
 
 type IRoleRepository interface {
-	CreateRole(ctx context.Context, role RoleInput) error
+	CreateRole(ctx context.Context, role Role) error
+	GetRoles(ctx context.Context) ([]Role, error)
 }
 
 type RoleRepository struct {
@@ -22,7 +23,7 @@ func NewRoleRepository(dbPool *pgxpool.Pool) IRoleRepository {
 	return &RoleRepository{Pool: dbPool}
 }
 
-func (r *RoleRepository) CreateRole(ctx context.Context, role RoleInput) error {
+func (r *RoleRepository) CreateRole(ctx context.Context, role Role) error {
 	tx, err := r.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return common.NewInternalServerError()
@@ -36,10 +37,11 @@ func (r *RoleRepository) CreateRole(ctx context.Context, role RoleInput) error {
 	if addErr != nil {
 		return addErr
 	}
+	tx.Commit(ctx)
 	return nil
 }
 
-func (r *RoleRepository) _createRole(ctx context.Context, tx pgx.Tx, role RoleInput) (int, error) {
+func (r *RoleRepository) _createRole(ctx context.Context, tx pgx.Tx, role Role) (int, error) {
 	sql := "INSERT INTO roles (name, description) VALUES ($1, $2) RETURNING id"
 	var id int
 	err := tx.QueryRow(ctx, sql, role.Name, role.Description).Scan(&id)
@@ -59,4 +61,35 @@ func (r *RoleRepository) _addPermissionsToRole(ctx context.Context, tx pgx.Tx, r
 		}
 	}
 	return nil
+}
+
+func (r *RoleRepository) GetRoles(ctx context.Context) ([]Role, error) {
+	sql := "SELECT roles.id, roles.name, roles.description, role_permissions.permission_handle FROM roles LEFT JOIN role_permissions ON roles.id = role_permissions.role_id"
+	rows, err := r.Query(ctx, sql)
+	if err != nil {
+		return nil, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	rolesMap := make(map[int]Role, 0)
+	for rows.Next() {
+		var role Role
+		var permissionHandle string
+		err := rows.Scan(&role.Id, &role.Name, &role.Description, &permissionHandle)
+		if err != nil {
+			return nil, common.NewInternalServerError()
+		}
+		if _, ok := rolesMap[*role.Id]; !ok {
+			role.PermissionHandles = []string{permissionHandle}
+			rolesMap[*role.Id] = role
+			continue
+		}
+		role = rolesMap[*role.Id]
+		role.PermissionHandles = append(role.PermissionHandles, permissionHandle)
+		rolesMap[*role.Id] = role
+	}
+	roles := make([]Role, 0)
+	for _, role := range rolesMap {
+		roles = append(roles, role)
+	}
+	return roles, nil
 }

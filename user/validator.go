@@ -6,7 +6,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
-func ValidateRole(roleInput RoleInput) error {
+func ValidateRole(roleInput Role) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
 		ValidateRoleName(roleInput.Name),

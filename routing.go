@@ -44,6 +44,7 @@ func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	roleController := user.NewRoleController(provider.services.roleService)
 	roleRouter := chi.NewRouter()
 	roleRouter.Post("/", roleController.CreateRole)
+	roleRouter.Get("/", roleController.GetRoles)
 	mainRouter.Mount("/roles", roleRouter)
 }
 

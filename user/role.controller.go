@@ -17,12 +17,21 @@ func NewRoleController(service IRoleService) *RoleController {
 }
 
 func (c RoleController) CreateRole(w http.ResponseWriter, r *http.Request) {
-	common.ParseBody[RoleInput](w, r.Body, func(roleInput RoleInput) {
-		err := c.service.CreateRole(r.Context(), roleInput)
+	common.ParseBody[Role](w, r.Body, func(role Role) {
+		err := c.service.CreateRole(r.Context(), role)
 		common.WriteCreatedResponse(common.EmptyResult{
 			Writer:  w,
 			Message: "role created successfully",
 			Error:   err,
 		})
+	})
+}
+
+func (c RoleController) GetRoles(w http.ResponseWriter, r *http.Request) {
+	roles, err := c.service.GetRoles(r.Context())
+	common.WriteResponse[[]Role](common.Result[[]Role]{
+		Writer: w,
+		Data:   roles,
+		Error:  err,
 	})
 }
