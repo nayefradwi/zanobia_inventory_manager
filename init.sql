@@ -74,7 +74,7 @@ CREATE TABLE unit_conversions (
     id SERIAL PRIMARY KEY,
     unit_id INTEGER NOT NULL REFERENCES units(id),
     conversion_unit_id INTEGER NOT NULL REFERENCES units(id),
-    conversion_factor NUMERIC(10, 2) NOT NULL
+    conversion_factor NUMERIC(10, 5) NOT NULL
 );
 
 CREATE TABLE translations (

@@ -14,6 +14,8 @@ type IUnitRepository interface {
 	CreateUnit(ctx context.Context, unit Unit) error
 	GetUnitFromName(ctx context.Context, name string) (Unit, error)
 	AddUnitConversion(ctx context.Context, conversion UnitConversion) error
+	GetUnitById(ctx context.Context, id *int) (Unit, error)
+	GetUnitConversionByUnitId(ctx context.Context, id *int, conversionId *int) (UnitConversion, error)
 }
 
 type UnitRepository struct {
@@ -84,4 +86,34 @@ func (r *UnitRepository) AddUnitConversion(ctx context.Context, conversion UnitC
 		return common.NewInternalServerError()
 	}
 	return nil
+}
+
+func (r *UnitRepository) GetUnitById(ctx context.Context, id *int) (Unit, error) {
+	sql := `SELECT id, name, symbol FROM units WHERE id = $1`
+	row := r.QueryRow(ctx, sql, id)
+	var unit Unit
+	err := row.Scan(&unit.Id, &unit.Name, &unit.Symbol)
+	if err != nil {
+		log.Printf("failed to scan unit: %s", err.Error())
+		return Unit{}, common.NewBadRequestError("Failed to get unit", zimutils.GetErrorCodeFromError(err))
+	}
+	if unit.Id == nil {
+		return Unit{}, common.NewNotFoundError("Unit not found")
+	}
+	return unit, nil
+}
+
+func (r *UnitRepository) GetUnitConversionByUnitId(ctx context.Context, id *int, conversionId *int) (UnitConversion, error) {
+	sql := `SELECT id, unit_id, conversion_unit_id, conversion_factor FROM unit_conversions WHERE unit_id = $1 AND conversion_unit_id = $2`
+	row := r.QueryRow(ctx, sql, id, conversionId)
+	var conversion UnitConversion
+	err := row.Scan(&conversion.Id, &conversion.UnitId, &conversion.ConversionUnitId, &conversion.ConversionFactor)
+	if err != nil {
+		log.Printf("failed to scan unit conversion: %s", err.Error())
+		return UnitConversion{}, common.NewBadRequestError("Failed to get unit conversion", zimutils.GetErrorCodeFromError(err))
+	}
+	if conversion.Id == nil {
+		return UnitConversion{}, common.NewNotFoundError("Unit conversion not found")
+	}
+	return conversion, nil
 }

@@ -55,3 +55,14 @@ func (c UnitController) CreateConversionFromName(w http.ResponseWriter, r *http.
 		})
 	})
 }
+
+func (c UnitController) ConvertUnit(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[ConvertUnitInput](w, r.Body, func(input ConvertUnitInput) {
+		result, err := c.service.ConvertUnit(r.Context(), input)
+		common.WriteResponse(common.Result[ConvertUnitOutput]{
+			Error:  err,
+			Writer: w,
+			Data:   result,
+		})
+	})
+}

@@ -70,6 +70,7 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitConversionRouter := chi.NewRouter()
 	unitConversionRouter.Post("/", unitConversionController.CreateConversion)
 	unitConversionRouter.Post("/from-name", unitConversionController.CreateConversionFromName)
+	unitConversionRouter.Post("/convert", unitConversionController.ConvertUnit)
 	mainRouter.Mount("/unit-conversions", unitConversionRouter)
 }
 

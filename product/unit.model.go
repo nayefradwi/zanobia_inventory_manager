@@ -18,3 +18,14 @@ type UnitConversionInput struct {
 	ConversionUnitName string  `json:"conversionUnitName"`
 	ConversionFactor   float32 `json:"conversionFactor"`
 }
+
+type ConvertUnitInput struct {
+	UnitId           *int    `json:"unitId"`
+	ConversionUnitId *int    `json:"conversionUnitId"`
+	Quantity         float32 `json:"quantity"`
+}
+
+type ConvertUnitOutput struct {
+	Unit     Unit    `json:"unit"`
+	Quantity float32 `json:"quantity"`
+}

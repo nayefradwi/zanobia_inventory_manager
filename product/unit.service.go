@@ -9,6 +9,7 @@ type IUnitService interface {
 	GetAllUnits(ctx context.Context) ([]Unit, error)
 	CreateConversion(ctx context.Context, conversion UnitConversion) error
 	CreateConversionFromName(ctx context.Context, input UnitConversionInput) error
+	ConvertUnit(ctx context.Context, input ConvertUnitInput) (ConvertUnitOutput, error)
 }
 
 type UnitService struct {
@@ -58,4 +59,20 @@ func (s *UnitService) CreateConversion(ctx context.Context, conversion UnitConve
 		return validationErr
 	}
 	return s.repo.AddUnitConversion(ctx, conversion)
+}
+
+func (s *UnitService) ConvertUnit(ctx context.Context, input ConvertUnitInput) (ConvertUnitOutput, error) {
+	unitConversion, err := s.repo.GetUnitConversionByUnitId(ctx, input.UnitId, input.ConversionUnitId)
+	if err != nil {
+		return ConvertUnitOutput{}, err
+	}
+	newQty := input.Quantity * unitConversion.ConversionFactor
+	newUnit, err := s.repo.GetUnitById(ctx, unitConversion.ConversionUnitId)
+	if err != nil {
+		return ConvertUnitOutput{}, err
+	}
+	return ConvertUnitOutput{
+		Unit:     newUnit,
+		Quantity: newQty,
+	}, nil
 }
