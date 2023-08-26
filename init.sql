@@ -1,4 +1,23 @@
+DROP TABLE IF EXISTS user_permissions;
+DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS unit_conversions;
+DROP TABLE IF EXISTS translations;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS permissions;
+DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS units;
+
+
+DROP INDEX IF EXISTS idx_email;
+DROP INDEX IF EXISTS idx_handle;
+DROP INDEX IF EXISTS idx_name;
+DROP INDEX IF EXISTS idx_user_permission;
+DROP INDEX IF EXISTS idx_role_permission;
+DROP INDEX IF EXISTS idx_name;
+DROP INDEX IF EXISTS idx_unit_conversion;
+DROP INDEX IF EXISTS idx_entity;
+
+
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
@@ -10,10 +29,6 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP INDEX IF EXISTS idx_email;
-CREATE UNIQUE INDEX idx_email ON users(email);
-
-DROP TABLE IF EXISTS permissions;
 CREATE TABLE permissions (
     id SERIAL PRIMARY KEY,
     handle VARCHAR(50) NOT NULL,
@@ -24,10 +39,6 @@ CREATE TABLE permissions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP INDEX IF EXISTS idx_handle;
-CREATE UNIQUE INDEX idx_handle ON permissions(handle);
-
-DROP TABLE IF EXISTS user_permissions;
 CREATE TABLE user_permissions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
@@ -35,10 +46,7 @@ CREATE TABLE user_permissions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP INDEX IF EXISTS idx_user_permission;
-CREATE UNIQUE INDEX idx_user_permission ON user_permissions(user_id, permission_handle);
 
-DROP TABLE IF EXISTS roles;
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
@@ -47,10 +55,6 @@ CREATE TABLE roles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP INDEX IF EXISTS idx_name;
-CREATE UNIQUE INDEX idx_name ON roles(name);
-
-DROP TABLE IF EXISTS role_permissions;
 CREATE TABLE role_permissions (
     id SERIAL PRIMARY KEY,
     role_id INTEGER NOT NULL REFERENCES roles(id),
@@ -58,21 +62,14 @@ CREATE TABLE role_permissions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP INDEX IF EXISTS idx_role_permission;
-CREATE UNIQUE INDEX idx_role_permission ON role_permissions(role_id, permission_handle);
-
 CREATE TABLE units (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
-    symbol VARCHAR(50) NOT NULL,
+    symbol VARCHAR(10) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP INDEX IF EXISTS idx_name;
-CREATE UNIQUE INDEX idx_name ON units(name);
-
-DROP TABLE IF EXISTS unit_conversions;
 CREATE TABLE unit_conversions (
     id SERIAL PRIMARY KEY,
     unit_id INTEGER NOT NULL REFERENCES units(id),
@@ -80,10 +77,6 @@ CREATE TABLE unit_conversions (
     conversion_factor NUMERIC(10, 2) NOT NULL
 );
 
-DROP INDEX IF EXISTS idx_unit_conversion;
-CREATE UNIQUE INDEX idx_unit_conversion ON unit_conversions(unit_id, conversion_unit_id);
-
-DROP TABLE IF EXISTS translations;
 CREATE TABLE translations (
     id SERIAL PRIMARY KEY,
     entity_id INTEGER NOT NULL,
@@ -94,5 +87,12 @@ CREATE TABLE translations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP INDEX IF EXISTS idx_entity;
+
+CREATE UNIQUE INDEX idx_email ON users(email);
+CREATE UNIQUE INDEX idx_handle ON permissions(handle);
+CREATE UNIQUE INDEX idx_user_permission ON user_permissions(user_id, permission_handle);
+CREATE UNIQUE INDEX idx_name ON roles(name);
+CREATE UNIQUE INDEX idx_role_permission ON role_permissions(role_id, permission_handle);
+CREATE UNIQUE INDEX idx_name ON units(name);
+CREATE UNIQUE INDEX idx_unit_conversion ON unit_conversions(unit_id, conversion_unit_id);
 CREATE UNIQUE INDEX idx_entity ON translations(entity_id, entity_type, locale);

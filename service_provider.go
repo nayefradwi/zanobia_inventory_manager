@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/redis/go-redis/v9"
 )
@@ -19,12 +20,14 @@ type systemRepositories struct {
 	userRepository       user.IUserRepository
 	permissionRepository user.IPermissionRepository
 	roleRepository       user.IRoleRepository
+	unitRepository       product.IUnitRepository
 }
 
 type systemServices struct {
 	userService       user.IUserService
 	permissionService user.IPermissionService
 	roleService       user.IRoleService
+	unitService       product.IUnitService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -50,12 +53,15 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	userRepo := user.NewUserRepository(connections.dbPool)
 	permssionRepo := user.NewPermissionRepository(connections.dbPool)
 	roleRepo := user.NewRoleRepository(connections.dbPool)
+	unitRepo := product.NewUnitRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
 		permissionRepository: permssionRepo,
 		roleRepository:       roleRepo,
+		unitRepository:       unitRepo,
 	}
 }
+
 func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	userServiceInput := user.UserServiceInput{
 		Repository:       repositories.userRepository,
@@ -65,10 +71,12 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	userService := user.NewUserService(userServiceInput)
 	permissionService := user.NewPermissionService(repositories.permissionRepository)
 	roleService := user.NewRoleService(repositories.roleRepository)
+	unitService := product.NewUnitService(repositories.unitRepository)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,
 		roleService:       roleService,
+		unitService:       unitService,
 	}
 }
 

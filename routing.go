@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 )
 
@@ -17,6 +18,7 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)
 	registerRoleRoutes(r, provider)
+	registerProductRoutes(r, provider)
 	return r
 }
 
@@ -46,6 +48,20 @@ func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	roleRouter.Post("/", roleController.CreateRole)
 	roleRouter.Get("/", roleController.GetRoles)
 	mainRouter.Mount("/roles", roleRouter)
+}
+
+func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	productRouter := chi.NewRouter()
+	registerUnitRoutes(productRouter, provider)
+	mainRouter.Mount("/products", productRouter)
+}
+
+func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	unitController := product.NewUnitController(provider.services.unitService)
+	unitRouter := chi.NewRouter()
+	unitRouter.Post("/", unitController.CreateUnit)
+	unitRouter.Get("/", unitController.GetAllUnits)
+	mainRouter.Mount("/units", unitRouter)
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
