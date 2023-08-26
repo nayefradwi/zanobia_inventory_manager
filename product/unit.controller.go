@@ -33,3 +33,25 @@ func (c UnitController) GetAllUnits(w http.ResponseWriter, r *http.Request) {
 		Data:   units,
 	})
 }
+
+func (c UnitController) CreateConversion(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[UnitConversion](w, r.Body, func(conversion UnitConversion) {
+		err := c.service.CreateConversion(r.Context(), conversion)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Created conversion successfully",
+		})
+	})
+}
+
+func (c UnitController) CreateConversionFromName(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[UnitConversionInput](w, r.Body, func(input UnitConversionInput) {
+		err := c.service.CreateConversionFromName(r.Context(), input)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Created conversion successfully",
+		})
+	})
+}

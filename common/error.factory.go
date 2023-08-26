@@ -33,6 +33,10 @@ func NewBadRequestError(message string, code string) *ApiError {
 	return NewCustomError(message, BAD_REQUEST, code)
 }
 
+func NewBadRequestFromMessage(message string) *ApiError {
+	return NewBadRequestError(message, BAD_REQUEST_CODE)
+}
+
 func NewForbiddenError(message string, code string) *ApiError {
 	return NewCustomError(message, FORBIDDEN, code)
 }

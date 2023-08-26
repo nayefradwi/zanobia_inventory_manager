@@ -2,6 +2,16 @@ package product
 
 import "github.com/nayefradwi/zanobia_inventory_manager/common"
 
+func ValidateUnitConversion(conversion UnitConversion) error {
+	if conversion.UnitId == conversion.ConversionUnitId {
+		return common.NewBadRequestFromMessage("Unit and conversion unit cannot be the same")
+	}
+	if conversion.ConversionFactor <= 0 {
+		return common.NewBadRequestFromMessage("Conversion factor must be greater than 0")
+	}
+	return nil
+}
+
 func ValidateUnit(unitInput Unit) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,

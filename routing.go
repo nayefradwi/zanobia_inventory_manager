@@ -61,7 +61,16 @@ func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitRouter := chi.NewRouter()
 	unitRouter.Post("/", unitController.CreateUnit)
 	unitRouter.Get("/", unitController.GetAllUnits)
+	registerUnitConversions(unitRouter, provider)
 	mainRouter.Mount("/units", unitRouter)
+}
+
+func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
+	unitConversionController := product.NewUnitController(provider.services.unitService)
+	unitConversionRouter := chi.NewRouter()
+	unitConversionRouter.Post("/", unitConversionController.CreateConversion)
+	unitConversionRouter.Post("/from-name", unitConversionController.CreateConversionFromName)
+	mainRouter.Mount("/unit-conversions", unitConversionRouter)
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {

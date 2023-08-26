@@ -1,10 +1,14 @@
 package product
 
-import "context"
+import (
+	"context"
+)
 
 type IUnitService interface {
 	CreateUnit(ctx context.Context, unit Unit) error
 	GetAllUnits(ctx context.Context) ([]Unit, error)
+	CreateConversion(ctx context.Context, conversion UnitConversion) error
+	CreateConversionFromName(ctx context.Context, input UnitConversionInput) error
 }
 
 type UnitService struct {
@@ -25,4 +29,33 @@ func (s *UnitService) CreateUnit(ctx context.Context, unit Unit) error {
 
 func (s *UnitService) GetAllUnits(ctx context.Context) ([]Unit, error) {
 	return s.repo.GetAllUnits(ctx)
+}
+
+func (s *UnitService) CreateConversionFromName(ctx context.Context, input UnitConversionInput) error {
+	unit, err := s.repo.GetUnitFromName(ctx, input.UnitName)
+	if err != nil {
+		return err
+	}
+	conversionUnit, err := s.repo.GetUnitFromName(ctx, input.ConversionUnitName)
+	if err != nil {
+		return err
+	}
+	conversion := UnitConversion{
+		UnitId:           unit.Id,
+		ConversionUnitId: conversionUnit.Id,
+		ConversionFactor: input.ConversionFactor,
+	}
+	validationErr := ValidateUnitConversion(conversion)
+	if validationErr != nil {
+		return validationErr
+	}
+	return s.repo.AddUnitConversion(ctx, conversion)
+}
+
+func (s *UnitService) CreateConversion(ctx context.Context, conversion UnitConversion) error {
+	validationErr := ValidateUnitConversion(conversion)
+	if validationErr != nil {
+		return validationErr
+	}
+	return s.repo.AddUnitConversion(ctx, conversion)
 }

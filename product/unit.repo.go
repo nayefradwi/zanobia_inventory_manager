@@ -12,6 +12,8 @@ import (
 type IUnitRepository interface {
 	GetAllUnits(ctx context.Context) ([]Unit, error)
 	CreateUnit(ctx context.Context, unit Unit) error
+	GetUnitFromName(ctx context.Context, name string) (Unit, error)
+	AddUnitConversion(ctx context.Context, conversion UnitConversion) error
 }
 
 type UnitRepository struct {
@@ -54,4 +56,32 @@ func (r *UnitRepository) GetAllUnits(ctx context.Context) ([]Unit, error) {
 		units = append(units, unit)
 	}
 	return units, nil
+}
+
+func (r *UnitRepository) GetUnitFromName(ctx context.Context, name string) (Unit, error) {
+	sql := `SELECT id, name, symbol FROM units WHERE name = $1`
+	row := r.QueryRow(ctx, sql, name)
+	var unit Unit
+	err := row.Scan(&unit.Id, &unit.Name, &unit.Symbol)
+	if err != nil {
+		log.Printf("failed to scan unit: %s", err.Error())
+		return Unit{}, common.NewBadRequestError("Failed to get unit", zimutils.GetErrorCodeFromError(err))
+	}
+	if unit.Id == nil {
+		return Unit{}, common.NewNotFoundError("Unit not found")
+	}
+	return unit, nil
+}
+
+func (r *UnitRepository) AddUnitConversion(ctx context.Context, conversion UnitConversion) error {
+	sql := `INSERT INTO unit_conversions (unit_id, conversion_unit_id, conversion_factor) VALUES ($1, $2, $3)`
+	c, err := r.Exec(ctx, sql, conversion.UnitId, conversion.ConversionUnitId, conversion.ConversionFactor)
+	if err != nil {
+		log.Printf("failed to create unit conversion: %s", err.Error())
+		return common.NewBadRequestError("Failed to create unit conversion", zimutils.GetErrorCodeFromError(err))
+	}
+	if c.RowsAffected() == 0 {
+		return common.NewInternalServerError()
+	}
+	return nil
 }
