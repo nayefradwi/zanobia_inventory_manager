@@ -11,6 +11,7 @@ type IUnitService interface {
 	CreateConversionFromName(ctx context.Context, input UnitConversionInput) error
 	ConvertUnit(ctx context.Context, input ConvertUnitInput) (ConvertUnitOutput, error)
 	GetUnitById(ctx context.Context, id *int) (Unit, error)
+	TranslateUnit(ctx context.Context, unit Unit, languageCode string) error
 }
 
 type UnitService struct {
@@ -27,6 +28,14 @@ func (s *UnitService) CreateUnit(ctx context.Context, unit Unit) error {
 		return validationErr
 	}
 	return s.repo.CreateUnit(ctx, unit)
+}
+
+func (s *UnitService) TranslateUnit(ctx context.Context, unit Unit, languageCode string) error {
+	validationErr := ValidateUnit(unit)
+	if validationErr != nil {
+		return validationErr
+	}
+	return s.repo.TranslateUnit(ctx, unit, languageCode)
 }
 
 func (s *UnitService) GetAllUnits(ctx context.Context) ([]Unit, error) {

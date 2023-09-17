@@ -64,6 +64,7 @@ func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitRouter.Post("/", unitController.CreateUnit)
 	unitRouter.Get("/{id}", unitController.GetUnitById)
 	unitRouter.Get("/", unitController.GetAllUnits)
+	unitRouter.Post("/translation", unitController.TranslateUnit)
 	registerUnitConversions(unitRouter, provider)
 	mainRouter.Mount("/units", unitRouter)
 }

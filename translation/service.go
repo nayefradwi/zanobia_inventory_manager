@@ -8,7 +8,9 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
-var acceptedLang = map[string]bool{"en": true, "ar": true}
+var acceptedLang = map[string]bool{DefaultLang: true, "ar": true}
+
+const DefaultLang = "en"
 
 type languageKey struct{}
 
@@ -24,7 +26,7 @@ func SetLanguageMiddleware(next http.Handler) http.Handler {
 func getLanguageParam(r *http.Request) string {
 	lang := r.URL.Query().Get("lang")
 	if lang == "" {
-		lang = "en"
+		lang = DefaultLang
 	}
 	return lang
 }
@@ -32,7 +34,7 @@ func getLanguageParam(r *http.Request) string {
 func GetLanguageParam(ctx context.Context) string {
 	lang := ctx.Value(languageKey{})
 	if lang == nil || lang == "" {
-		return "en"
+		return DefaultLang
 	}
 	return lang.(string)
 }

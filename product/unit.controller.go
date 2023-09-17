@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/translation"
 )
 
 type UnitController struct {
@@ -79,4 +80,15 @@ func (c UnitController) GetUnitById(w http.ResponseWriter, r *http.Request) {
 			Error:  err,
 			Writer: w,
 		})
+}
+
+func (c UnitController) TranslateUnit(w http.ResponseWriter, r *http.Request) {
+	translation.GetTranslatedBody[Unit](w, r.Body, func(translation translation.Translation[Unit]) {
+		err := c.service.TranslateUnit(r.Context(), translation.Data, translation.LanguageCode)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Translated unit successfully",
+		})
+	})
 }

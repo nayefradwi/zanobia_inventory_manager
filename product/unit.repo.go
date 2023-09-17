@@ -18,6 +18,7 @@ type IUnitRepository interface {
 	AddUnitConversion(ctx context.Context, conversion UnitConversion) error
 	GetUnitById(ctx context.Context, id *int) (Unit, error)
 	GetUnitConversionByUnitId(ctx context.Context, id *int, conversionId *int) (UnitConversion, error)
+	TranslateUnit(ctx context.Context, unit Unit, languageCode string) error
 }
 
 type UnitRepository struct {
@@ -40,13 +41,25 @@ func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 	if addErr != nil {
 		return err
 	}
-	translationErr := r.addDefaultTranslation(ctx, tx, unit)
+	translationErr := r.addTranslation(ctx, tx, unit, translation.DefaultLang)
 	if translationErr != nil {
 		return translationErr
 	}
 	tx.Commit(ctx)
 	return nil
+}
 
+func (r *UnitRepository) TranslateUnit(ctx context.Context, unit Unit, languageCode string) error {
+	sql := `INSERT INTO unit_translations (unit_id, name, symbol, language_code) VALUES ($1, $2, $3, $4)`
+	c, err := r.Exec(ctx, sql, unit.Id, unit.Name, unit.Symbol, languageCode)
+	if err != nil {
+		log.Printf("failed to create unit: %s", err.Error())
+		return common.NewBadRequestError("Failed to create unit", zimutils.GetErrorCodeFromError(err))
+	}
+	if c.RowsAffected() == 0 {
+		return common.NewInternalServerError()
+	}
+	return nil
 }
 
 func (r *UnitRepository) addUnit(ctx context.Context, tx pgx.Tx) (int, error) {
@@ -61,7 +74,7 @@ func (r *UnitRepository) addUnit(ctx context.Context, tx pgx.Tx) (int, error) {
 	return id, nil
 }
 
-func (r *UnitRepository) addDefaultTranslation(ctx context.Context, tx pgx.Tx, unit Unit) error {
+func (r *UnitRepository) addTranslation(ctx context.Context, tx pgx.Tx, unit Unit, languageCode string) error {
 	sql := `INSERT INTO unit_translations (unit_id, name, symbol) VALUES ($1, $2, $3)`
 	c, err := tx.Exec(ctx, sql, unit.Id, unit.Name, unit.Symbol)
 	if err != nil {
