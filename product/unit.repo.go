@@ -97,8 +97,9 @@ func (r *UnitRepository) GetAllUnits(ctx context.Context) ([]Unit, error) {
 }
 
 func (r *UnitRepository) GetUnitFromName(ctx context.Context, name string) (Unit, error) {
-	sql := `SELECT id, name, symbol FROM units WHERE name = $1`
-	row := r.QueryRow(ctx, sql, name)
+	sql := `SELECT u.id, name, symbol FROM units u JOIN unit_translations utx on u.id = utx.unit_id WHERE name = $1 and language_code = $2`
+	languageCode := translation.GetLanguageParam(ctx)
+	row := r.QueryRow(ctx, sql, name, languageCode)
 	var unit Unit
 	err := row.Scan(&unit.Id, &unit.Name, &unit.Symbol)
 	if err != nil {
