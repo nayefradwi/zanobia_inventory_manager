@@ -4,8 +4,10 @@ import (
 	"context"
 	"log"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/translation"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
 )
 
@@ -27,8 +29,41 @@ func NewUnitRepository(dbPool *pgxpool.Pool) *UnitRepository {
 }
 
 func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
-	sql := `INSERT INTO units (name, symbol) VALUES ($1, $2)`
-	c, err := r.Exec(ctx, sql, unit.Name, unit.Symbol)
+	tx, err := r.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		log.Printf("failed to begin transaction: %s", err.Error())
+		return common.NewInternalServerError()
+	}
+	defer tx.Rollback(ctx)
+	id, addErr := r.addUnit(ctx, tx)
+	unit.Id = &id
+	if addErr != nil {
+		return err
+	}
+	translationErr := r.addDefaultTranslation(ctx, tx, unit)
+	if translationErr != nil {
+		return translationErr
+	}
+	tx.Commit(ctx)
+	return nil
+
+}
+
+func (r *UnitRepository) addUnit(ctx context.Context, tx pgx.Tx) (int, error) {
+	sql := `INSERT INTO units DEFAULT VALUES RETURNING id`
+	row := tx.QueryRow(ctx, sql)
+	var id int
+	err := row.Scan(&id)
+	if err != nil {
+		log.Printf("failed to scan unit: %s", err.Error())
+		return 0, common.NewInternalServerError()
+	}
+	return id, nil
+}
+
+func (r *UnitRepository) addDefaultTranslation(ctx context.Context, tx pgx.Tx, unit Unit) error {
+	sql := `INSERT INTO unit_translations (unit_id, name, symbol) VALUES ($1, $2, $3)`
+	c, err := tx.Exec(ctx, sql, unit.Id, unit.Name, unit.Symbol)
 	if err != nil {
 		log.Printf("failed to create unit: %s", err.Error())
 		return common.NewBadRequestError("Failed to create unit", zimutils.GetErrorCodeFromError(err))
@@ -40,14 +75,15 @@ func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 }
 
 func (r *UnitRepository) GetAllUnits(ctx context.Context) ([]Unit, error) {
-	sql := `SELECT id, name, symbol FROM units`
-	rows, err := r.Query(ctx, sql)
+	sql := `SELECT u.id, name, symbol FROM units u JOIN unit_translations utx on u.id = utx.unit_id where language_code = $1`
+	languageCode := translation.GetLanguageParam(ctx)
+	rows, err := r.Query(ctx, sql, languageCode)
 	if err != nil {
 		log.Printf("failed to get units: %s", err.Error())
 		return nil, common.NewInternalServerError()
 	}
 	defer rows.Close()
-	var units []Unit
+	units := make([]Unit, 0)
 	for rows.Next() {
 		var unit Unit
 		err := rows.Scan(&unit.Id, &unit.Name, &unit.Symbol)
@@ -89,8 +125,9 @@ func (r *UnitRepository) AddUnitConversion(ctx context.Context, conversion UnitC
 }
 
 func (r *UnitRepository) GetUnitById(ctx context.Context, id *int) (Unit, error) {
-	sql := `SELECT id, name, symbol FROM units WHERE id = $1`
-	row := r.QueryRow(ctx, sql, id)
+	sql := `SELECT u.id, name, symbol FROM units u JOIN unit_translations utx on u.id = utx.unit_id WHERE u.id = $1 AND language_code = $2`
+	languageCode := translation.GetLanguageParam(ctx)
+	row := r.QueryRow(ctx, sql, id, languageCode)
 	var unit Unit
 	err := row.Scan(&unit.Id, &unit.Name, &unit.Symbol)
 	if err != nil {

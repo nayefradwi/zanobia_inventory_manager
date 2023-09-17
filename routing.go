@@ -8,12 +8,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
+	"github.com/nayefradwi/zanobia_inventory_manager/translation"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 )
 
 func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	r := chi.NewRouter()
 	r.Use(common.JsonResponseMiddleware)
+	r.Use(translation.SetLanguageMiddleware)
 	r.Get("/health-check", healthCheck)
 	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)
@@ -60,6 +62,7 @@ func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitController := product.NewUnitController(provider.services.unitService)
 	unitRouter := chi.NewRouter()
 	unitRouter.Post("/", unitController.CreateUnit)
+	unitRouter.Get("/{id}", unitController.GetUnitById)
 	unitRouter.Get("/", unitController.GetAllUnits)
 	registerUnitConversions(unitRouter, provider)
 	mainRouter.Mount("/units", unitRouter)

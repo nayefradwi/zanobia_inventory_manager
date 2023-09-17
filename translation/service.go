@@ -1,0 +1,51 @@
+package translation
+
+import (
+	"context"
+	"io"
+	"net/http"
+
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+)
+
+var acceptedLang = map[string]bool{"en": true, "ar": true}
+
+type languageKey struct{}
+
+func SetLanguageMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lang := getLanguageParam(r)
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, languageKey{}, lang)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func getLanguageParam(r *http.Request) string {
+	lang := r.URL.Query().Get("lang")
+	if lang == "" {
+		lang = "en"
+	}
+	return lang
+}
+
+func GetLanguageParam(ctx context.Context) string {
+	lang := ctx.Value(languageKey{})
+	if lang == nil || lang == "" {
+		return "en"
+	}
+	return lang.(string)
+}
+
+func GetTranslatedBody[T any](w http.ResponseWriter, body io.ReadCloser, onSuccess common.SuccessCallback[Translation[T]]) {
+	common.ParseBody[Translation[T]](w, body, func(translation Translation[T]) {
+		if acceptedLang[translation.LanguageCode] {
+			onSuccess(translation)
+		} else {
+			common.WriteResponseFromError(w, common.NewValidationError("languageCode", common.ErrorDetails{
+				Message: "language code is not supported",
+				Field:   "",
+			}))
+		}
+	})
+}

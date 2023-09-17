@@ -19,9 +19,9 @@ type Result[T any] struct {
 	Error  error
 }
 
-type successCallback[T any] func(T)
+type SuccessCallback[T any] func(T)
 
-func ParseBody[T any](w http.ResponseWriter, body io.ReadCloser, onSuccess successCallback[T]) {
+func ParseBody[T any](w http.ResponseWriter, body io.ReadCloser, onSuccess SuccessCallback[T]) {
 	var data T
 	err := json.NewDecoder(body).Decode(&data)
 	if err != nil {
