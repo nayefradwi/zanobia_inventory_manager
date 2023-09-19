@@ -57,6 +57,7 @@ func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productRouter := chi.NewRouter()
 	registerUnitRoutes(productRouter, provider)
+	registerIngredientRoutes(productRouter, provider)
 	mainRouter.Mount("/products", productRouter)
 }
 
@@ -78,6 +79,13 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitConversionRouter.Post("/from-name", unitConversionController.CreateConversionFromName)
 	unitConversionRouter.Post("/convert", unitConversionController.ConvertUnit)
 	mainRouter.Mount("/unit-conversions", unitConversionRouter)
+}
+
+func registerIngredientRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	ingredientController := product.NewIngredientController(provider.services.ingredientService)
+	ingredientRouter := chi.NewRouter()
+	ingredientRouter.Get("/", ingredientController.GetIngredients)
+	mainRouter.Mount("/ingredients", ingredientRouter)
 }
 
 func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {

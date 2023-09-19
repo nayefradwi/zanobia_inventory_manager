@@ -10,8 +10,8 @@ type RoleController struct {
 	service IRoleService
 }
 
-func NewRoleController(service IRoleService) *RoleController {
-	return &RoleController{
+func NewRoleController(service IRoleService) RoleController {
+	return RoleController{
 		service: service,
 	}
 }

@@ -13,8 +13,8 @@ type UnitController struct {
 	service IUnitService
 }
 
-func NewUnitController(service IUnitService) *UnitController {
-	return &UnitController{service}
+func NewUnitController(service IUnitService) UnitController {
+	return UnitController{service}
 }
 
 func (c UnitController) CreateUnit(w http.ResponseWriter, r *http.Request) {

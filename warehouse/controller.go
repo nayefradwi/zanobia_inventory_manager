@@ -10,8 +10,8 @@ type WarehouseController struct {
 	service IWarehouseService
 }
 
-func NewWarehouseController(service IWarehouseService) *WarehouseController {
-	return &WarehouseController{
+func NewWarehouseController(service IWarehouseService) WarehouseController {
+	return WarehouseController{
 		service: service,
 	}
 }

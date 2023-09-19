@@ -23,6 +23,7 @@ type systemRepositories struct {
 	roleRepository       user.IRoleRepository
 	unitRepository       product.IUnitRepository
 	warehouseRepository  warehouse.IWarehouseRepository
+	ingredientRepository product.IIngredientRepository
 }
 
 type systemServices struct {
@@ -31,6 +32,7 @@ type systemServices struct {
 	roleService       user.IRoleService
 	unitService       product.IUnitService
 	warehouseService  warehouse.IWarehouseService
+	ingredientService product.IIngredientService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -58,12 +60,14 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	roleRepo := user.NewRoleRepository(connections.dbPool)
 	unitRepo := product.NewUnitRepository(connections.dbPool)
 	warehouseRepo := warehouse.NewWarehouseRepository(connections.dbPool)
+	ingredientRepo := product.NewIngredientRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
 		permissionRepository: permssionRepo,
 		roleRepository:       roleRepo,
 		unitRepository:       unitRepo,
 		warehouseRepository:  warehouseRepo,
+		ingredientRepository: ingredientRepo,
 	}
 }
 
@@ -78,12 +82,14 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	roleService := user.NewRoleService(repositories.roleRepository)
 	unitService := product.NewUnitService(repositories.unitRepository)
 	warehouseService := warehouse.NewWarehouseService(repositories.warehouseRepository)
+	ingredientService := product.NewIngredientService(repositories.ingredientRepository)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,
 		roleService:       roleService,
 		unitService:       unitService,
 		warehouseService:  warehouseService,
+		ingredientService: ingredientService,
 	}
 }
 
