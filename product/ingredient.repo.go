@@ -30,7 +30,7 @@ func (r *IngredientRepository) CreateIngredient(ctx context.Context, ingredientB
 			return addErr
 		}
 		ingredientBase.Id = &id
-		translationErr := r.addTranslation(ctx, tx, ingredientBase, translation.DefaultLang)
+		translationErr := r.insertTranslation(ctx, tx, ingredientBase, translation.DefaultLang)
 		if translationErr != nil {
 			return translationErr
 		}
@@ -50,9 +50,9 @@ func (r *IngredientRepository) addIngredient(ctx context.Context, tx pgx.Tx, ing
 	return id, nil
 }
 
-func (r *IngredientRepository) addTranslation(ctx context.Context, tx pgx.Tx, ingredient IngredientBase, languageCode string) error {
+func (r *IngredientRepository) insertTranslation(ctx context.Context, op common.DbOperator, ingredient IngredientBase, languageCode string) error {
 	sql := `INSERT INTO ingredient_translations (ingredient_id, name, brand, language_code) VALUES ($1, $2, $3, $4)`
-	c, err := tx.Exec(ctx, sql, ingredient.Id, ingredient.Name, ingredient.Brand, languageCode)
+	c, err := op.Exec(ctx, sql, ingredient.Id, ingredient.Name, ingredient.Brand, languageCode)
 	if err != nil {
 		log.Printf("failed to create ingredient: %s", err.Error())
 		return common.NewBadRequestError("Failed to create ingredient", zimutils.GetErrorCodeFromError(err))
@@ -65,16 +65,7 @@ func (r *IngredientRepository) addTranslation(ctx context.Context, tx pgx.Tx, in
 }
 
 func (r *IngredientRepository) TranslateIngredient(ctx context.Context, ingredient IngredientBase, languageCode string) error {
-	sql := `INSERT INTO ingredient_translations (ingredient_id, name, brand, language_code) VALUES ($1, $2, $3, $4)`
-	c, err := r.Exec(ctx, sql, ingredient.Id, ingredient.Name, ingredient.Brand, languageCode)
-	if err != nil {
-		log.Printf("failed to create ingredient: %s", err.Error())
-		return common.NewBadRequestError("Failed to translate ingredient", zimutils.GetErrorCodeFromError(err))
-	}
-	if c.RowsAffected() == 0 {
-		return common.NewInternalServerError()
-	}
-	return nil
+	return r.insertTranslation(ctx, r.Pool, ingredient, languageCode)
 }
 
 // get ingredient by id
