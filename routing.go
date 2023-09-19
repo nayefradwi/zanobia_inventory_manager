@@ -10,6 +10,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/translation"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
+	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 )
 
 func RegisterRoutes(provider *ServiceProvider) chi.Router {
@@ -21,6 +22,7 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	registerPermissionRoutes(r, provider)
 	registerRoleRoutes(r, provider)
 	registerProductRoutes(r, provider)
+	registerWarehouseRoutes(r, provider)
 	return r
 }
 
@@ -76,6 +78,14 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitConversionRouter.Post("/from-name", unitConversionController.CreateConversionFromName)
 	unitConversionRouter.Post("/convert", unitConversionController.ConvertUnit)
 	mainRouter.Mount("/unit-conversions", unitConversionRouter)
+}
+
+func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	warehouseController := warehouse.NewWarehouseController(provider.services.warehouseService)
+	warehouseRouter := chi.NewRouter()
+	warehouseRouter.Post("/", warehouseController.CreateWarehouse)
+	warehouseRouter.Get("/", warehouseController.GetWarehouses)
+	mainRouter.Mount("/warehouses", warehouseRouter)
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
