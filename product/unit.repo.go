@@ -11,6 +11,8 @@ import (
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
 )
 
+const translationSql = `INSERT INTO unit_translations (unit_id, name, symbol, language_code) VALUES ($1, $2, $3, $4)`
+
 type IUnitRepository interface {
 	GetAllUnits(ctx context.Context) ([]Unit, error)
 	CreateUnit(ctx context.Context, unit Unit) error
@@ -30,31 +32,26 @@ func NewUnitRepository(dbPool *pgxpool.Pool) *UnitRepository {
 }
 
 func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
-	tx, err := r.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		log.Printf("failed to begin transaction: %s", err.Error())
-		return common.NewInternalServerError()
-	}
-	defer tx.Rollback(ctx)
-	id, addErr := r.addUnit(ctx, tx)
-	unit.Id = &id
-	if addErr != nil {
-		return err
-	}
-	translationErr := r.addTranslation(ctx, tx, unit, translation.DefaultLang)
-	if translationErr != nil {
-		return translationErr
-	}
-	tx.Commit(ctx)
-	return nil
+	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
+		id, addErr := r.addUnit(ctx, tx)
+		if addErr != nil {
+			return addErr
+		}
+		unit.Id = &id
+		translationErr := r.addTranslation(ctx, tx, unit, translation.DefaultLang)
+		if translationErr != nil {
+			return translationErr
+		}
+		return nil
+	})
+	return err
 }
 
 func (r *UnitRepository) TranslateUnit(ctx context.Context, unit Unit, languageCode string) error {
-	sql := `INSERT INTO unit_translations (unit_id, name, symbol, language_code) VALUES ($1, $2, $3, $4)`
-	c, err := r.Exec(ctx, sql, unit.Id, unit.Name, unit.Symbol, languageCode)
+	c, err := r.Exec(ctx, translationSql, unit.Id, unit.Name, unit.Symbol, languageCode)
 	if err != nil {
-		log.Printf("failed to create unit: %s", err.Error())
-		return common.NewBadRequestError("Failed to create unit", zimutils.GetErrorCodeFromError(err))
+		log.Printf("failed to translate unit: %s", err.Error())
+		return common.NewBadRequestError("Failed to translate unit", zimutils.GetErrorCodeFromError(err))
 	}
 	if c.RowsAffected() == 0 {
 		return common.NewInternalServerError()
@@ -75,11 +72,10 @@ func (r *UnitRepository) addUnit(ctx context.Context, tx pgx.Tx) (int, error) {
 }
 
 func (r *UnitRepository) addTranslation(ctx context.Context, tx pgx.Tx, unit Unit, languageCode string) error {
-	sql := `INSERT INTO unit_translations (unit_id, name, symbol) VALUES ($1, $2, $3)`
-	c, err := tx.Exec(ctx, sql, unit.Id, unit.Name, unit.Symbol)
+	c, err := tx.Exec(ctx, translationSql, unit.Id, unit.Name, unit.Symbol, languageCode)
 	if err != nil {
-		log.Printf("failed to create unit: %s", err.Error())
-		return common.NewBadRequestError("Failed to create unit", zimutils.GetErrorCodeFromError(err))
+		log.Printf("failed to add unit translation: %s", err.Error())
+		return common.NewBadRequestError("failed to add unit translation", zimutils.GetErrorCodeFromError(err))
 	}
 	if c.RowsAffected() == 0 {
 		return common.NewInternalServerError()
