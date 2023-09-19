@@ -11,8 +11,6 @@ import (
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
 )
 
-const translationSql = `INSERT INTO unit_translations (unit_id, name, symbol, language_code) VALUES ($1, $2, $3, $4)`
-
 type IUnitRepository interface {
 	GetAllUnits(ctx context.Context) ([]Unit, error)
 	CreateUnit(ctx context.Context, unit Unit) error
@@ -38,7 +36,7 @@ func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 			return addErr
 		}
 		unit.Id = &id
-		translationErr := r.addTranslation(ctx, tx, unit, translation.DefaultLang)
+		translationErr := r.insertTranslation(ctx, tx, unit, translation.DefaultLang)
 		if translationErr != nil {
 			return translationErr
 		}
@@ -48,7 +46,12 @@ func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 }
 
 func (r *UnitRepository) TranslateUnit(ctx context.Context, unit Unit, languageCode string) error {
-	c, err := r.Exec(ctx, translationSql, unit.Id, unit.Name, unit.Symbol, languageCode)
+	return r.insertTranslation(ctx, r.Pool, unit, languageCode)
+}
+
+func (r *UnitRepository) insertTranslation(ctx context.Context, op common.DbOperator, unit Unit, languageCode string) error {
+	sql := `INSERT INTO unit_translations (unit_id, name, symbol, language_code) VALUES ($1, $2, $3, $4)`
+	c, err := op.Exec(ctx, sql, unit.Id, unit.Name, unit.Symbol, languageCode)
 	if err != nil {
 		log.Printf("failed to translate unit: %s", err.Error())
 		return common.NewBadRequestError("Failed to translate unit", zimutils.GetErrorCodeFromError(err))
@@ -69,18 +72,6 @@ func (r *UnitRepository) addUnit(ctx context.Context, tx pgx.Tx) (int, error) {
 		return 0, common.NewInternalServerError()
 	}
 	return id, nil
-}
-
-func (r *UnitRepository) addTranslation(ctx context.Context, tx pgx.Tx, unit Unit, languageCode string) error {
-	c, err := tx.Exec(ctx, translationSql, unit.Id, unit.Name, unit.Symbol, languageCode)
-	if err != nil {
-		log.Printf("failed to add unit translation: %s", err.Error())
-		return common.NewBadRequestError("failed to add unit translation", zimutils.GetErrorCodeFromError(err))
-	}
-	if c.RowsAffected() == 0 {
-		return common.NewInternalServerError()
-	}
-	return nil
 }
 
 func (r *UnitRepository) GetAllUnits(ctx context.Context) ([]Unit, error) {
