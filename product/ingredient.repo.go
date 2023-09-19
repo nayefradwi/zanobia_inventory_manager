@@ -54,8 +54,8 @@ func (r *IngredientRepository) insertTranslation(ctx context.Context, op common.
 	sql := `INSERT INTO ingredient_translations (ingredient_id, name, brand, language_code) VALUES ($1, $2, $3, $4)`
 	c, err := op.Exec(ctx, sql, ingredient.Id, ingredient.Name, ingredient.Brand, languageCode)
 	if err != nil {
-		log.Printf("failed to create ingredient: %s", err.Error())
-		return common.NewBadRequestError("Failed to create ingredient", zimutils.GetErrorCodeFromError(err))
+		log.Printf("failed to translate ingredient: %s", err.Error())
+		return common.NewBadRequestError("Failed to translate ingredient", zimutils.GetErrorCodeFromError(err))
 	}
 	if c.RowsAffected() == 0 {
 		return common.NewInternalServerError()
