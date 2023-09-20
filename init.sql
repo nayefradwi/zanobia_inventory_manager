@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS unit_translations;
 DROP TABLE IF EXISTS warehouses;
 DROP TABLE IF EXISTS ingredients;
 DROP TABLE IF EXISTS ingredient_translations;
+DROP TABLE IF EXISTS inventory;
 
 
 DROP INDEX IF EXISTS idx_email;
@@ -22,6 +23,7 @@ DROP INDEX IF EXISTS idx_unit_translations;
 DROP INDEX IF EXISTS idx_warehouse_name;
 DROP INDEX IF EXISTS idx_ingredient_translation;
 DROP INDEX IF EXISTS ingredients_unit_expiration_idx;
+DROP INDEX IF EXISTS inventory_warehouse_ingredient_idx;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -100,6 +102,7 @@ CREATE TABLE warehouses (
 CREATE TABLE ingredients (
     id SERIAL PRIMARY KEY,
     price NUMERIC(10, 2) NOT NULL,
+    standard_quantity NUMERIC(10, 5) NOT NULL,
     standard_unit_id INTEGER NOT NULL REFERENCES units(id),
     expires_in_days INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -114,6 +117,15 @@ CREATE TABLE ingredient_translations(
     ingredient_id INTEGER NOT NULL REFERENCES ingredients(id)
 );
 
+CREATE TABLE inventory (
+    id SERIAL PRIMARY KEY,
+    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
+    warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
+    quantity NUMERIC(10, 5) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE UNIQUE INDEX idx_email ON users(email);
 CREATE UNIQUE INDEX idx_handle ON permissions(handle);
 CREATE UNIQUE INDEX idx_user_permission ON user_permissions(user_id, permission_handle);
@@ -125,5 +137,6 @@ CREATE UNIQUE INDEX idx_unit_translations ON unit_translations(unit_id, language
 CREATE UNIQUE INDEX idx_warehouse_name ON warehouses(name);
 CREATE UNIQUE INDEX idx_ingredient_translation ON ingredient_translations(name, brand);
 CREATE INDEX ingredients_unit_expiration_idx ON ingredients (standard_unit_id, expires_in_days);
+CREATE UNIQUE INDEX inventory_warehouse_ingredient_idx ON inventory (warehouse_id, ingredient_id);
 
 

@@ -7,7 +7,6 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
-	"github.com/nayefradwi/zanobia_inventory_manager/translation"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
 )
 
@@ -36,7 +35,7 @@ func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 			return addErr
 		}
 		unit.Id = &id
-		translationErr := r.insertTranslation(ctx, tx, unit, translation.DefaultLang)
+		translationErr := r.insertTranslation(ctx, tx, unit, common.DefaultLang)
 		if translationErr != nil {
 			return translationErr
 		}
@@ -76,7 +75,7 @@ func (r *UnitRepository) addUnit(ctx context.Context, tx pgx.Tx) (int, error) {
 
 func (r *UnitRepository) GetAllUnits(ctx context.Context) ([]Unit, error) {
 	sql := `SELECT u.id, name, symbol FROM units u JOIN unit_translations utx on u.id = utx.unit_id where language_code = $1`
-	languageCode := translation.GetLanguageParam(ctx)
+	languageCode := common.GetLanguageParam(ctx)
 	rows, err := r.Query(ctx, sql, languageCode)
 	if err != nil {
 		log.Printf("failed to get units: %s", err.Error())
@@ -98,7 +97,7 @@ func (r *UnitRepository) GetAllUnits(ctx context.Context) ([]Unit, error) {
 
 func (r *UnitRepository) GetUnitFromName(ctx context.Context, name string) (Unit, error) {
 	sql := `SELECT u.id, name, symbol FROM units u JOIN unit_translations utx on u.id = utx.unit_id WHERE name = $1 and language_code = $2`
-	languageCode := translation.GetLanguageParam(ctx)
+	languageCode := common.GetLanguageParam(ctx)
 	row := r.QueryRow(ctx, sql, name, languageCode)
 	var unit Unit
 	err := row.Scan(&unit.Id, &unit.Name, &unit.Symbol)
@@ -127,7 +126,7 @@ func (r *UnitRepository) AddUnitConversion(ctx context.Context, conversion UnitC
 
 func (r *UnitRepository) GetUnitById(ctx context.Context, id *int) (Unit, error) {
 	sql := `SELECT u.id, name, symbol FROM units u JOIN unit_translations utx on u.id = utx.unit_id WHERE u.id = $1 AND language_code = $2`
-	languageCode := translation.GetLanguageParam(ctx)
+	languageCode := common.GetLanguageParam(ctx)
 	row := r.QueryRow(ctx, sql, id, languageCode)
 	var unit Unit
 	err := row.Scan(&unit.Id, &unit.Name, &unit.Symbol)

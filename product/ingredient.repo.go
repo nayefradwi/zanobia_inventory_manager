@@ -7,11 +7,13 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
-	"github.com/nayefradwi/zanobia_inventory_manager/translation"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
 )
 
-type IIngredientRepository interface{}
+type IIngredientRepository interface {
+	CreateIngredient(ctx context.Context, ingredientBase IngredientBase) error
+	TranslateIngredient(ctx context.Context, ingredient IngredientBase, languageCode string) error
+}
 
 type IngredientRepository struct {
 	*pgxpool.Pool
@@ -30,7 +32,7 @@ func (r *IngredientRepository) CreateIngredient(ctx context.Context, ingredientB
 			return addErr
 		}
 		ingredientBase.Id = &id
-		translationErr := r.insertTranslation(ctx, tx, ingredientBase, translation.DefaultLang)
+		translationErr := r.insertTranslation(ctx, tx, ingredientBase, common.DefaultLang)
 		if translationErr != nil {
 			return translationErr
 		}

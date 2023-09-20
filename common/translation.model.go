@@ -1,4 +1,4 @@
-package translation
+package common
 
 type Translation[T any] struct {
 	LanguageCode string `json:"languageCode"`

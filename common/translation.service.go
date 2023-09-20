@@ -1,11 +1,9 @@
-package translation
+package common
 
 import (
 	"context"
 	"io"
 	"net/http"
-
-	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
 var acceptedLang = map[string]bool{DefaultLang: true, "ar": true}
@@ -39,12 +37,12 @@ func GetLanguageParam(ctx context.Context) string {
 	return lang.(string)
 }
 
-func GetTranslatedBody[T any](w http.ResponseWriter, body io.ReadCloser, onSuccess common.SuccessCallback[Translation[T]]) {
-	common.ParseBody[Translation[T]](w, body, func(translation Translation[T]) {
+func GetTranslatedBody[T any](w http.ResponseWriter, body io.ReadCloser, onSuccess SuccessCallback[Translation[T]]) {
+	ParseBody[Translation[T]](w, body, func(translation Translation[T]) {
 		if acceptedLang[translation.LanguageCode] {
 			onSuccess(translation)
 		} else {
-			common.WriteResponseFromError(w, common.NewValidationError("languageCode", common.ErrorDetails{
+			WriteResponseFromError(w, NewValidationError("languageCode", ErrorDetails{
 				Message: "language code is not supported",
 				Field:   "",
 			}))
