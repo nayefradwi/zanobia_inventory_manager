@@ -12,5 +12,5 @@ type IngredientBase struct {
 
 type Ingredient struct {
 	IngredientBase
-	StandardUnit *Unit `json:"standardUnit,omitempty"`
+	StandardUnit Unit `json:"standardUnit,omitempty"`
 }

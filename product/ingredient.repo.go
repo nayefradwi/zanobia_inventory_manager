@@ -13,6 +13,7 @@ import (
 type IIngredientRepository interface {
 	CreateIngredient(ctx context.Context, ingredientBase IngredientBase) error
 	TranslateIngredient(ctx context.Context, ingredient IngredientBase, languageCode string) error
+	GetIngredients(ctx context.Context, pageSize, endCursor int) ([]Ingredient, error)
 }
 
 type IngredientRepository struct {
@@ -47,7 +48,7 @@ func (r *IngredientRepository) addIngredient(ctx context.Context, tx pgx.Tx, ing
 	err := tx.QueryRow(ctx, sql, ingredient.Price, ingredient.StandardUnitId, ingredient.ExpiresInDays, ingredient.StandardQty).Scan(&id)
 	if err != nil {
 		log.Printf("failed to create ingredient: %s", err.Error())
-		return 0, common.NewInternalServerError()
+		return 0, common.NewBadRequestError("Failed to create ingredient", zimutils.GetErrorCodeFromError(err))
 	}
 	return id, nil
 }
@@ -71,10 +72,37 @@ func (r *IngredientRepository) TranslateIngredient(ctx context.Context, ingredie
 }
 
 func (r *IngredientRepository) GetIngredients(ctx context.Context, pageSize, endCursor int) ([]Ingredient, error) {
-	// sql := `SELECT i.id, i.price, i.standard_unit_id, i.expires_in_days, it.name, it.brand, it.language_code, u.name, u.abbreviation, u.language_code FROM ingredients i`
-	return nil, nil
+	sql := `SELECT i.id, it.name, it.brand, i.price, i.expires_in_days, i.standard_quantity, u.id as unit_id, ut.name, ut.symbol from ingredients i 
+	JOIN units u ON i.standard_unit_id = u.id 
+	JOIN unit_translations ut on u.id = ut.unit_id
+	JOIN ingredient_translations it ON it.ingredient_id = i.id AND it.language_code = ut.language_code
+	where it.language_code = $1 AND i.id > $2 order by i.id ASC limit $3;`
+	languageCode := common.GetLanguageParam(ctx)
+	rows, err := r.Query(ctx, sql, languageCode, endCursor, pageSize)
+	if err != nil {
+		log.Printf("failed to get ingredients: %s", err.Error())
+		return nil, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	ingredients := make([]Ingredient, 0)
+	for rows.Next() {
+		unit := Unit{}
+		ingredient := Ingredient{}
+		err := rows.Scan(
+			&ingredient.Id, &ingredient.Name,
+			&ingredient.Brand, &ingredient.Price,
+			&ingredient.ExpiresInDays, &ingredient.StandardQty,
+			&unit.Id, &unit.Name, &unit.Symbol,
+		)
+		if err != nil {
+			log.Printf("failed to get ingredients: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		ingredient.StandardUnit = unit
+		ingredients = append(ingredients, ingredient)
+	}
+	return ingredients, nil
 }
 
 // get ingredient by id
 // get ingredients by name
-// get all ingredients

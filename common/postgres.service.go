@@ -63,8 +63,6 @@ func GetEndCursor(ctx context.Context) int {
 	return endCursor.(int)
 }
 
-func GetPaginatedResponse[T any](ctx context.Context, items []T) PaginatedResponse[T] {
-	pageSize := GetPageSize(ctx)
-	endCursor := GetEndCursor(ctx)
-	return CreatePaginatedResponse[T](pageSize, endCursor, items)
+func GetPaginationParams(ctx context.Context) (int, int) {
+	return GetPageSize(ctx), GetEndCursor(ctx)
 }

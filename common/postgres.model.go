@@ -32,3 +32,12 @@ func CreatePaginatedResponse[T any](pageSize int, endCursor int, items []T) Pagi
 		Items:     items,
 	}
 }
+
+func CreateEmptyPaginatedResponse[T any](pageSize int) PaginatedResponse[T] {
+	return PaginatedResponse[T]{
+		PageSize:  pageSize,
+		EndCursor: 0,
+		HasNext:   false,
+		Items:     []T{},
+	}
+}
