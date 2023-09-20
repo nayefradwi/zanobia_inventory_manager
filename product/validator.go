@@ -61,6 +61,8 @@ func ValidateIngredient(ingredient IngredientBase) error {
 		ValidateBrandName(ingredient.Brand),
 		ValidatePrice(ingredient.Price),
 		ValidateExpiresInDays(ingredient.ExpiresInDays),
+		ValidateUnitId(ingredient.StandardUnitId),
+		ValidateQty(ingredient.StandardQty),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
@@ -121,6 +123,26 @@ func ValidateExpiresInDays(expiresInDays int) common.ErrorDetails {
 		return common.ErrorDetails{
 			Message: "expires in days must be greater than 0",
 			Field:   "expiresInDays",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
+func ValidateUnitId(unitId *int) common.ErrorDetails {
+	if unitId == nil || *unitId <= 0 {
+		return common.ErrorDetails{
+			Message: "unit id cannot be empty or less than 0",
+			Field:   "unitId",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
+func ValidateQty(qty float64) common.ErrorDetails {
+	if qty <= 0 {
+		return common.ErrorDetails{
+			Message: "quantity must be greater than 0",
+			Field:   "qty",
 		}
 	}
 	return common.ErrorDetails{}

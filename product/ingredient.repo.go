@@ -42,9 +42,9 @@ func (r *IngredientRepository) CreateIngredient(ctx context.Context, ingredientB
 }
 
 func (r *IngredientRepository) addIngredient(ctx context.Context, tx pgx.Tx, ingredient IngredientBase) (int, error) {
-	sql := `INSERT INTO ingredients (price, standard_unit_id, expires_in_days) VALUES ($1, $2, $3) RETURNING id`
+	sql := `INSERT INTO ingredients (price, standard_unit_id, expires_in_days, standard_quantity) VALUES ($1, $2, $3, $4) RETURNING id`
 	var id int
-	err := tx.QueryRow(ctx, sql, ingredient.Price, ingredient.StandardUnitId, ingredient.ExpiresInDays).Scan(&id)
+	err := tx.QueryRow(ctx, sql, ingredient.Price, ingredient.StandardUnitId, ingredient.ExpiresInDays, ingredient.StandardQty).Scan(&id)
 	if err != nil {
 		log.Printf("failed to create ingredient: %s", err.Error())
 		return 0, common.NewInternalServerError()
