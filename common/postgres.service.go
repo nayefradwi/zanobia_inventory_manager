@@ -28,23 +28,23 @@ func RunWithTransaction(ctx context.Context, pool *pgxpool.Pool, transaction Tra
 
 func SetPaginatedDataMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pageSize, pageIndex := getPaginationParams(r)
+		pageSize, endCursor := getPaginationParams(r)
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, pageSizeKey{}, pageSize)
-		ctx = context.WithValue(ctx, pageIndexKey{}, pageIndex)
+		ctx = context.WithValue(ctx, endCursorKey{}, endCursor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func getPaginationParams(r *http.Request) (int, int) {
 	pageSizeQuery := r.URL.Query().Get("pageSize")
-	pageIndexQuery := r.URL.Query().Get("pageIndex")
+	endCursorQuery := r.URL.Query().Get("endCursor")
 	pageSize, _ := strconv.Atoi(pageSizeQuery)
-	pageIndex, _ := strconv.Atoi(pageIndexQuery)
+	endCursor, _ := strconv.Atoi(endCursorQuery)
 	if pageSize == 0 {
 		pageSize = 10
 	}
-	return pageSize, pageIndex
+	return pageSize, endCursor
 }
 
 func GetPageSize(ctx context.Context) int {
@@ -55,16 +55,16 @@ func GetPageSize(ctx context.Context) int {
 	return pageSize.(int)
 }
 
-func GetPageIndex(ctx context.Context) int {
-	pageIndex := ctx.Value(pageIndexKey{})
-	if pageIndex == nil {
+func GetEndCursor(ctx context.Context) int {
+	endCursor := ctx.Value(endCursorKey{})
+	if endCursor == nil {
 		return 0
 	}
-	return pageIndex.(int)
+	return endCursor.(int)
 }
 
-func GetPaginatedResponse[T any](ctx context.Context, items []T, total int) PaginatedResponse[T] {
+func GetPaginatedResponse[T any](ctx context.Context, items []T) PaginatedResponse[T] {
 	pageSize := GetPageSize(ctx)
-	pageIndex := GetPageIndex(ctx)
-	return CreatePaginatedResponse[T](pageSize, pageIndex, total, items)
+	endCursor := GetEndCursor(ctx)
+	return CreatePaginatedResponse[T](pageSize, endCursor, items)
 }

@@ -14,23 +14,21 @@ type DbOperator interface {
 }
 
 type pageSizeKey struct{}
-type pageIndexKey struct{}
+type endCursorKey struct{}
 
 type TransactionFunc func(ctx context.Context, tx pgx.Tx) error
 type PaginatedResponse[T any] struct {
 	PageSize  int  `json:"pageSize"`
-	PageIndex int  `json:"pageIndex"`
-	Total     int  `json:"total"`
+	EndCursor int  `json:"endCursor"`
 	HasNext   bool `json:"hasNext"`
 	Items     []T  `json:"items"`
 }
 
-func CreatePaginatedResponse[T any](pageSize int, pageIndex int, total int, items []T) PaginatedResponse[T] {
+func CreatePaginatedResponse[T any](pageSize int, endCursor int, items []T) PaginatedResponse[T] {
 	return PaginatedResponse[T]{
 		PageSize:  pageSize,
-		PageIndex: pageIndex,
-		Total:     total,
-		HasNext:   (pageIndex+1)*pageSize < total,
+		EndCursor: endCursor,
+		HasNext:   len(items) >= pageSize,
 		Items:     items,
 	}
 }

@@ -22,7 +22,7 @@ DROP INDEX IF EXISTS idx_unit_conversion;
 DROP INDEX IF EXISTS idx_unit_translations;
 DROP INDEX IF EXISTS idx_warehouse_name;
 DROP INDEX IF EXISTS idx_ingredient_translation;
-DROP INDEX IF EXISTS ingredients_unit_expiration_idx;
+DROP INDEX IF EXISTS ingredients_unit_quantity_idx;
 DROP INDEX IF EXISTS inventory_warehouse_ingredient_idx;
 
 CREATE TABLE users (
@@ -136,7 +136,7 @@ CREATE UNIQUE INDEX idx_unit_conversion ON unit_conversions(unit_id, conversion_
 CREATE UNIQUE INDEX idx_unit_translations ON unit_translations(unit_id, language_code);
 CREATE UNIQUE INDEX idx_warehouse_name ON warehouses(name);
 CREATE UNIQUE INDEX idx_ingredient_translation ON ingredient_translations(name, brand);
-CREATE INDEX ingredients_unit_expiration_idx ON ingredients (standard_unit_id, expires_in_days);
+CREATE UNIQUE INDEX ingredients_unit_quantity_idx ON ingredients (standard_unit_id, standard_quantity);
 CREATE UNIQUE INDEX inventory_warehouse_ingredient_idx ON inventory (warehouse_id, ingredient_id);
 
 
