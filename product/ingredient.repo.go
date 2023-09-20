@@ -70,6 +70,11 @@ func (r *IngredientRepository) TranslateIngredient(ctx context.Context, ingredie
 	return r.insertTranslation(ctx, r.Pool, ingredient, languageCode)
 }
 
+func (r *IngredientRepository) GetIngredients(ctx context.Context, pageSize, endCursor int) ([]Ingredient, error) {
+	// sql := `SELECT i.id, i.price, i.standard_unit_id, i.expires_in_days, it.name, it.brand, it.language_code, u.name, u.abbreviation, u.language_code FROM ingredients i`
+	return nil, nil
+}
+
 // get ingredient by id
 // get ingredients by name
 // get all ingredients

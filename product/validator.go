@@ -1,6 +1,10 @@
 package product
 
-import "github.com/nayefradwi/zanobia_inventory_manager/common"
+import (
+	"regexp"
+
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+)
 
 func ValidateUnitConversion(conversion UnitConversion) error {
 	if conversion.UnitId == conversion.ConversionUnitId {
@@ -45,6 +49,78 @@ func ValidateUnitSymbol(symbol string) common.ErrorDetails {
 		return common.ErrorDetails{
 			Message: "unit symbol must be between 1 and 10 characters",
 			Field:   "symbol",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
+func ValidateIngredient(ingredient IngredientBase) error {
+	validationResults := make([]common.ErrorDetails, 0)
+	validationResults = append(validationResults,
+		ValidateIngredientName(ingredient.Name),
+		ValidateBrandName(ingredient.Brand),
+		ValidatePrice(ingredient.Price),
+		ValidateExpiresInDays(ingredient.ExpiresInDays),
+	)
+	errors := make([]common.ErrorDetails, 0)
+	for _, result := range validationResults {
+		if len(result.Message) > 0 {
+			errors = append(errors, result)
+		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid ingredient input", errors...)
+	}
+	return nil
+}
+
+func ValidateIngredientName(name string) common.ErrorDetails {
+	if !isIngredientNameValid(name) {
+		return common.ErrorDetails{
+			Message: "invalid ingredient name",
+			Field:   "name",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
+func isIngredientNameValid(name string) bool {
+	pattern := "^[A-Za-z0-9\\s]+$"
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(name)
+}
+
+func ValidateBrandName(name string) common.ErrorDetails {
+	if !isBrandNameValid(name) {
+		return common.ErrorDetails{
+			Message: "invalid brand name",
+			Field:   "name",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
+func isBrandNameValid(name string) bool {
+	pattern := "^[A-Za-z0-9\\s.-]+$"
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(name)
+}
+
+func ValidatePrice(price float64) common.ErrorDetails {
+	if price <= 0 {
+		return common.ErrorDetails{
+			Message: "price must be greater than 0",
+			Field:   "price",
+		}
+	}
+	return common.ErrorDetails{}
+}
+
+func ValidateExpiresInDays(expiresInDays int) common.ErrorDetails {
+	if expiresInDays <= 0 {
+		return common.ErrorDetails{
+			Message: "expires in days must be greater than 0",
+			Field:   "expiresInDays",
 		}
 	}
 	return common.ErrorDetails{}

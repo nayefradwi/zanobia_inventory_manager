@@ -84,7 +84,7 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerIngredientRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	ingredientController := product.NewIngredientController(provider.services.ingredientService)
 	ingredientRouter := chi.NewRouter()
-	ingredientRouter.Get("/", ingredientController.GetIngredients)
+	ingredientRouter.Post("/", ingredientController.CreateIngredient)
 	mainRouter.Mount("/ingredients", ingredientRouter)
 }
 
