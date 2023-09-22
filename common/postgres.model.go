@@ -29,7 +29,7 @@ func CreatePaginatedResponse[T any](pageSize int, endCursor int, items []T) Pagi
 	return PaginatedResponse[T]{
 		PageSize:  pageSize,
 		EndCursor: endCursor,
-		HasNext:   len(items) > pageSize,
+		HasNext:   len(items) >= pageSize,
 		Items:     items,
 	}
 }
