@@ -95,5 +95,11 @@ func (s *RedisLockService) handleLockResult(lock Lock) (Lock, error) {
 }
 
 func (s *RedisLockService) Release(ctx context.Context, name string) error {
+	cmd := s.client.Del(ctx, name)
+	err := cmd.Err()
+	if err != nil {
+		log.Printf("failed to Release lock: %s", err.Error())
+		return errors.New("failed to Release lock")
+	}
 	return nil
 }
