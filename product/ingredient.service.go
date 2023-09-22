@@ -34,7 +34,7 @@ func (s *IngredientService) TranslateIngredient(ctx context.Context, ingredient 
 }
 
 func (s *IngredientService) GetIngredients(ctx context.Context) (common.PaginatedResponse[Ingredient], error) {
-	pageSize, endCursor := common.GetPaginationParams(ctx)
+	pageSize, endCursor, _ := common.GetPaginationParams(ctx)
 	ingredients, err := s.repo.GetIngredients(ctx, pageSize, endCursor)
 	if err != nil {
 		return common.PaginatedResponse[Ingredient]{}, err

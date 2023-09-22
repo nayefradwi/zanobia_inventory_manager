@@ -28,23 +28,31 @@ func RunWithTransaction(ctx context.Context, pool *pgxpool.Pool, transaction Tra
 
 func SetPaginatedDataMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pageSize, endCursor := getPaginationParams(r)
+		pageSize, endCursor, sort := getPaginationParams(r)
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, pageSizeKey{}, pageSize)
 		ctx = context.WithValue(ctx, endCursorKey{}, endCursor)
+		ctx = context.WithValue(ctx, sortKey{}, sort)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func getPaginationParams(r *http.Request) (int, int) {
+func getPaginationParams(r *http.Request) (pageSize int, endCursor int, sort int) {
 	pageSizeQuery := r.URL.Query().Get("pageSize")
 	endCursorQuery := r.URL.Query().Get("endCursor")
-	pageSize, _ := strconv.Atoi(pageSizeQuery)
-	endCursor, _ := strconv.Atoi(endCursorQuery)
+	sortQuery := r.URL.Query().Get("sort")
+	pageSize, _ = strconv.Atoi(pageSizeQuery)
+	endCursor, _ = strconv.Atoi(endCursorQuery)
+	sort, _ = strconv.Atoi(sortQuery)
 	if pageSize == 0 {
 		pageSize = 10
 	}
-	return pageSize, endCursor
+	if sort >= 0 {
+		sort = 1
+	} else {
+		sort = -1
+	}
+	return pageSize, endCursor, sort
 }
 
 func GetPageSize(ctx context.Context) int {
@@ -63,6 +71,14 @@ func GetEndCursor(ctx context.Context) int {
 	return endCursor.(int)
 }
 
-func GetPaginationParams(ctx context.Context) (int, int) {
-	return GetPageSize(ctx), GetEndCursor(ctx)
+func GetSort(ctx context.Context) int {
+	sort := ctx.Value(sortKey{})
+	if sort == nil {
+		return 1
+	}
+	return sort.(int)
+}
+
+func GetPaginationParams(ctx context.Context) (pageSize int, cursor int, sort int) {
+	return GetPageSize(ctx), GetEndCursor(ctx), GetSort(ctx)
 }

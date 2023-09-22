@@ -15,6 +15,7 @@ type DbOperator interface {
 
 type pageSizeKey struct{}
 type endCursorKey struct{}
+type sortKey struct{}
 
 type TransactionFunc func(ctx context.Context, tx pgx.Tx) error
 type PaginatedResponse[T any] struct {
@@ -40,4 +41,8 @@ func CreateEmptyPaginatedResponse[T any](pageSize int) PaginatedResponse[T] {
 		HasNext:   false,
 		Items:     []T{},
 	}
+}
+
+func CreatePaginationPostgresQuery(endCursor int, sort int) string {
+	return ""
 }
