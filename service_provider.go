@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
@@ -33,6 +33,7 @@ type systemServices struct {
 	unitService       product.IUnitService
 	warehouseService  warehouse.IWarehouseService
 	ingredientService product.IIngredientService
+	lockingService    common.IDistributedLockingService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -46,8 +47,8 @@ func (s *ServiceProvider) initiate(config ApiConfig) {
 
 func (s *ServiceProvider) setUpConnections(config ApiConfig) systemConnections {
 	ctx := context.Background()
-	dbPool := connectDatabasePool(ctx, config.DbConnectionUrl)
-	redisClient := connectRedis(ctx, config.RedisUrl)
+	dbPool := common.ConnectDatabasePool(ctx, config.DbConnectionUrl)
+	redisClient := common.ConnectRedis(ctx, config.RedisUrl)
 	return systemConnections{
 		dbPool:      dbPool,
 		redisClient: redisClient,
@@ -72,6 +73,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 }
 
 func (s *ServiceProvider) registerServices(repositories systemRepositories) {
+	lockingService := common.CreateNewRedisLockService(connections.redisClient)
 	userServiceInput := user.UserServiceInput{
 		Repository:       repositories.userRepository,
 		SysAdminEmail:    RegisteredApiConfig.InitialSysAdminEmail,
@@ -82,7 +84,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	roleService := user.NewRoleService(repositories.roleRepository)
 	unitService := product.NewUnitService(repositories.unitRepository)
 	warehouseService := warehouse.NewWarehouseService(repositories.warehouseRepository)
-	ingredientService := product.NewIngredientService(repositories.ingredientRepository)
+	ingredientService := product.NewIngredientService(repositories.ingredientRepository, lockingService)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,
@@ -90,33 +92,11 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		unitService:       unitService,
 		warehouseService:  warehouseService,
 		ingredientService: ingredientService,
+		lockingService:    lockingService,
 	}
 }
 
 func cleanUp() {
 	connections.dbPool.Close()
 	connections.redisClient.Close()
-}
-
-func connectDatabasePool(ctx context.Context, connectionUrl string) *pgxpool.Pool {
-	dbPool, err := pgxpool.Connect(ctx, connectionUrl)
-	if err != nil {
-		log.Fatalf("failed to set up db connection: %s", err)
-	}
-	log.Print("connected to database successfully")
-	return dbPool
-}
-
-func connectRedis(ctx context.Context, connectionUrl string) *redis.Client {
-	opt, parsingErr := redis.ParseURL(connectionUrl)
-	if parsingErr != nil {
-		log.Fatalf("failed to parse redis connection url: %s", parsingErr)
-	}
-	redisClient := redis.NewClient(opt)
-	_, connectionErr := redisClient.Ping(ctx).Result()
-	if connectionErr != nil {
-		log.Fatalf("failed to set up redis connection: %s", connectionErr)
-	}
-	log.Print("connected to redis successfully")
-	return redisClient
 }

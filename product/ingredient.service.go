@@ -12,12 +12,14 @@ type IIngredientService interface {
 }
 
 type IngredientService struct {
-	repo IIngredientRepository
+	repo   IIngredientRepository
+	locker common.IDistributedLockingService
 }
 
-func NewIngredientService(repo IIngredientRepository) IIngredientService {
+func NewIngredientService(repo IIngredientRepository, locker common.IDistributedLockingService) IIngredientService {
 	return &IngredientService{
-		repo,
+		repo:   repo,
+		locker: locker,
 	}
 }
 
