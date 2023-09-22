@@ -10,11 +10,13 @@ import (
 )
 
 const (
-	DefaultDuration = 5 * time.Second
+	DefaultExpiry  = 2 * time.Minute
+	DefaultTimeout = 5 * time.Second
 )
 
 type IDistributedLockingService interface {
-	Acquire(ctx context.Context, name string, expiresAt time.Duration) (Lock, error)
+	Acquire(ctx context.Context, name string) (Lock, error)
+	CustomeDurationAcquire(ctx context.Context, name string, expiresAt, timeout time.Duration) (Lock, error)
 	Release(ctx context.Context, name string) error
 }
 
@@ -33,8 +35,12 @@ func CreateNewRedisLockService(client *redis.Client) IDistributedLockingService 
 	}
 }
 
-func (s *RedisLockService) Acquire(ctx context.Context, name string, expiresAt time.Duration) (Lock, error) {
-	ctx, cancel := context.WithTimeout(ctx, expiresAt)
+func (s *RedisLockService) Acquire(ctx context.Context, name string) (Lock, error) {
+	return s.CustomeDurationAcquire(ctx, name, DefaultExpiry, DefaultTimeout)
+}
+
+func (s *RedisLockService) CustomeDurationAcquire(ctx context.Context, name string, expiresAt, timeout time.Duration) (Lock, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	ch := make(chan Lock)
 	go s.acquire(ctx, ch, name, expiresAt)
@@ -50,14 +56,13 @@ func (s *RedisLockService) acquire(ctx context.Context, ch chan Lock, name strin
 	defer ctx.Done()
 	err := s.waitForLock(ctx, name)
 	if err != nil {
-		log.Printf("failed to Acquire lock: %s", err.Error())
+		log.Printf("failed to acquire lock: %s", err.Error())
 		ch <- Lock{}
 		return
 	}
-	cmd := s.client.SetEx(ctx, name, name, expiresAt)
-	lockErr := cmd.Err()
+	_, lockErr := s.client.SetEx(ctx, name, name, expiresAt).Result()
 	if lockErr != nil {
-		log.Printf("failed to Acquire lock: %s", lockErr.Error())
+		log.Printf("failed to set lock: %s", lockErr.Error())
 		ch <- Lock{}
 	}
 	ch <- Lock{Name: name, ExpiresAt: expiresAt}
@@ -71,7 +76,7 @@ func (s *RedisLockService) waitForLock(ctx context.Context, name string) error {
 		}
 		select {
 		case <-ctx.Done():
-			return errors.New("failed to Acquire lock")
+			return errors.New("waiting for lock timed out")
 		case <-time.After(1 * time.Second):
 			continue
 		}
@@ -79,24 +84,22 @@ func (s *RedisLockService) waitForLock(ctx context.Context, name string) error {
 }
 
 func (s *RedisLockService) tryAcquireLock(ctx context.Context, name string) error {
-	cmd := s.client.Get(ctx, name)
-	err := cmd.Err()
-	if err == redis.Nil {
+	value, err := s.client.Get(ctx, name).Result()
+	if err == redis.Nil && value != name {
 		return nil
 	}
-	return err
+	return errors.New("failed to Acquire lock because it is already acquired")
 }
 
 func (s *RedisLockService) handleLockResult(lock Lock) (Lock, error) {
 	if lock.Name == "" {
-		return Lock{}, errors.New("failed to Acquire lock")
+		return Lock{}, errors.New("lock is empty")
 	}
 	return lock, nil
 }
 
 func (s *RedisLockService) Release(ctx context.Context, name string) error {
-	cmd := s.client.Del(ctx, name)
-	err := cmd.Err()
+	_, err := s.client.Del(ctx, name).Result()
 	if err != nil {
 		log.Printf("failed to Release lock: %s", err.Error())
 		return errors.New("failed to Release lock")
