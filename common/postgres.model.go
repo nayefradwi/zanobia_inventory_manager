@@ -29,7 +29,7 @@ func CreatePaginatedResponse[T any](pageSize int, endCursor int, items []T) Pagi
 	return PaginatedResponse[T]{
 		PageSize:  pageSize,
 		EndCursor: endCursor,
-		HasNext:   len(items) >= pageSize,
+		HasNext:   len(items) > pageSize,
 		Items:     items,
 	}
 }
@@ -43,6 +43,9 @@ func CreateEmptyPaginatedResponse[T any](pageSize int) PaginatedResponse[T] {
 	}
 }
 
-func CreatePaginationPostgresQuery(endCursor int, sort int) string {
-	return ""
+func GetSortingQuery(sort int) string {
+	if sort < 0 {
+		return "DESC"
+	}
+	return "ASC"
 }
