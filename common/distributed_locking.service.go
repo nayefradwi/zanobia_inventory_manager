@@ -36,7 +36,7 @@ func CreateNewRedisLockService(client *redis.Client) IDistributedLockingService 
 func (s *RedisLockService) Acquire(ctx context.Context, name string, expiresAt time.Duration) (Lock, error) {
 	ctx, cancel := context.WithTimeout(ctx, expiresAt)
 	defer cancel()
-	ch := make(chan Lock, 1)
+	ch := make(chan Lock)
 	go s.acquire(ctx, ch, name, expiresAt)
 	select {
 	case <-ctx.Done():
