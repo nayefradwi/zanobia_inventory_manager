@@ -10,22 +10,22 @@ type UnitConversion struct {
 	Id               *int    `json:"id,omitempty"`
 	UnitId           *int    `json:"unitId"`
 	ConversionUnitId *int    `json:"conversionUnitId"`
-	ConversionFactor float32 `json:"conversionFactor"`
+	ConversionFactor float64 `json:"conversionFactor"`
 }
 
 type UnitConversionInput struct {
 	UnitName           string  `json:"unitName"`
 	ConversionUnitName string  `json:"conversionUnitName"`
-	ConversionFactor   float32 `json:"conversionFactor"`
+	ConversionFactor   float64 `json:"conversionFactor"`
 }
 
 type ConvertUnitInput struct {
 	UnitId           *int    `json:"unitId"`
 	ConversionUnitId *int    `json:"conversionUnitId"`
-	Quantity         float32 `json:"quantity"`
+	Quantity         float64 `json:"quantity"`
 }
 
 type ConvertUnitOutput struct {
 	Unit     Unit    `json:"unit"`
-	Quantity float32 `json:"quantity"`
+	Quantity float64 `json:"quantity"`
 }

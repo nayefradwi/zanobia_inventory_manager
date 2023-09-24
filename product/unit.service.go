@@ -77,7 +77,7 @@ func (s *UnitService) ConvertUnit(ctx context.Context, input ConvertUnitInput) (
 		return ConvertUnitOutput{}, err
 	}
 	newQty := input.Quantity * unitConversion.ConversionFactor
-	newUnit, err := s.repo.GetUnitById(ctx, unitConversion.ConversionUnitId)
+	newUnit, err := s.repo.GetUnitById(ctx, unitConversion.UnitId)
 	if err != nil {
 		return ConvertUnitOutput{}, err
 	}

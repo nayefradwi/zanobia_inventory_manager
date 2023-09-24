@@ -147,3 +147,32 @@ func ValidateQty(qty float64) common.ErrorDetails {
 	}
 	return common.ErrorDetails{}
 }
+
+func ValidateInventoryInput(inventoryInput InventoryInput) error {
+	validationResults := make([]common.ErrorDetails, 0)
+	validationResults = append(validationResults,
+		ValidateIngredientId(inventoryInput.IngredientId),
+		ValidateUnitId(&inventoryInput.UnitId),
+		ValidateQty(inventoryInput.Quantity),
+	)
+	errors := make([]common.ErrorDetails, 0)
+	for _, result := range validationResults {
+		if len(result.Message) > 0 {
+			errors = append(errors, result)
+		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid inventory input", errors...)
+	}
+	return nil
+}
+
+func ValidateIngredientId(ingredientId int) common.ErrorDetails {
+	if ingredientId <= 0 {
+		return common.ErrorDetails{
+			Message: "ingredient id must be a valid id",
+			Field:   "ingredientId",
+		}
+	}
+	return common.ErrorDetails{}
+}

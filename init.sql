@@ -122,6 +122,7 @@ CREATE TABLE inventory (
     ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
     warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
     quantity NUMERIC(10, 5) NOT NULL,
+    unit_id INTEGER NOT NULL REFERENCES units(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
