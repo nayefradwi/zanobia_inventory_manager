@@ -9,7 +9,7 @@ DROP TABLE IF EXISTS unit_translations;
 DROP TABLE IF EXISTS warehouses;
 DROP TABLE IF EXISTS ingredients;
 DROP TABLE IF EXISTS ingredient_translations;
-DROP TABLE IF EXISTS inventory;
+DROP TABLE IF EXISTS inventories;
 
 
 DROP INDEX IF EXISTS idx_email;
@@ -117,7 +117,7 @@ CREATE TABLE ingredient_translations(
     ingredient_id INTEGER NOT NULL REFERENCES ingredients(id)
 );
 
-CREATE TABLE inventory (
+CREATE TABLE inventories (
     id SERIAL PRIMARY KEY,
     ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
     warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
@@ -138,6 +138,6 @@ CREATE UNIQUE INDEX idx_unit_translations ON unit_translations(unit_id, language
 CREATE UNIQUE INDEX idx_warehouse_name ON warehouses(name);
 CREATE UNIQUE INDEX idx_ingredient_translation ON ingredient_translations(name, brand);
 CREATE INDEX ingredients_unit_quantity_idx ON ingredients (standard_unit_id, standard_quantity);
-CREATE UNIQUE INDEX inventory_warehouse_ingredient_idx ON inventory (warehouse_id, ingredient_id);
-CREATE INDEX idx_inventory_updated_at ON inventory (updated_at);
+CREATE UNIQUE INDEX inventory_warehouse_ingredient_idx ON inventories (warehouse_id, ingredient_id);
+CREATE INDEX idx_inventory_updated_at ON inventories (updated_at);
 

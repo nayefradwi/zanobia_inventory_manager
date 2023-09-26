@@ -14,6 +14,7 @@ type IIngredientRepository interface {
 	CreateIngredient(ctx context.Context, ingredientBase IngredientBase) error
 	TranslateIngredient(ctx context.Context, ingredient IngredientBase, languageCode string) error
 	GetIngredients(ctx context.Context, pageSize, endCursor int) ([]Ingredient, error)
+	GetUnitIdOfIngredient(ctx context.Context, ingredientId int) (int, error)
 }
 
 type IngredientRepository struct {
@@ -104,6 +105,18 @@ func (r *IngredientRepository) GetIngredients(ctx context.Context, pageSize, end
 		ingredients = append(ingredients, ingredient)
 	}
 	return ingredients, nil
+}
+
+func (r *IngredientRepository) GetUnitIdOfIngredient(ctx context.Context, ingredientId int) (int, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `SELECT standard_unit_id FROM ingredients WHERE id = $1`
+	var unitId int = -1
+	err := op.QueryRow(ctx, sql, ingredientId).Scan(&unitId)
+	if err != nil {
+		log.Printf("failed to get unit id of ingredient: %s", err.Error())
+		return 0, common.NewInternalServerError()
+	}
+	return unitId, nil
 }
 
 // get ingredient by id

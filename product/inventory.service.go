@@ -62,15 +62,20 @@ func (s *InventoryService) IncrementInventory(ctx context.Context, inventoryInpu
 }
 
 func (s *InventoryService) getConvertedInventory(ctx context.Context, inventoryInput *InventoryInput) (InventoryBase, error) {
-	invBase, unitId, err := s.inventoryRepo.GetInventoryBaseByIngredientId(ctx, inventoryInput.IngredientId)
-	if err != nil {
-		return invBase, err
+	invBase := s.inventoryRepo.GetInventoryBaseByIngredientId(ctx, inventoryInput.IngredientId)
+	unitId := invBase.UnitId
+	if invBase.Id == nil {
+		unitId, _ = s.ingredientRepo.GetUnitIdOfIngredient(ctx, inventoryInput.IngredientId)
 	}
-	convertedQty, err := s.convertUnit(ctx, unitId, *inventoryInput)
-	if err != nil {
-		return invBase, err
+	if unitId != inventoryInput.UnitId {
+		convertedQty, err := s.convertUnit(ctx, unitId, *inventoryInput)
+		if err != nil {
+			return invBase, err
+
+		}
+		inventoryInput.Quantity = convertedQty
+		inventoryInput.UnitId = unitId
 	}
-	inventoryInput.Quantity = convertedQty
 	return invBase, nil
 }
 
