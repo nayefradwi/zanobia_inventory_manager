@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -32,31 +33,35 @@ func NewInventoryService(workUnit InventoryServiceWorkUnit) IInventoryService {
 }
 
 func (s *InventoryService) IncrementInventory(ctx context.Context, inventoryInput InventoryInput) error {
-	_, err := s.lockingService.Acquire(ctx, strconv.Itoa(inventoryInput.IngredientId))
+	_, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(inventoryInput.IngredientId))
 	defer s.lockingService.Release(ctx, strconv.Itoa(inventoryInput.IngredientId))
-	if err != nil {
+	if lockErr != nil {
 		return common.NewBadRequestFromMessage("Failed to acquire lock")
 	}
 	validationErr := ValidateInventoryInput(inventoryInput)
 	if validationErr != nil {
 		return validationErr
 	}
-	InventoryBase, err := s.getConvertedInventory(ctx, inventoryInput)
-	if err != nil {
-		return err
-	}
-	if InventoryBase.Id == nil {
-		return s.inventoryRepo.CreateInventory(ctx, inventoryInput)
-	}
-	return s.incrementInventory(ctx, InventoryBase, inventoryInput)
+	err := common.RunWithTransaction(ctx, s.inventoryRepo.(*InventoryRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		InventoryBase, err := s.getConvertedInventory(ctx, &inventoryInput)
+		if err != nil {
+			return err
+		}
+		if InventoryBase.Id == nil {
+			return s.inventoryRepo.CreateInventory(ctx, inventoryInput)
+		}
+		return s.incrementInventory(ctx, InventoryBase, inventoryInput)
+	})
+	return err
 }
 
-func (s *InventoryService) getConvertedInventory(ctx context.Context, inventoryInput InventoryInput) (InventoryBase, error) {
+func (s *InventoryService) getConvertedInventory(ctx context.Context, inventoryInput *InventoryInput) (InventoryBase, error) {
 	invBase, unitId, err := s.inventoryRepo.GetInventoryBaseByIngredientId(ctx, inventoryInput.IngredientId)
 	if err != nil {
 		return invBase, err
 	}
-	convertedQty, err := s.convertUnit(ctx, unitId, inventoryInput)
+	convertedQty, err := s.convertUnit(ctx, unitId, *inventoryInput)
 	if err != nil {
 		return invBase, err
 	}
@@ -80,20 +85,102 @@ func (s *InventoryService) convertUnit(ctx context.Context, unitId int, inventor
 }
 
 func (s *InventoryService) incrementInventory(ctx context.Context, inventoryBase InventoryBase, inventoryInput InventoryInput) error {
-	newQty := inventoryBase.Quantity + inventoryInput.Quantity
-	inventoryBase.Quantity = newQty
+	inventoryBase = inventoryBase.SetQuantity(inventoryBase.Quantity + inventoryInput.Quantity)
 	return s.inventoryRepo.IncrementInventory(ctx, inventoryBase)
 }
 
 func (s *InventoryService) DecrementInventory(ctx context.Context, inventoryInput InventoryInput) error {
-	return nil
+	_, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(inventoryInput.IngredientId))
+	defer s.lockingService.Release(ctx, strconv.Itoa(inventoryInput.IngredientId))
+	if lockErr != nil {
+		return common.NewBadRequestFromMessage("Failed to acquire lock")
+	}
+	validationErr := ValidateInventoryInput(inventoryInput)
+	if validationErr != nil {
+		return validationErr
+	}
+	err := common.RunWithTransaction(ctx, s.inventoryRepo.(*InventoryRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		InventoryBase, err := s.getConvertedInventory(ctx, &inventoryInput)
+		if err != nil {
+			return err
+		}
+		if InventoryBase.Id == nil {
+			return common.NewBadRequestFromMessage("Inventory not found")
+		}
+		return s.decrementInventory(ctx, InventoryBase, inventoryInput)
+	})
+	return err
+}
+
+func (s *InventoryService) decrementInventory(ctx context.Context, inventoryBase InventoryBase, inventoryInput InventoryInput) error {
+	newQty := inventoryBase.Quantity - inventoryInput.Quantity
+	if newQty < 0 {
+		return common.NewBadRequestFromMessage("Inventory not enough")
+	}
+	inventoryBase = inventoryBase.SetQuantity(newQty)
+	return s.inventoryRepo.DecrementInventory(ctx, inventoryBase)
 }
 
 func (s *InventoryService) BulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
+	err := common.RunWithTransaction(ctx, s.inventoryRepo.(*InventoryRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.bulkIncrementInventory(ctx, inventoryInputs)
+	})
+	return err
+}
+
+func (s *InventoryService) bulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
+	for _, input := range inventoryInputs {
+		_, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
+		defer s.lockingService.Release(ctx, strconv.Itoa(input.IngredientId))
+		if lockErr != nil {
+			return common.NewBadRequestFromMessage("Failed to acquire lock")
+		}
+		validationErr := ValidateInventoryInput(input)
+		if validationErr != nil {
+			return validationErr
+		}
+		invBase, convErr := s.getConvertedInventory(ctx, &input)
+		if convErr != nil {
+			return convErr
+		}
+		err := s.incrementInventory(ctx, invBase, input)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (s *InventoryService) BulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
+	err := common.RunWithTransaction(ctx, s.inventoryRepo.(*InventoryRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.bulkDecrementInventory(ctx, inventoryInputs)
+	})
+	return err
+}
+
+func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
+	for _, input := range inventoryInputs {
+		_, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
+		defer s.lockingService.Release(ctx, strconv.Itoa(input.IngredientId))
+		if lockErr != nil {
+			return common.NewBadRequestFromMessage("Failed to acquire lock")
+		}
+		validationErr := ValidateInventoryInput(input)
+		if validationErr != nil {
+			return validationErr
+		}
+		invBase, convErr := s.getConvertedInventory(ctx, &input)
+		if convErr != nil {
+			return convErr
+		}
+		err := s.decrementInventory(ctx, invBase, input)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

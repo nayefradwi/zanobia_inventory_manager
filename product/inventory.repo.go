@@ -12,6 +12,7 @@ type IInventoryRepository interface {
 	GetInventoryBaseByIngredientId(ctx context.Context, ingredientId int) (InventoryBase, int, error)
 	CreateInventory(ctx context.Context, input InventoryInput) error
 	IncrementInventory(ctx context.Context, base InventoryBase) error
+	DecrementInventory(ctx context.Context, base InventoryBase) error
 }
 
 type InventoryRepository struct {
@@ -22,25 +23,26 @@ func NewInventoryRepository(dbPool *pgxpool.Pool) IInventoryRepository {
 	return &InventoryRepository{Pool: dbPool}
 }
 
-func (s *InventoryRepository) IncrementInventory(ctx context.Context, base InventoryBase) error {
+func (r *InventoryRepository) IncrementInventory(ctx context.Context, base InventoryBase) error {
 	return nil
 }
 
-func (s *InventoryRepository) DecrementInventory(ctx context.Context, input InventoryInput) error {
+func (r *InventoryRepository) DecrementInventory(ctx context.Context, base InventoryBase) error {
 	return nil
 }
 
-func (s *InventoryRepository) CreateInventory(ctx context.Context, input InventoryInput) error {
+func (r *InventoryRepository) CreateInventory(ctx context.Context, input InventoryInput) error {
 	return nil
 }
 
-func (s *InventoryRepository) GetInventoryBaseByIngredientId(ctx context.Context, ingredientId int) (InventoryBase, int, error) {
+func (r *InventoryRepository) GetInventoryBaseByIngredientId(ctx context.Context, ingredientId int) (InventoryBase, int, error) {
 	sql := `SELECT u.id, inv.id, ingredient_id, warehouse_id, quantity, unit_id FROM inventories inv
 			JOIN ingredients i ON i.id = inv.ingredient_id
 			JOIN units u ON u.id = i.unit_id
 			WHERE warehouse_id = $1 AND ingredient_id = $2`
 	warehouseId := warehouse.GetWarehouseId(ctx)
-	row := s.QueryRow(ctx, sql, warehouseId, ingredientId)
+	op := common.GetOperator(ctx, r.Pool)
+	row := op.QueryRow(ctx, sql, warehouseId, ingredientId)
 	var inventoryBase InventoryBase
 	var unitId int
 	err := row.Scan(&unitId, &inventoryBase.Id, &inventoryBase.IngredientId, &inventoryBase.WarehouseId, &inventoryBase.Quantity, &inventoryBase.UnitId)

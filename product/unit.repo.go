@@ -30,12 +30,12 @@ func NewUnitRepository(dbPool *pgxpool.Pool) *UnitRepository {
 
 func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		id, addErr := r.addUnit(ctx, tx)
+		ctx = common.SetOperator(ctx, tx)
+		id, addErr := r.addUnit(ctx)
 		if addErr != nil {
 			return addErr
 		}
 		unit.Id = &id
-		ctx = common.SetOperator(ctx, tx)
 		translationErr := r.insertTranslation(ctx, unit, common.DefaultLang)
 		if translationErr != nil {
 			return translationErr
@@ -63,9 +63,10 @@ func (r *UnitRepository) insertTranslation(ctx context.Context, unit Unit, langu
 	return nil
 }
 
-func (r *UnitRepository) addUnit(ctx context.Context, tx pgx.Tx) (int, error) {
+func (r *UnitRepository) addUnit(ctx context.Context) (int, error) {
 	sql := `INSERT INTO units DEFAULT VALUES RETURNING id`
-	row := tx.QueryRow(ctx, sql)
+	op := common.GetOperator(ctx, r.Pool)
+	row := op.QueryRow(ctx, sql)
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
@@ -144,7 +145,8 @@ func (r *UnitRepository) GetUnitById(ctx context.Context, id *int) (Unit, error)
 
 func (r *UnitRepository) GetUnitConversionByUnitId(ctx context.Context, id *int, conversionId *int) (UnitConversion, error) {
 	sql := `SELECT id, to_unit_id, from_unit_id, conversion_factor FROM unit_conversions WHERE to_unit_id = $1 AND from_unit_id = $2`
-	row := r.QueryRow(ctx, sql, id, conversionId)
+	op := common.GetOperator(ctx, r.Pool)
+	row := op.QueryRow(ctx, sql, id, conversionId)
 	var conversion UnitConversion
 	err := row.Scan(&conversion.Id, &conversion.ToUnitId, &conversion.FromUnitId, &conversion.ConversionFactor)
 	if err != nil {

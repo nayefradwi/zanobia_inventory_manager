@@ -21,3 +21,8 @@ type InventoryInput struct {
 	Quantity     float64 `json:"quantity"`
 	UnitId       int     `json:"unitId"`
 }
+
+func (b InventoryBase) SetQuantity(quantity float64) InventoryBase {
+	b.Quantity = quantity
+	return b
+}

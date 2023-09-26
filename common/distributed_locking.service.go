@@ -99,6 +99,7 @@ func (s *RedisLockService) handleLockResult(lock Lock) (Lock, error) {
 }
 
 func (s *RedisLockService) Release(ctx context.Context, name string) error {
+	log.Printf("Releasing lock: %s", name)
 	_, err := s.client.Del(ctx, name).Result()
 	if err != nil {
 		log.Printf("failed to Release lock: %s", err.Error())
