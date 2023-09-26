@@ -172,9 +172,11 @@ func (s *InventoryService) BulkDecrementInventory(ctx context.Context, inventory
 }
 
 func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
+	ids := make([]string, 0)
+	defer s.lockingService.ReleaseMany(ctx, ids...)
 	for _, input := range inventoryInputs {
 		_, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
-		defer s.lockingService.Release(ctx, strconv.Itoa(input.IngredientId))
+		ids = append(ids, strconv.Itoa(input.IngredientId))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}

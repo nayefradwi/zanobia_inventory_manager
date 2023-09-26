@@ -18,6 +18,7 @@ type IDistributedLockingService interface {
 	Acquire(ctx context.Context, name string) (Lock, error)
 	CustomeDurationAcquire(ctx context.Context, name string, expiresAt, timeout time.Duration) (Lock, error)
 	Release(ctx context.Context, name string) error
+	ReleaseMany(ctx context.Context, names ...string)
 }
 
 type Lock struct {
@@ -106,4 +107,10 @@ func (s *RedisLockService) Release(ctx context.Context, name string) error {
 		return errors.New("failed to Release lock")
 	}
 	return nil
+}
+
+func (s *RedisLockService) ReleaseMany(ctx context.Context, names ...string) {
+	for _, name := range names {
+		s.Release(ctx, name)
+	}
 }
