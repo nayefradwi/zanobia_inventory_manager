@@ -33,7 +33,8 @@ func (r *IngredientRepository) CreateIngredient(ctx context.Context, ingredientB
 			return addErr
 		}
 		ingredientBase.Id = &id
-		translationErr := r.insertTranslation(ctx, tx, ingredientBase, common.DefaultLang)
+		ctx = common.SetOperator(ctx, tx)
+		translationErr := r.insertTranslation(ctx, ingredientBase, common.DefaultLang)
 		if translationErr != nil {
 			return translationErr
 		}
@@ -53,8 +54,9 @@ func (r *IngredientRepository) addIngredient(ctx context.Context, tx pgx.Tx, ing
 	return id, nil
 }
 
-func (r *IngredientRepository) insertTranslation(ctx context.Context, op common.DbOperator, ingredient IngredientBase, languageCode string) error {
+func (r *IngredientRepository) insertTranslation(ctx context.Context, ingredient IngredientBase, languageCode string) error {
 	sql := `INSERT INTO ingredient_translations (ingredient_id, name, brand, language_code) VALUES ($1, $2, $3, $4)`
+	op := common.GetOperator(ctx, r.Pool)
 	c, err := op.Exec(ctx, sql, ingredient.Id, ingredient.Name, ingredient.Brand, languageCode)
 	if err != nil {
 		log.Printf("failed to translate ingredient: %s", err.Error())
@@ -68,7 +70,7 @@ func (r *IngredientRepository) insertTranslation(ctx context.Context, op common.
 }
 
 func (r *IngredientRepository) TranslateIngredient(ctx context.Context, ingredient IngredientBase, languageCode string) error {
-	return r.insertTranslation(ctx, r.Pool, ingredient, languageCode)
+	return r.insertTranslation(ctx, ingredient, languageCode)
 }
 
 func (r *IngredientRepository) GetIngredients(ctx context.Context, pageSize, endCursor int) ([]Ingredient, error) {

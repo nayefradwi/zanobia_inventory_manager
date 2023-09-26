@@ -35,7 +35,8 @@ func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 			return addErr
 		}
 		unit.Id = &id
-		translationErr := r.insertTranslation(ctx, tx, unit, common.DefaultLang)
+		ctx = common.SetOperator(ctx, tx)
+		translationErr := r.insertTranslation(ctx, unit, common.DefaultLang)
 		if translationErr != nil {
 			return translationErr
 		}
@@ -45,11 +46,12 @@ func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 }
 
 func (r *UnitRepository) TranslateUnit(ctx context.Context, unit Unit, languageCode string) error {
-	return r.insertTranslation(ctx, r.Pool, unit, languageCode)
+	return r.insertTranslation(ctx, unit, languageCode)
 }
 
-func (r *UnitRepository) insertTranslation(ctx context.Context, op common.DbOperator, unit Unit, languageCode string) error {
+func (r *UnitRepository) insertTranslation(ctx context.Context, unit Unit, languageCode string) error {
 	sql := `INSERT INTO unit_translations (unit_id, name, symbol, language_code) VALUES ($1, $2, $3, $4)`
+	op := common.GetOperator(ctx, r.Pool)
 	c, err := op.Exec(ctx, sql, unit.Id, unit.Name, unit.Symbol, languageCode)
 	if err != nil {
 		log.Printf("failed to translate unit: %s", err.Error())

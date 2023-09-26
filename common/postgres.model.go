@@ -17,6 +17,8 @@ type pageSizeKey struct{}
 type endCursorKey struct{}
 type sortKey struct{}
 
+type DbOperatorKey struct{}
+
 type TransactionFunc func(ctx context.Context, tx pgx.Tx) error
 type PaginatedResponse[T any] struct {
 	PageSize  int  `json:"pageSize"`

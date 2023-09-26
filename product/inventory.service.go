@@ -8,6 +8,12 @@ import (
 )
 
 type IInventoryService interface{}
+type InventoryServiceWorkUnit struct {
+	inventoryRepo  IInventoryRepository
+	unitService    IUnitService
+	ingredientRepo IIngredientRepository
+	lockingService common.IDistributedLockingService
+}
 
 type InventoryService struct {
 	inventoryRepo  IInventoryRepository
@@ -16,16 +22,16 @@ type InventoryService struct {
 	lockingService common.IDistributedLockingService
 }
 
-func NewInventoryService(inventoryRepo IInventoryRepository, unitService IUnitService, ingredientRepo IIngredientRepository, lockingService common.IDistributedLockingService) IInventoryService {
+func NewInventoryService(workUnit InventoryServiceWorkUnit) IInventoryService {
 	return &InventoryService{
-		inventoryRepo:  inventoryRepo,
-		unitService:    unitService,
-		lockingService: lockingService,
-		ingredientRepo: ingredientRepo,
+		inventoryRepo:  workUnit.inventoryRepo,
+		unitService:    workUnit.unitService,
+		lockingService: workUnit.lockingService,
+		ingredientRepo: workUnit.ingredientRepo,
 	}
 }
 
-func (s *InventoryService) IncrementInventory(ctx context.Context, warehouseId int, inventoryInput InventoryInput) error {
+func (s *InventoryService) IncrementInventory(ctx context.Context, inventoryInput InventoryInput) error {
 	_, err := s.lockingService.Acquire(ctx, strconv.Itoa(inventoryInput.IngredientId))
 	defer s.lockingService.Release(ctx, strconv.Itoa(inventoryInput.IngredientId))
 	if err != nil {
@@ -35,19 +41,27 @@ func (s *InventoryService) IncrementInventory(ctx context.Context, warehouseId i
 	if validationErr != nil {
 		return validationErr
 	}
-	invBase, unitId, err := s.inventoryRepo.GetInventoryBaseByIngredientId(ctx, warehouseId, inventoryInput.IngredientId)
+	InventoryBase, err := s.getConvertedInventory(ctx, inventoryInput)
 	if err != nil {
 		return err
+	}
+	if InventoryBase.Id == nil {
+		return s.inventoryRepo.CreateInventory(ctx, inventoryInput)
+	}
+	return s.incrementInventory(ctx, InventoryBase, inventoryInput)
+}
+
+func (s *InventoryService) getConvertedInventory(ctx context.Context, inventoryInput InventoryInput) (InventoryBase, error) {
+	invBase, unitId, err := s.inventoryRepo.GetInventoryBaseByIngredientId(ctx, inventoryInput.IngredientId)
+	if err != nil {
+		return invBase, err
 	}
 	convertedQty, err := s.convertUnit(ctx, unitId, inventoryInput)
 	if err != nil {
-		return err
+		return invBase, err
 	}
 	inventoryInput.Quantity = convertedQty
-	if invBase.Id == nil {
-		return s.inventoryRepo.CreateInventory(ctx, s.inventoryRepo.(*InventoryRepository), warehouseId, inventoryInput)
-	}
-	return s.incrementInventory(ctx, s.inventoryRepo.(*InventoryRepository), invBase, inventoryInput)
+	return invBase, nil
 }
 
 func (s *InventoryService) convertUnit(ctx context.Context, unitId int, inventoryInput InventoryInput) (float64, error) {
@@ -55,9 +69,9 @@ func (s *InventoryService) convertUnit(ctx context.Context, unitId int, inventor
 		return inventoryInput.Quantity, nil
 	}
 	out, err := s.unitService.ConvertUnit(ctx, ConvertUnitInput{
-		UnitId:           &unitId,
-		ConversionUnitId: &inventoryInput.UnitId,
-		Quantity:         inventoryInput.Quantity,
+		ToUnitId:   &unitId,
+		FromUnitId: &inventoryInput.UnitId,
+		Quantity:   inventoryInput.Quantity,
 	})
 	if err != nil {
 		return 0, err
@@ -65,11 +79,10 @@ func (s *InventoryService) convertUnit(ctx context.Context, unitId int, inventor
 	return out.Quantity, nil
 }
 
-func (s *InventoryService) incrementInventory(ctx context.Context, op common.DbOperator, inventoryBase InventoryBase, inventoryInput InventoryInput) error {
+func (s *InventoryService) incrementInventory(ctx context.Context, inventoryBase InventoryBase, inventoryInput InventoryInput) error {
 	newQty := inventoryBase.Quantity + inventoryInput.Quantity
 	inventoryBase.Quantity = newQty
-	return s.inventoryRepo.IncrementInventory(ctx, op, inventoryBase)
-
+	return s.inventoryRepo.IncrementInventory(ctx, inventoryBase)
 }
 
 func (s *InventoryService) DecrementInventory(ctx context.Context, inventoryInput InventoryInput) error {

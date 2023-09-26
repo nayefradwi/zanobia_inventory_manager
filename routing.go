@@ -17,6 +17,7 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	r.Use(common.JsonResponseMiddleware)
 	r.Use(common.SetLanguageMiddleware)
 	r.Use(common.SetPaginatedDataMiddleware)
+	r.Use(warehouse.SetWarehouseIdFromHeader)
 	r.Get("/health-check", healthCheck)
 	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)

@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -81,4 +82,18 @@ func GetSort(ctx context.Context) int {
 
 func GetPaginationParams(ctx context.Context) (pageSize int, cursor int, sort int) {
 	return GetPageSize(ctx), GetEndCursor(ctx), GetSort(ctx)
+}
+
+func SetOperator(ctx context.Context, op DbOperator) context.Context {
+	return context.WithValue(ctx, DbOperatorKey{}, op)
+}
+
+func GetOperator(ctx context.Context, defaultOp DbOperator) DbOperator {
+	op := ctx.Value(DbOperatorKey{})
+	if op == nil {
+		log.Printf("operator is nil, using default operator")
+		return defaultOp
+	}
+	log.Printf("operator is of type %T", op)
+	return op.(DbOperator)
 }
