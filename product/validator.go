@@ -7,7 +7,7 @@ import (
 )
 
 func ValidateUnitConversion(conversion UnitConversion) error {
-	if conversion.UnitId == conversion.ConversionUnitId {
+	if conversion.ToUnitId == conversion.FromUnitId {
 		return common.NewBadRequestFromMessage("Unit and conversion unit cannot be the same")
 	}
 	if conversion.ConversionFactor <= 0 {

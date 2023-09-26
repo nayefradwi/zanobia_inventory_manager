@@ -112,8 +112,8 @@ func (r *UnitRepository) GetUnitFromName(ctx context.Context, name string) (Unit
 }
 
 func (r *UnitRepository) AddUnitConversion(ctx context.Context, conversion UnitConversion) error {
-	sql := `INSERT INTO unit_conversions (unit_id, conversion_unit_id, conversion_factor) VALUES ($1, $2, $3)`
-	c, err := r.Exec(ctx, sql, conversion.UnitId, conversion.ConversionUnitId, conversion.ConversionFactor)
+	sql := `INSERT INTO unit_conversions (to_unit_id, from_unit_id, conversion_factor) VALUES ($1, $2, $3)`
+	c, err := r.Exec(ctx, sql, conversion.ToUnitId, conversion.FromUnitId, conversion.ConversionFactor)
 	if err != nil {
 		log.Printf("failed to create unit conversion: %s", err.Error())
 		return common.NewBadRequestError("Failed to create unit conversion", zimutils.GetErrorCodeFromError(err))
@@ -141,10 +141,10 @@ func (r *UnitRepository) GetUnitById(ctx context.Context, id *int) (Unit, error)
 }
 
 func (r *UnitRepository) GetUnitConversionByUnitId(ctx context.Context, id *int, conversionId *int) (UnitConversion, error) {
-	sql := `SELECT id, unit_id, conversion_unit_id, conversion_factor FROM unit_conversions WHERE unit_id = $1 AND conversion_unit_id = $2`
+	sql := `SELECT id, to_unit_id, from_unit_id, conversion_factor FROM unit_conversions WHERE to_unit_id = $1 AND from_unit_id = $2`
 	row := r.QueryRow(ctx, sql, id, conversionId)
 	var conversion UnitConversion
-	err := row.Scan(&conversion.Id, &conversion.UnitId, &conversion.ConversionUnitId, &conversion.ConversionFactor)
+	err := row.Scan(&conversion.Id, &conversion.ToUnitId, &conversion.FromUnitId, &conversion.ConversionFactor)
 	if err != nil {
 		log.Printf("failed to scan unit conversion: %s", err.Error())
 		return UnitConversion{}, common.NewBadRequestError("Failed to get unit conversion", zimutils.GetErrorCodeFromError(err))

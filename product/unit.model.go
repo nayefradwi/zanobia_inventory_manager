@@ -8,21 +8,21 @@ type Unit struct {
 
 type UnitConversion struct {
 	Id               *int    `json:"id,omitempty"`
-	UnitId           *int    `json:"unitId"`
-	ConversionUnitId *int    `json:"conversionUnitId"`
+	ToUnitId         *int    `json:"toUnitId"`
+	FromUnitId       *int    `json:"fromUnitId"`
 	ConversionFactor float64 `json:"conversionFactor"`
 }
 
 type UnitConversionInput struct {
-	UnitName           string  `json:"unitName"`
-	ConversionUnitName string  `json:"conversionUnitName"`
-	ConversionFactor   float64 `json:"conversionFactor"`
+	ToUnitName       string  `json:"toUnitName"`
+	FromUnitName     string  `json:"fromUnitName"`
+	ConversionFactor float64 `json:"conversionFactor"`
 }
 
 type ConvertUnitInput struct {
-	UnitId           *int    `json:"unitId"`
-	ConversionUnitId *int    `json:"conversionUnitId"`
-	Quantity         float64 `json:"quantity"`
+	ToUnitId   *int    `json:"toUnitId"`
+	FromUnitId *int    `json:"fromUnitId"`
+	Quantity   float64 `json:"quantity"`
 }
 
 type ConvertUnitOutput struct {

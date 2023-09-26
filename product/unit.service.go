@@ -43,17 +43,17 @@ func (s *UnitService) GetAllUnits(ctx context.Context) ([]Unit, error) {
 }
 
 func (s *UnitService) CreateConversionFromName(ctx context.Context, input UnitConversionInput) error {
-	unit, err := s.repo.GetUnitFromName(ctx, input.UnitName)
+	unit, err := s.repo.GetUnitFromName(ctx, input.ToUnitName)
 	if err != nil {
 		return err
 	}
-	conversionUnit, err := s.repo.GetUnitFromName(ctx, input.ConversionUnitName)
+	conversionUnit, err := s.repo.GetUnitFromName(ctx, input.FromUnitName)
 	if err != nil {
 		return err
 	}
 	conversion := UnitConversion{
-		UnitId:           unit.Id,
-		ConversionUnitId: conversionUnit.Id,
+		ToUnitId:         unit.Id,
+		FromUnitId:       conversionUnit.Id,
 		ConversionFactor: input.ConversionFactor,
 	}
 	validationErr := ValidateUnitConversion(conversion)
@@ -72,12 +72,12 @@ func (s *UnitService) CreateConversion(ctx context.Context, conversion UnitConve
 }
 
 func (s *UnitService) ConvertUnit(ctx context.Context, input ConvertUnitInput) (ConvertUnitOutput, error) {
-	unitConversion, err := s.repo.GetUnitConversionByUnitId(ctx, input.UnitId, input.ConversionUnitId)
+	unitConversion, err := s.repo.GetUnitConversionByUnitId(ctx, input.ToUnitId, input.FromUnitId)
 	if err != nil {
 		return ConvertUnitOutput{}, err
 	}
 	newQty := input.Quantity * unitConversion.ConversionFactor
-	newUnit, err := s.repo.GetUnitById(ctx, unitConversion.UnitId)
+	newUnit, err := s.repo.GetUnitById(ctx, unitConversion.ToUnitId)
 	if err != nil {
 		return ConvertUnitOutput{}, err
 	}

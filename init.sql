@@ -85,8 +85,8 @@ CREATE TABLE unit_translations (
 
 CREATE TABLE unit_conversions (
     id SERIAL PRIMARY KEY,
-    unit_id INTEGER NOT NULL REFERENCES units(id),
-    conversion_unit_id INTEGER NOT NULL REFERENCES units(id),
+    to_unit_id INTEGER NOT NULL REFERENCES units(id),
+    from_unit_id INTEGER NOT NULL REFERENCES units(id),
     conversion_factor NUMERIC(10, 5) NOT NULL
 );
 
@@ -133,7 +133,7 @@ CREATE UNIQUE INDEX idx_user_permission ON user_permissions(user_id, permission_
 CREATE UNIQUE INDEX idx_role_name ON roles(name);
 CREATE UNIQUE INDEX idx_role_permission ON role_permissions(role_id, permission_handle);
 CREATE UNIQUE INDEX idx_unit_name ON unit_translations(name);
-CREATE UNIQUE INDEX idx_unit_conversion ON unit_conversions(unit_id, conversion_unit_id);
+CREATE UNIQUE INDEX idx_unit_conversion ON unit_conversions(to_unit_id, from_unit_id);
 CREATE UNIQUE INDEX idx_unit_translations ON unit_translations(unit_id, language_code);
 CREATE UNIQUE INDEX idx_warehouse_name ON warehouses(name);
 CREATE UNIQUE INDEX idx_ingredient_translation ON ingredient_translations(name, brand);
