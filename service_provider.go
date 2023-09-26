@@ -24,6 +24,7 @@ type systemRepositories struct {
 	unitRepository       product.IUnitRepository
 	warehouseRepository  warehouse.IWarehouseRepository
 	ingredientRepository product.IIngredientRepository
+	inventoryRepository  product.IInventoryRepository
 }
 
 type systemServices struct {
@@ -34,6 +35,7 @@ type systemServices struct {
 	warehouseService  warehouse.IWarehouseService
 	ingredientService product.IIngredientService
 	lockingService    common.IDistributedLockingService
+	inventoryService  product.IInventoryService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -62,6 +64,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	unitRepo := product.NewUnitRepository(connections.dbPool)
 	warehouseRepo := warehouse.NewWarehouseRepository(connections.dbPool)
 	ingredientRepo := product.NewIngredientRepository(connections.dbPool)
+	inventoryRepo := product.NewInventoryRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
 		permissionRepository: permssionRepo,
@@ -69,6 +72,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 		unitRepository:       unitRepo,
 		warehouseRepository:  warehouseRepo,
 		ingredientRepository: ingredientRepo,
+		inventoryRepository:  inventoryRepo,
 	}
 }
 
@@ -85,6 +89,13 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	unitService := product.NewUnitService(repositories.unitRepository)
 	warehouseService := warehouse.NewWarehouseService(repositories.warehouseRepository)
 	ingredientService := product.NewIngredientService(repositories.ingredientRepository, lockingService)
+	inventoryServiceWorkUnit := product.InventoryServiceWorkUnit{
+		InventoryRepo:  repositories.inventoryRepository,
+		IngredientRepo: repositories.ingredientRepository,
+		LockingService: lockingService,
+		UnitService:    unitService,
+	}
+	inventoryService := product.NewInventoryService(inventoryServiceWorkUnit)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,
@@ -93,6 +104,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		warehouseService:  warehouseService,
 		ingredientService: ingredientService,
 		lockingService:    lockingService,
+		inventoryService:  inventoryService,
 	}
 }
 

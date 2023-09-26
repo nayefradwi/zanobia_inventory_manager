@@ -139,5 +139,5 @@ CREATE UNIQUE INDEX idx_warehouse_name ON warehouses(name);
 CREATE UNIQUE INDEX idx_ingredient_translation ON ingredient_translations(name, brand);
 CREATE INDEX ingredients_unit_quantity_idx ON ingredients (standard_unit_id, standard_quantity);
 CREATE UNIQUE INDEX inventory_warehouse_ingredient_idx ON inventory (warehouse_id, ingredient_id);
-
+CREATE INDEX idx_inventory_updated_at ON inventory (updated_at);
 

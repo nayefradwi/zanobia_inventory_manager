@@ -17,7 +17,7 @@ type Inventory struct {
 }
 
 type InventoryInput struct {
-	IngredientId int     `json:"ingredientId"`
+	IngredientId int     `json:"ingredientId,omitempty"`
 	Quantity     float64 `json:"quantity"`
 	UnitId       int     `json:"unitId"`
 }

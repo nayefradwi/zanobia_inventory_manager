@@ -8,12 +8,17 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
-type IInventoryService interface{}
+type IInventoryService interface {
+	IncrementInventory(ctx context.Context, inventoryInput InventoryInput) error
+	DecrementInventory(ctx context.Context, inventoryInput InventoryInput) error
+	BulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
+	BulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
+}
 type InventoryServiceWorkUnit struct {
-	inventoryRepo  IInventoryRepository
-	unitService    IUnitService
-	ingredientRepo IIngredientRepository
-	lockingService common.IDistributedLockingService
+	InventoryRepo  IInventoryRepository
+	UnitService    IUnitService
+	IngredientRepo IIngredientRepository
+	LockingService common.IDistributedLockingService
 }
 
 type InventoryService struct {
@@ -25,10 +30,10 @@ type InventoryService struct {
 
 func NewInventoryService(workUnit InventoryServiceWorkUnit) IInventoryService {
 	return &InventoryService{
-		inventoryRepo:  workUnit.inventoryRepo,
-		unitService:    workUnit.unitService,
-		lockingService: workUnit.lockingService,
-		ingredientRepo: workUnit.ingredientRepo,
+		inventoryRepo:  workUnit.InventoryRepo,
+		unitService:    workUnit.UnitService,
+		lockingService: workUnit.LockingService,
+		ingredientRepo: workUnit.IngredientRepo,
 	}
 }
 
