@@ -136,14 +136,14 @@ func (s *InventoryService) BulkIncrementInventory(ctx context.Context, inventory
 }
 
 func (s *InventoryService) bulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
-	ids := make([]string, 0)
-	defer s.lockingService.ReleaseMany(ctx, ids...)
+	locks := make([]common.Lock, 0)
+	defer s.lockingService.ReleaseMany(ctx, locks...)
 	for _, input := range inventoryInputs {
-		_, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
+		lock, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
-		ids = append(ids, strconv.Itoa(input.IngredientId))
+		locks = append(locks, lock)
 		validationErr := ValidateInventoryInput(input)
 		if validationErr != nil {
 			return validationErr
@@ -169,14 +169,14 @@ func (s *InventoryService) BulkDecrementInventory(ctx context.Context, inventory
 }
 
 func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
-	ids := make([]string, 0)
-	defer s.lockingService.ReleaseMany(ctx, ids...)
+	locks := make([]common.Lock, 0)
+	defer s.lockingService.ReleaseMany(ctx, locks...)
 	for _, input := range inventoryInputs {
-		_, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
+		lock, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
-		ids = append(ids, strconv.Itoa(input.IngredientId))
+		locks = append(locks, lock)
 		validationErr := ValidateInventoryInput(input)
 		if validationErr != nil {
 			return validationErr

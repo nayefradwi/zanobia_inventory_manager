@@ -29,7 +29,6 @@ func (r *InventoryRepository) IncrementInventory(ctx context.Context, base Inven
 	currentTimestamp := time.Now().UTC()
 	sql := `UPDATE inventories SET quantity = $1, updated_at = $2 WHERE id = $3`
 	op := common.GetOperator(ctx, r.Pool)
-	time.Sleep(1 * time.Minute)
 	_, err := op.Exec(ctx, sql, base.Quantity, currentTimestamp, base.Id)
 	if err != nil {
 		log.Printf("Failed to increment inventory: %s", err.Error())

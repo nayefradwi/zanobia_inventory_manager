@@ -17,8 +17,8 @@ const (
 type IDistributedLockingService interface {
 	Acquire(ctx context.Context, name string) (Lock, error)
 	CustomeDurationAcquire(ctx context.Context, name string, expiresAt, timeout time.Duration) (Lock, error)
-	Release(ctx context.Context, name string) error
-	ReleaseMany(ctx context.Context, names ...string)
+	Release(ctx context.Context, lock Lock) error
+	ReleaseMany(ctx context.Context, locks ...Lock)
 	RunWithLock(ctx context.Context, name string, f func() error) error
 }
 
@@ -100,9 +100,9 @@ func (s *RedisLockService) handleLockResult(lock Lock) (Lock, error) {
 	return lock, nil
 }
 
-func (s *RedisLockService) Release(ctx context.Context, name string) error {
-	log.Printf("Releasing lock: %s", name)
-	_, err := s.client.Del(ctx, name).Result()
+func (s *RedisLockService) Release(ctx context.Context, lock Lock) error {
+	log.Printf("Releasing lock: %s", lock.Name)
+	_, err := s.client.Del(ctx, lock.Name).Result()
 	if err != nil {
 		log.Printf("failed to Release lock: %s", err.Error())
 		return errors.New("failed to Release lock")
@@ -110,7 +110,7 @@ func (s *RedisLockService) Release(ctx context.Context, name string) error {
 	return nil
 }
 
-func (s *RedisLockService) ReleaseMany(ctx context.Context, names ...string) {
+func (s *RedisLockService) ReleaseMany(ctx context.Context, names ...Lock) {
 	for _, name := range names {
 		s.Release(ctx, name)
 	}
@@ -121,6 +121,6 @@ func (s *RedisLockService) RunWithLock(ctx context.Context, name string, f func(
 	if err != nil {
 		return NewBadRequestFromMessage("Failed to acquire lock")
 	}
-	defer s.Release(ctx, lock.Name)
+	defer s.Release(ctx, lock)
 	return f()
 }
