@@ -110,9 +110,9 @@ func (s *RedisLockService) Release(ctx context.Context, lock Lock) error {
 	return nil
 }
 
-func (s *RedisLockService) ReleaseMany(ctx context.Context, names ...Lock) {
-	for _, name := range names {
-		s.Release(ctx, name)
+func (s *RedisLockService) ReleaseMany(ctx context.Context, locks ...Lock) {
+	for _, lock := range locks {
+		s.Release(ctx, lock)
 	}
 }
 

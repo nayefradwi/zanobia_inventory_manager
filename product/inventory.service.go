@@ -137,7 +137,6 @@ func (s *InventoryService) BulkIncrementInventory(ctx context.Context, inventory
 
 func (s *InventoryService) bulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
 	locks := make([]common.Lock, 0)
-	defer s.lockingService.ReleaseMany(ctx, locks...)
 	for _, input := range inventoryInputs {
 		lock, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
 		if lockErr != nil {
@@ -152,11 +151,18 @@ func (s *InventoryService) bulkIncrementInventory(ctx context.Context, inventory
 		if convErr != nil {
 			return convErr
 		}
-		err := s.incrementInventory(ctx, invBase, input)
+		var err error
+		if invBase.Id == nil {
+			err = s.inventoryRepo.CreateInventory(ctx, input)
+
+		} else {
+			err = s.incrementInventory(ctx, invBase, input)
+		}
 		if err != nil {
 			return err
 		}
 	}
+	go s.lockingService.ReleaseMany(context.Background(), locks...)
 	return nil
 }
 
@@ -170,7 +176,6 @@ func (s *InventoryService) BulkDecrementInventory(ctx context.Context, inventory
 
 func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {
 	locks := make([]common.Lock, 0)
-	defer s.lockingService.ReleaseMany(ctx, locks...)
 	for _, input := range inventoryInputs {
 		lock, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
 		if lockErr != nil {
@@ -190,6 +195,7 @@ func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventory
 			return err
 		}
 	}
+	go s.lockingService.ReleaseMany(context.Background(), locks...)
 	return nil
 }
 

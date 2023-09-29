@@ -37,3 +37,25 @@ func (c InventoryController) DecrementInventory(w http.ResponseWriter, r *http.R
 		})
 	})
 }
+
+func (c InventoryController) BulkIncrementInventory(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[[]InventoryInput](w, r.Body, func(inventoryInputs []InventoryInput) {
+		err := c.service.BulkIncrementInventory(r.Context(), inventoryInputs)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Inventories incremented successfully",
+		})
+	})
+}
+
+func (c InventoryController) BulkDecrementInventory(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[[]InventoryInput](w, r.Body, func(inputs []InventoryInput) {
+		err := c.service.BulkDecrementInventory(r.Context(), inputs)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Inventories decremented successfully",
+		})
+	})
+}
