@@ -18,7 +18,7 @@ type IDistributedLockingService interface {
 	Acquire(ctx context.Context, name string) (Lock, error)
 	CustomeDurationAcquire(ctx context.Context, name string, expiresAt, timeout time.Duration) (Lock, error)
 	Release(ctx context.Context, lock Lock) error
-	ReleaseMany(ctx context.Context, locks ...Lock)
+	ReleaseMany(ctx context.Context, locks *[]Lock)
 	RunWithLock(ctx context.Context, name string, f func() error) error
 }
 
@@ -110,8 +110,8 @@ func (s *RedisLockService) Release(ctx context.Context, lock Lock) error {
 	return nil
 }
 
-func (s *RedisLockService) ReleaseMany(ctx context.Context, locks ...Lock) {
-	for _, lock := range locks {
+func (s *RedisLockService) ReleaseMany(ctx context.Context, locks *[]Lock) {
+	for _, lock := range *locks {
 		s.Release(ctx, lock)
 	}
 }
