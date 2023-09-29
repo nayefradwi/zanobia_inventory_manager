@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -25,7 +26,15 @@ func NewInventoryRepository(dbPool *pgxpool.Pool) IInventoryRepository {
 }
 
 func (r *InventoryRepository) IncrementInventory(ctx context.Context, base InventoryBase) error {
-	return common.NewInternalServerError()
+	currentTimestamp := time.Now().UTC()
+	sql := `UPDATE inventories SET quantity = $1, updated_at = $2 WHERE id = $3`
+	op := common.GetOperator(ctx, r.Pool)
+	_, err := op.Exec(ctx, sql, base.Quantity, currentTimestamp, base.Id)
+	if err != nil {
+		log.Printf("Failed to increment inventory: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to increment inventory")
+	}
+	return nil
 }
 
 func (r *InventoryRepository) DecrementInventory(ctx context.Context, base InventoryBase) error {
