@@ -94,7 +94,7 @@ func (s *InventoryService) convertUnit(ctx context.Context, unitId int, inventor
 
 func (s *InventoryService) incrementInventory(ctx context.Context, inventoryBase InventoryBase, inventoryInput InventoryInput) error {
 	inventoryBase = inventoryBase.SetQuantity(inventoryBase.Quantity + inventoryInput.Quantity)
-	return s.inventoryRepo.IncrementInventory(ctx, inventoryBase)
+	return s.inventoryRepo.UpdateInventory(ctx, inventoryBase)
 }
 
 func (s *InventoryService) DecrementInventory(ctx context.Context, inventoryInput InventoryInput) error {
@@ -124,7 +124,7 @@ func (s *InventoryService) decrementInventory(ctx context.Context, inventoryBase
 		return common.NewBadRequestFromMessage("Inventory not enough")
 	}
 	inventoryBase = inventoryBase.SetQuantity(newQty)
-	return s.inventoryRepo.DecrementInventory(ctx, inventoryBase)
+	return s.inventoryRepo.UpdateInventory(ctx, inventoryBase)
 }
 
 func (s *InventoryService) BulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error {

@@ -13,8 +13,7 @@ import (
 type IInventoryRepository interface {
 	GetInventoryBaseByIngredientId(ctx context.Context, ingredientId int) InventoryBase
 	CreateInventory(ctx context.Context, input InventoryInput) error
-	IncrementInventory(ctx context.Context, base InventoryBase) error
-	DecrementInventory(ctx context.Context, base InventoryBase) error
+	UpdateInventory(ctx context.Context, base InventoryBase) error
 }
 
 type InventoryRepository struct {
@@ -25,7 +24,7 @@ func NewInventoryRepository(dbPool *pgxpool.Pool) IInventoryRepository {
 	return &InventoryRepository{Pool: dbPool}
 }
 
-func (r *InventoryRepository) IncrementInventory(ctx context.Context, base InventoryBase) error {
+func (r *InventoryRepository) UpdateInventory(ctx context.Context, base InventoryBase) error {
 	currentTimestamp := time.Now().UTC()
 	sql := `UPDATE inventories SET quantity = $1, updated_at = $2 WHERE id = $3`
 	op := common.GetOperator(ctx, r.Pool)
@@ -35,10 +34,6 @@ func (r *InventoryRepository) IncrementInventory(ctx context.Context, base Inven
 		return common.NewBadRequestFromMessage("Failed to increment inventory")
 	}
 	return nil
-}
-
-func (r *InventoryRepository) DecrementInventory(ctx context.Context, base InventoryBase) error {
-	return common.NewInternalServerError()
 }
 
 func (r *InventoryRepository) CreateInventory(ctx context.Context, input InventoryInput) error {

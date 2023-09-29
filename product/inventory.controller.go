@@ -33,7 +33,7 @@ func (c InventoryController) DecrementInventory(w http.ResponseWriter, r *http.R
 		common.WriteCreatedResponse(common.EmptyResult{
 			Error:   err,
 			Writer:  w,
-			Message: "Inventory incremented successfully",
+			Message: "Inventory decremented successfully",
 		})
 	})
 }
