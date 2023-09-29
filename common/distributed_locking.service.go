@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	DefaultExpiry  = 2 * time.Minute
+	DefaultExpiry  = 1 * time.Minute
 	DefaultTimeout = 5 * time.Second
 )
 
@@ -19,6 +19,7 @@ type IDistributedLockingService interface {
 	CustomeDurationAcquire(ctx context.Context, name string, expiresAt, timeout time.Duration) (Lock, error)
 	Release(ctx context.Context, name string) error
 	ReleaseMany(ctx context.Context, names ...string)
+	RunWithLock(ctx context.Context, name string, f func() error) error
 }
 
 type Lock struct {
@@ -113,4 +114,13 @@ func (s *RedisLockService) ReleaseMany(ctx context.Context, names ...string) {
 	for _, name := range names {
 		s.Release(ctx, name)
 	}
+}
+
+func (s *RedisLockService) RunWithLock(ctx context.Context, name string, f func() error) error {
+	lock, err := s.Acquire(ctx, name)
+	if err != nil {
+		return NewBadRequestFromMessage("Failed to acquire lock")
+	}
+	defer s.Release(ctx, lock.Name)
+	return f()
 }
