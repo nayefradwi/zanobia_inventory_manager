@@ -27,7 +27,7 @@ func TestRedisLockService_Acquire_Release(t *testing.T) {
 	assert.Error(t, retryErr) // The lock should not be available for other clients
 
 	log.Printf("Releasing lock %s", lockName)
-	err = service.Release(context.Background(), lockName)
+	err = service.Release(context.Background(), lock)
 	assert.NoError(t, err)
 
 	log.Printf("ensuring lock %s is released", lockName)
@@ -80,7 +80,6 @@ func TestRedisLockService_MultipleReads(t *testing.T) {
 			assert.Error(t, err) // All other readers should fail
 		}
 	}
-	service.Release(context.Background(), lockName)
 }
 
 func TestRedisLockService_Release_MultipleTimes(t *testing.T) {
@@ -100,7 +99,7 @@ func TestRedisLockService_Release_MultipleTimes(t *testing.T) {
 	// Try to release the same lock multiple times
 	for i := 0; i < 3; i++ {
 		log.Printf("Releasing lock %s (Attempt %d)", lockName, i+1)
-		err = service.Release(context.Background(), lockName)
+		err = service.Release(context.Background(), lock)
 		assert.NoError(t, err) // No error should be returned when releasing the same lock multiple times
 	}
 }

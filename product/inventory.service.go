@@ -13,6 +13,7 @@ type IInventoryService interface {
 	DecrementInventory(ctx context.Context, inventoryInput InventoryInput) error
 	BulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
 	BulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
+	GetInventories(ctx context.Context) (common.PaginatedResponse[Inventory], error)
 }
 type InventoryServiceWorkUnit struct {
 	InventoryRepo  IInventoryRepository
@@ -201,6 +202,20 @@ func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventory
 		}
 	}
 	return nil
+}
+
+func (s *InventoryService) GetInventories(ctx context.Context) (common.PaginatedResponse[Inventory], error) {
+	size, cursor, sorting := common.GetPaginationParams(ctx)
+	inventories, err := s.inventoryRepo.GetInventories(ctx, size, sorting, cursor)
+	if err != nil {
+		return common.PaginatedResponse[Inventory]{}, err
+	}
+	if len(inventories) == 0 {
+		return common.CreateEmptyPaginatedResponse[Inventory](size), nil
+	}
+	last := inventories[len(inventories)-1]
+	res := common.CreatePaginatedResponse[Inventory](size, *last.Id, inventories)
+	return res, nil
 }
 
 // TODO increment by recipe

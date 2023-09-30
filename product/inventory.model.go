@@ -1,5 +1,7 @@
 package product
 
+import "time"
+
 type InventoryBase struct {
 	Id           *int    `json:"id,omitempty"`
 	IngredientId int     `json:"ingredientId,omitempty"`
@@ -14,6 +16,7 @@ type Inventory struct {
 	Ingredient  Ingredient `json:"ingredient"`
 	Quantity    float64    `json:"quantity"`
 	Unit        Unit       `json:"unit"`
+	UpdatedAt   time.Time  `json:"updatedAt,omitempty"`
 }
 
 type InventoryInput struct {

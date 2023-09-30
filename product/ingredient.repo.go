@@ -101,7 +101,7 @@ func (r *IngredientRepository) GetIngredients(ctx context.Context, pageSize, end
 			log.Printf("failed to get ingredients: %s", err.Error())
 			return nil, common.NewInternalServerError()
 		}
-		ingredient.StandardUnit = unit
+		ingredient.StandardUnit = &unit
 		ingredients = append(ingredients, ingredient)
 	}
 	return ingredients, nil

@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -14,6 +15,7 @@ type IInventoryRepository interface {
 	GetInventoryBaseByIngredientId(ctx context.Context, ingredientId int) InventoryBase
 	CreateInventory(ctx context.Context, input InventoryInput) error
 	UpdateInventory(ctx context.Context, base InventoryBase) error
+	GetInventories(ctx context.Context, pageSize, sorting, endCursor int) ([]Inventory, error)
 }
 
 type InventoryRepository struct {
@@ -63,6 +65,43 @@ func (r *InventoryRepository) GetInventoryBaseByIngredientId(ctx context.Context
 	return inventoryBase
 }
 
-// func (r *InventoryRepository) GetInventories(ctx context.Context) ([]Inventory, error) {
-
-// }
+func (r *InventoryRepository) GetInventories(ctx context.Context, pageSize, sorting, endCursor int) ([]Inventory, error) {
+	preFormat := `select inv.id, ing.id ingredient_id, u.id unit_id, quantity, utx.name, utx.symbol, ing.price, expires_in_days, ingtx.name, ingtx.brand, inv.updated_at
+	from inventories inv 
+	join ingredients ing on ing.id = inv.ingredient_id
+	join ingredient_translations ingtx on ingtx.ingredient_id = inv.ingredient_id
+	join units u on u.id = inv.unit_id
+	join unit_translations utx on utx.unit_id = inv.unit_id
+	where inv.id %s $1 and utx.language_code = $2 order by inv.updated_at %s limit $3;`
+	sign, order := "<", "DESC"
+	if sorting == 1 {
+		sign, order = ">", "ASC"
+	}
+	sql := fmt.Sprintf(preFormat, sign, order)
+	op := common.GetOperator(ctx, r.Pool)
+	languageCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, endCursor, languageCode, pageSize)
+	if err != nil {
+		log.Printf("Failed to get inventories: %s", err.Error())
+		return nil, common.NewBadRequestFromMessage("Failed to get inventories")
+	}
+	var inventories []Inventory
+	for rows.Next() {
+		var inventory Inventory
+		var unit Unit
+		var ingredient Ingredient
+		err := rows.Scan(
+			&inventory.Id, &ingredient.Id, &unit.Id, &inventory.Quantity,
+			&unit.Name, &unit.Symbol, &ingredient.Price, &ingredient.ExpiresInDays,
+			&ingredient.Name, &ingredient.Brand, &inventory.UpdatedAt,
+		)
+		if err != nil {
+			log.Printf("Failed to scan inventories: %s", err.Error())
+			return nil, common.NewBadRequestFromMessage("Failed to scan inventories")
+		}
+		inventory.Unit = unit
+		inventory.Ingredient = ingredient
+		inventories = append(inventories, inventory)
+	}
+	return inventories, nil
+}

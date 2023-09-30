@@ -7,10 +7,10 @@ type IngredientBase struct {
 	Price          float64 `json:"price"`
 	StandardUnitId *int    `json:"standardUnitId,omitempty"`
 	ExpiresInDays  int     `json:"expiresInDays"`
-	StandardQty    float64 `json:"standardQty"`
+	StandardQty    float64 `json:"standardQty,omitempty"`
 }
 
 type Ingredient struct {
 	IngredientBase
-	StandardUnit Unit `json:"standardUnit,omitempty"`
+	StandardUnit *Unit `json:"standardUnit,omitempty"`
 }

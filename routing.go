@@ -98,6 +98,7 @@ func registerInventoryRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	inventoryRouter.Delete("/inventory/stock", inventoryController.DecrementInventory)
 	inventoryRouter.Post("/stock", inventoryController.BulkIncrementInventory)
 	inventoryRouter.Delete("/stock", inventoryController.BulkDecrementInventory)
+	inventoryRouter.Get("/", inventoryController.GetInventories)
 	mainRouter.Mount("/inventories", inventoryRouter)
 }
 
