@@ -64,12 +64,17 @@ func GetPageSize(ctx context.Context) int {
 	return pageSize.(int)
 }
 
-func GetEndCursor(ctx context.Context) int {
+func GetEndCursor[P int | string](ctx context.Context) (empty P) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("recovered from panic: %s", r)
+		}
+	}()
 	endCursor := ctx.Value(endCursorKey{})
 	if endCursor == nil {
-		return 0
+		return empty
 	}
-	return endCursor.(int)
+	return endCursor.(P)
 }
 
 func GetSort(ctx context.Context) int {
@@ -80,8 +85,8 @@ func GetSort(ctx context.Context) int {
 	return sort.(int)
 }
 
-func GetPaginationParams(ctx context.Context) (pageSize int, cursor int, sort int) {
-	return GetPageSize(ctx), GetEndCursor(ctx), GetSort(ctx)
+func GetPaginationParams[P int | string](ctx context.Context) (pageSize int, cursor P, sort int) {
+	return GetPageSize(ctx), GetEndCursor[P](ctx), GetSort(ctx)
 }
 
 func SetOperator(ctx context.Context, op DbOperator) context.Context {

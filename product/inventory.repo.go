@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
@@ -15,7 +16,7 @@ type IInventoryRepository interface {
 	GetInventoryBaseByIngredientId(ctx context.Context, ingredientId int) InventoryBase
 	CreateInventory(ctx context.Context, input InventoryInput) error
 	UpdateInventory(ctx context.Context, base InventoryBase) error
-	GetInventories(ctx context.Context, pageSize, sorting, endCursor int) ([]Inventory, error)
+	GetInventories(ctx context.Context, pageSize, sorting int, endCursor string) ([]Inventory, error)
 }
 
 type InventoryRepository struct {
@@ -65,22 +66,8 @@ func (r *InventoryRepository) GetInventoryBaseByIngredientId(ctx context.Context
 	return inventoryBase
 }
 
-func (r *InventoryRepository) GetInventories(ctx context.Context, pageSize, sorting, endCursor int) ([]Inventory, error) {
-	preFormat := `select inv.id, ing.id ingredient_id, u.id unit_id, quantity, utx.name, utx.symbol, ing.price, expires_in_days, ingtx.name, ingtx.brand, inv.updated_at
-	from inventories inv 
-	join ingredients ing on ing.id = inv.ingredient_id
-	join ingredient_translations ingtx on ingtx.ingredient_id = inv.ingredient_id
-	join units u on u.id = inv.unit_id
-	join unit_translations utx on utx.unit_id = inv.unit_id
-	where inv.id %s $1 and utx.language_code = $2 order by inv.updated_at %s limit $3;`
-	sign, order := "<", "DESC"
-	if sorting == 1 {
-		sign, order = ">", "ASC"
-	}
-	sql := fmt.Sprintf(preFormat, sign, order)
-	op := common.GetOperator(ctx, r.Pool)
-	languageCode := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, endCursor, languageCode, pageSize)
+func (r *InventoryRepository) GetInventories(ctx context.Context, pageSize, sorting int, endCursor string) ([]Inventory, error) {
+	rows, err := r.getInventoriesRowsDescending(ctx, pageSize, endCursor)
 	if err != nil {
 		log.Printf("Failed to get inventories: %s", err.Error())
 		return nil, common.NewBadRequestFromMessage("Failed to get inventories")
@@ -104,4 +91,21 @@ func (r *InventoryRepository) GetInventories(ctx context.Context, pageSize, sort
 		inventories = append(inventories, inventory)
 	}
 	return inventories, nil
+}
+
+func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, pageSize int, endCursor string) (pgx.Rows, error) {
+	preFormat := `select inv.id, ing.id ingredient_id, u.id unit_id, quantity, utx.name, utx.symbol, ing.price, expires_in_days, ingtx.name, ingtx.brand, inv.updated_at
+	from inventories inv 
+	join ingredients ing on ing.id = inv.ingredient_id
+	join ingredient_translations ingtx on ingtx.ingredient_id = inv.ingredient_id
+	join units u on u.id = inv.unit_id
+	join unit_translations utx on utx.unit_id = inv.unit_id
+	%s;`
+	op := common.GetOperator(ctx, r.Pool)
+	languageCode := common.GetLanguageParam(ctx)
+	if endCursor == "" {
+		endCursor = time.Now().UTC().Format(time.RFC3339)
+	}
+	sql := fmt.Sprintf(preFormat, `where utx.language_code = $1 AND inv.updated_at < $2 order by inv.updated_at DESC limit $3;`)
+	return op.Query(ctx, sql, languageCode, endCursor, pageSize)
 }

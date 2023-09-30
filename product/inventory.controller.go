@@ -61,10 +61,10 @@ func (c InventoryController) BulkDecrementInventory(w http.ResponseWriter, r *ht
 }
 
 func (c InventoryController) GetInventories(w http.ResponseWriter, r *http.Request) {
-	inventories, err := c.service.GetInventories(r.Context())
-	common.WriteResponse(common.Result[common.PaginatedResponse[Inventory]]{
+	response, err := c.service.GetInventories(r.Context())
+	common.WriteResponse(common.Result[common.PaginatedResponse[Inventory, string]]{
 		Error:  err,
 		Writer: w,
-		Data:   inventories,
+		Data:   response,
 	})
 }

@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -13,7 +14,7 @@ type IInventoryService interface {
 	DecrementInventory(ctx context.Context, inventoryInput InventoryInput) error
 	BulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
 	BulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
-	GetInventories(ctx context.Context) (common.PaginatedResponse[Inventory], error)
+	GetInventories(ctx context.Context) (common.PaginatedResponse[Inventory, string], error)
 }
 type InventoryServiceWorkUnit struct {
 	InventoryRepo  IInventoryRepository
@@ -204,17 +205,17 @@ func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventory
 	return nil
 }
 
-func (s *InventoryService) GetInventories(ctx context.Context) (common.PaginatedResponse[Inventory], error) {
-	size, cursor, sorting := common.GetPaginationParams(ctx)
+func (s *InventoryService) GetInventories(ctx context.Context) (common.PaginatedResponse[Inventory, string], error) {
+	size, cursor, sorting := common.GetPaginationParams[string](ctx)
 	inventories, err := s.inventoryRepo.GetInventories(ctx, size, sorting, cursor)
 	if err != nil {
-		return common.PaginatedResponse[Inventory]{}, err
+		return common.PaginatedResponse[Inventory, string]{}, err
 	}
 	if len(inventories) == 0 {
-		return common.CreateEmptyPaginatedResponse[Inventory](size), nil
+		return common.CreateEmptyPaginatedResponse[Inventory, string](size), nil
 	}
 	last := inventories[len(inventories)-1]
-	res := common.CreatePaginatedResponse[Inventory](size, *last.Id, inventories)
+	res := common.CreatePaginatedResponse[Inventory, string](size, last.UpdatedAt.Format(time.RFC3339), inventories)
 	return res, nil
 }
 

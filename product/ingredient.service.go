@@ -8,7 +8,7 @@ import (
 
 type IIngredientService interface {
 	CreateIngredient(ctx context.Context, ingredientBase IngredientBase) error
-	GetIngredients(ctx context.Context) (common.PaginatedResponse[Ingredient], error)
+	GetIngredients(ctx context.Context) (common.PaginatedResponse[Ingredient, int], error)
 }
 
 type IngredientService struct {
@@ -35,14 +35,14 @@ func (s *IngredientService) TranslateIngredient(ctx context.Context, ingredient 
 	return s.repo.TranslateIngredient(ctx, ingredient, languageCode)
 }
 
-func (s *IngredientService) GetIngredients(ctx context.Context) (common.PaginatedResponse[Ingredient], error) {
-	pageSize, endCursor, _ := common.GetPaginationParams(ctx)
+func (s *IngredientService) GetIngredients(ctx context.Context) (common.PaginatedResponse[Ingredient, int], error) {
+	pageSize, endCursor, _ := common.GetPaginationParams[int](ctx)
 	ingredients, err := s.repo.GetIngredients(ctx, pageSize, endCursor)
 	if err != nil {
-		return common.PaginatedResponse[Ingredient]{}, err
+		return common.PaginatedResponse[Ingredient, int]{}, err
 	}
 	if len(ingredients) == 0 {
-		return common.CreateEmptyPaginatedResponse[Ingredient](pageSize), nil
+		return common.CreateEmptyPaginatedResponse[Ingredient, int](pageSize), nil
 	}
 	last := ingredients[len(ingredients)-1]
 	res := common.CreatePaginatedResponse[Ingredient](pageSize, *last.Id, ingredients)
