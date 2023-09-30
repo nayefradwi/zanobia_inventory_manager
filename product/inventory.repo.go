@@ -103,9 +103,6 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 	%s;`
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
-	if endCursor == "" {
-		endCursor = time.Now().UTC().Format(time.RFC3339)
-	}
 	sql := fmt.Sprintf(preFormat, `where utx.language_code = $1 AND inv.updated_at < $2 order by inv.updated_at DESC limit $3;`)
 	return op.Query(ctx, sql, languageCode, endCursor, pageSize)
 }

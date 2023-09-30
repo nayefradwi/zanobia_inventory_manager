@@ -29,8 +29,8 @@ func (c IngredientController) CreateIngredient(w http.ResponseWriter, r *http.Re
 
 func (c IngredientController) GetIngredients(w http.ResponseWriter, r *http.Request) {
 	response, err := c.service.GetIngredients(r.Context())
-	common.WriteResponse[common.PaginatedResponse[Ingredient, int]](
-		common.Result[common.PaginatedResponse[Ingredient, int]]{
+	common.WriteResponse[common.PaginatedResponse[Ingredient]](
+		common.Result[common.PaginatedResponse[Ingredient]]{
 			Error:  err,
 			Writer: w,
 			Data:   response,

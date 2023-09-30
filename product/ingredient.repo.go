@@ -13,7 +13,7 @@ import (
 type IIngredientRepository interface {
 	CreateIngredient(ctx context.Context, ingredientBase IngredientBase) error
 	TranslateIngredient(ctx context.Context, ingredient IngredientBase, languageCode string) error
-	GetIngredients(ctx context.Context, pageSize int, endCursor int) ([]Ingredient, error)
+	GetIngredients(ctx context.Context, pageSize int, endCursor string) ([]Ingredient, error)
 	GetUnitIdOfIngredient(ctx context.Context, ingredientId int) (int, error)
 }
 
@@ -74,7 +74,7 @@ func (r *IngredientRepository) TranslateIngredient(ctx context.Context, ingredie
 	return r.insertTranslation(ctx, ingredient, languageCode)
 }
 
-func (r *IngredientRepository) GetIngredients(ctx context.Context, pageSize int, endCursor int) ([]Ingredient, error) {
+func (r *IngredientRepository) GetIngredients(ctx context.Context, pageSize int, endCursor string) ([]Ingredient, error) {
 	sql := `SELECT i.id, it.name, it.brand, i.price, i.expires_in_days, i.standard_quantity, u.id as unit_id, ut.name, ut.symbol from ingredients i 
 	JOIN units u ON i.standard_unit_id = u.id 
 	JOIN unit_translations ut on u.id = ut.unit_id

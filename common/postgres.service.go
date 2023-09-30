@@ -38,12 +38,11 @@ func SetPaginatedDataMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func getPaginationParams(r *http.Request) (pageSize int, endCursor int, sort int) {
+func getPaginationParams(r *http.Request) (pageSize int, endCursor string, sort int) {
 	pageSizeQuery := r.URL.Query().Get("pageSize")
-	endCursorQuery := r.URL.Query().Get("endCursor")
+	endCursor = r.URL.Query().Get("endCursor")
 	sortQuery := r.URL.Query().Get("sort")
 	pageSize, _ = strconv.Atoi(pageSizeQuery)
-	endCursor, _ = strconv.Atoi(endCursorQuery)
 	sort, _ = strconv.Atoi(sortQuery)
 	if pageSize == 0 {
 		pageSize = 10
@@ -64,7 +63,7 @@ func GetPageSize(ctx context.Context) int {
 	return pageSize.(int)
 }
 
-func GetEndCursor[P int | string](ctx context.Context) (empty P) {
+func GetEndCursor(ctx context.Context, defaultVal string) string {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("recovered from panic: %s", r)
@@ -72,9 +71,12 @@ func GetEndCursor[P int | string](ctx context.Context) (empty P) {
 	}()
 	endCursor := ctx.Value(endCursorKey{})
 	if endCursor == nil {
-		return empty
+		return defaultVal
 	}
-	return endCursor.(P)
+	if endCursor == "" {
+		return defaultVal
+	}
+	return endCursor.(string)
 }
 
 func GetSort(ctx context.Context) int {
@@ -85,8 +87,8 @@ func GetSort(ctx context.Context) int {
 	return sort.(int)
 }
 
-func GetPaginationParams[P int | string](ctx context.Context) (pageSize int, cursor P, sort int) {
-	return GetPageSize(ctx), GetEndCursor[P](ctx), GetSort(ctx)
+func GetPaginationParams(ctx context.Context, defaultCursor string) (pageSize int, cursor string, sort int) {
+	return GetPageSize(ctx), GetEndCursor(ctx, defaultCursor), GetSort(ctx)
 }
 
 func SetOperator(ctx context.Context, op DbOperator) context.Context {

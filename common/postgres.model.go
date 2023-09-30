@@ -20,16 +20,16 @@ type sortKey struct{}
 type DbOperatorKey struct{}
 
 type TransactionFunc func(ctx context.Context, tx pgx.Tx) error
-type PaginatedResponse[T any, P int | string] struct {
-	PageSize    int  `json:"pageSize"`
-	EndCursor   P    `json:"endCursor"`
-	HasNext     bool `json:"hasNext"`
-	ItemsLength int  `json:"itemsLength"`
-	Items       []T  `json:"items"`
+type PaginatedResponse[T any] struct {
+	PageSize    int    `json:"pageSize"`
+	EndCursor   string `json:"endCursor"`
+	HasNext     bool   `json:"hasNext"`
+	ItemsLength int    `json:"itemsLength"`
+	Items       []T    `json:"items"`
 }
 
-func CreatePaginatedResponse[T any, P int | string](pageSize int, endCursor P, items []T) PaginatedResponse[T, P] {
-	return PaginatedResponse[T, P]{
+func CreatePaginatedResponse[T any](pageSize int, endCursor string, items []T) PaginatedResponse[T] {
+	return PaginatedResponse[T]{
 		PageSize:    pageSize,
 		EndCursor:   endCursor,
 		HasNext:     len(items) >= pageSize,
@@ -38,8 +38,8 @@ func CreatePaginatedResponse[T any, P int | string](pageSize int, endCursor P, i
 	}
 }
 
-func CreateEmptyPaginatedResponse[T any, P int | string](pageSize int) PaginatedResponse[T, P] {
-	return PaginatedResponse[T, P]{
+func CreateEmptyPaginatedResponse[T any](pageSize int) PaginatedResponse[T] {
+	return PaginatedResponse[T]{
 		PageSize:    pageSize,
 		HasNext:     false,
 		ItemsLength: 0,
