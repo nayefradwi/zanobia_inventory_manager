@@ -76,9 +76,8 @@ func (r *IngredientRepository) TranslateIngredient(ctx context.Context, ingredie
 }
 
 func (r *IngredientRepository) GetIngredients(ctx context.Context, pageSize int, endCursor string) ([]Ingredient, error) {
-	sql := `SELECT i.id, it.name, it.brand, i.price, i.expires_in_days, i.standard_quantity, u.id as unit_id, ut.name, ut.symbol from ingredients i 
-	JOIN units u ON i.standard_unit_id = u.id 
-	JOIN unit_translations ut on u.id = ut.unit_id
+	sql := `SELECT i.id, it.name, it.brand, i.price, i.expires_in_days, i.standard_quantity, ut.unit_id, ut.name, ut.symbol from ingredients i 
+	JOIN unit_translations ut on i.standard_unit_id = ut.unit_id
 	JOIN ingredient_translations it ON it.ingredient_id = i.id AND it.language_code = ut.language_code
 	where it.language_code = $1 AND i.id > $2 order by i.id ASC limit $3;`
 	languageCode := common.GetLanguageParam(ctx)

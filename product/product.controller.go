@@ -37,3 +37,13 @@ func (c ProductController) TranslateProduct(w http.ResponseWriter, r *http.Reque
 		})
 	})
 }
+
+func (c ProductController) GetProducts(w http.ResponseWriter, r *http.Request) {
+	isArchive := r.URL.Query().Get("isArchive") == "true"
+	products, err := c.service.GetProducts(r.Context(), isArchive)
+	common.WriteResponse(common.Result[common.PaginatedResponse[Product]]{
+		Error:  err,
+		Writer: w,
+		Data:   products,
+	})
+}
