@@ -33,6 +33,10 @@ func (s *IngredientService) CreateIngredient(ctx context.Context, ingredientBase
 }
 
 func (s *IngredientService) TranslateIngredient(ctx context.Context, ingredient IngredientBase, languageCode string) error {
+	validationErr := ValidateIngredient(ingredient)
+	if validationErr != nil {
+		return validationErr
+	}
 	return s.repo.TranslateIngredient(ctx, ingredient, languageCode)
 }
 

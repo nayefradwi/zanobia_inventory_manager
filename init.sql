@@ -1,29 +1,42 @@
-DROP TABLE IF EXISTS user_permissions;
-DROP TABLE IF EXISTS role_permissions;
-DROP TABLE IF EXISTS unit_conversions;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS permissions;
-DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS units;
-DROP TABLE IF EXISTS unit_translations;
-DROP TABLE IF EXISTS warehouses;
-DROP TABLE IF EXISTS ingredients;
-DROP TABLE IF EXISTS ingredient_translations;
-DROP TABLE IF EXISTS inventories;
+DROP TABLE IF EXISTS user_permissions CASCADE;
+DROP TABLE IF EXISTS role_permissions CASCADE;
+DROP TABLE IF EXISTS unit_conversions CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS permissions CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+DROP TABLE IF EXISTS units CASCADE;
+DROP TABLE IF EXISTS unit_translations CASCADE;
+DROP TABLE IF EXISTS warehouses CASCADE;
+DROP TABLE IF EXISTS ingredients CASCADE;
+DROP TABLE IF EXISTS ingredient_translations CASCADE;
+DROP TABLE IF EXISTS inventories CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS category_translations CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS product_translations CASCADE;
+DROP TABLE IF EXISTS recipes CASCADE;
 
 
-DROP INDEX IF EXISTS idx_email;
-DROP INDEX IF EXISTS idx_handle;
-DROP INDEX IF EXISTS idx_role_name;
-DROP INDEX IF EXISTS idx_user_permission;
-DROP INDEX IF EXISTS idx_role_permission;
-DROP INDEX IF EXISTS idx_unit_name;
-DROP INDEX IF EXISTS idx_unit_conversion;
-DROP INDEX IF EXISTS idx_unit_translations;
-DROP INDEX IF EXISTS idx_warehouse_name;
-DROP INDEX IF EXISTS idx_ingredient_translation;
-DROP INDEX IF EXISTS ingredients_unit_quantity_idx;
-DROP INDEX IF EXISTS inventory_warehouse_ingredient_idx;
+DROP INDEX IF EXISTS idx_email CASCADE;
+DROP INDEX IF EXISTS idx_handle CASCADE;
+DROP INDEX IF EXISTS idx_role_name CASCADE;
+DROP INDEX IF EXISTS idx_user_permission CASCADE;
+DROP INDEX IF EXISTS idx_role_permission CASCADE;
+DROP INDEX IF EXISTS idx_unit_name CASCADE;
+DROP INDEX IF EXISTS idx_unit_conversion CASCADE;
+DROP INDEX IF EXISTS idx_unit_translations CASCADE;
+DROP INDEX IF EXISTS idx_warehouse_name CASCADE;
+DROP INDEX IF EXISTS idx_ingredient_translation CASCADE;
+DROP INDEX IF EXISTS ingredients_unit_quantity_idx CASCADE;
+DROP INDEX IF EXISTS inventory_warehouse_ingredient_idx CASCADE;
+DROP INDEX IF EXISTS idx_inventory_updated_at CASCADE;
+DROP INDEX IF EXISTS idx_product_translation_name CASCADE;
+DROP INDEX IF EXISTS idx_product_translation CASCADE;
+DROP INDEX IF EXISTS idx_product_is_archived CASCADE;
+DROP INDEX IF EXISTS idx_product_category CASCADE;
+DROP INDEX IF EXISTS idx_recipe CASCADE;
+DROP INDEX IF EXISTS idx_category_translation_name CASCADE;
+DROP INDEX IF EXISTS idx_category_translation CASCADE;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -87,7 +100,7 @@ CREATE TABLE unit_conversions (
     id SERIAL PRIMARY KEY,
     to_unit_id INTEGER NOT NULL REFERENCES units(id),
     from_unit_id INTEGER NOT NULL REFERENCES units(id),
-    conversion_factor NUMERIC(10, 5) NOT NULL
+    conversion_factor NUMERIC(12, 6) NOT NULL
 );
 
 CREATE TABLE warehouses (
@@ -101,8 +114,8 @@ CREATE TABLE warehouses (
 
 CREATE TABLE ingredients (
     id SERIAL PRIMARY KEY,
-    price NUMERIC(10, 2) NOT NULL,
-    standard_quantity NUMERIC(10, 5) NOT NULL,
+    price DECIMAL(12,2) NOT NULL,
+    standard_quantity NUMERIC(10, 3) NOT NULL,
     standard_unit_id INTEGER NOT NULL REFERENCES units(id),
     expires_in_days INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -121,23 +134,94 @@ CREATE TABLE inventories (
     id SERIAL PRIMARY KEY,
     ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
     warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
-    quantity NUMERIC(10, 5) NOT NULL,
+    quantity NUMERIC(12, 4) NOT NULL,
     unit_id INTEGER NOT NULL REFERENCES units(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE category_translations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    category_id INTEGER NOT NULL REFERENCES categories(id),
+    language_code VARCHAR(2) NOT NULL DEFAULT 'en'
+);
+
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    image VARCHAR(255),
+    price DECIMAL(12,2) NOT NULL,
+    width_in_cm DECIMAL(12, 2),
+    height_in_cm DECIMAL(12, 2),
+    depth_in_cm DECIMAL(12, 2),
+    weight_in_g DECIMAL(12, 2),
+    standard_unit_id INTEGER NOT NULL REFERENCES units(id),
+    category_id INTEGER REFERENCES categories(id),
+    is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_in_days INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE product_translations (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    name VARCHAR(50) NOT NULL,
+    standard_unit_id INTEGER NOT NULL REFERENCES units(id),
+    description VARCHAR(255),
+    language_code VARCHAR(2) NOT NULL DEFAULT 'en'
+);
+
+CREATE TABLE recipes (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
+    unit_id INTEGER NOT NULL REFERENCES units(id),
+    quantity NUMERIC(12, 4) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- AUTHENTICATION INDEXES
 CREATE UNIQUE INDEX idx_email ON users(email);
 CREATE UNIQUE INDEX idx_handle ON permissions(handle);
 CREATE UNIQUE INDEX idx_user_permission ON user_permissions(user_id, permission_handle);
 CREATE UNIQUE INDEX idx_role_name ON roles(name);
 CREATE UNIQUE INDEX idx_role_permission ON role_permissions(role_id, permission_handle);
+
+-- UNIT INDEXES
 CREATE UNIQUE INDEX idx_unit_name ON unit_translations(name);
 CREATE UNIQUE INDEX idx_unit_conversion ON unit_conversions(to_unit_id, from_unit_id);
 CREATE UNIQUE INDEX idx_unit_translations ON unit_translations(unit_id, language_code);
+
+-- WAREHOUSE INDEX
 CREATE UNIQUE INDEX idx_warehouse_name ON warehouses(name);
-CREATE UNIQUE INDEX idx_ingredient_translation ON ingredient_translations(name, brand);
+
+-- INGREDIENT INDEXES
+CREATE UNIQUE INDEX idx_ingredient_translation_name_and_brand ON ingredient_translations(name, brand);
+CREATE UNIQUE INDEX idx_ingredient_translation ON ingredient_translations(ingredient_id, language_code);
 CREATE INDEX ingredients_unit_quantity_idx ON ingredients (standard_unit_id, standard_quantity);
 CREATE UNIQUE INDEX inventory_warehouse_ingredient_idx ON inventories (warehouse_id, ingredient_id);
 CREATE INDEX idx_inventory_updated_at ON inventories (updated_at);
+
+-- PRODUCT INDEXES
+CREATE UNIQUE INDEX idx_product_translation_name ON product_translations(name, standard_unit_id);
+CREATE UNIQUE INDEX idx_product_translation ON product_translations(product_id, language_code);
+CREATE INDEX idx_product_is_archived ON products(is_archived);
+CREATE INDEX idx_product_category ON products(category_id);
+CREATE UNIQUE INDEX idx_recipe ON recipes(product_id, ingredient_id); 
+
+-- CATEGORY INDEXES
+CREATE UNIQUE INDEX idx_category_translation_name ON category_translations(name);
+CREATE UNIQUE INDEX idx_category_translation ON category_translations(category_id, language_code);
+
+
+
 

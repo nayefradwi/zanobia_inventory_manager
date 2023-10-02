@@ -57,6 +57,9 @@ func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 
 func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productRouter := chi.NewRouter()
+	productController := product.NewProductController(provider.services.productService)
+	productRouter.Post("/", productController.CreateProduct)
+	productRouter.Post("/translation", productController.TranslateProduct)
 	registerUnitRoutes(productRouter, provider)
 	registerIngredientRoutes(productRouter, provider)
 	mainRouter.Mount("/products", productRouter)

@@ -25,6 +25,7 @@ type systemRepositories struct {
 	warehouseRepository  warehouse.IWarehouseRepository
 	ingredientRepository product.IIngredientRepository
 	inventoryRepository  product.IInventoryRepository
+	productRepository    product.IProductRepo
 }
 
 type systemServices struct {
@@ -36,6 +37,7 @@ type systemServices struct {
 	ingredientService product.IIngredientService
 	lockingService    common.IDistributedLockingService
 	inventoryService  product.IInventoryService
+	productService    product.IProductService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -65,6 +67,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	warehouseRepo := warehouse.NewWarehouseRepository(connections.dbPool)
 	ingredientRepo := product.NewIngredientRepository(connections.dbPool)
 	inventoryRepo := product.NewInventoryRepository(connections.dbPool)
+	productRepo := product.NewProductRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
 		permissionRepository: permssionRepo,
@@ -73,6 +76,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 		warehouseRepository:  warehouseRepo,
 		ingredientRepository: ingredientRepo,
 		inventoryRepository:  inventoryRepo,
+		productRepository:    productRepo,
 	}
 }
 
@@ -96,6 +100,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		UnitService:    unitService,
 	}
 	inventoryService := product.NewInventoryService(inventoryServiceWorkUnit)
+	productService := product.NewProductService(repositories.productRepository)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,
@@ -105,6 +110,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		ingredientService: ingredientService,
 		lockingService:    lockingService,
 		inventoryService:  inventoryService,
+		productService:    productService,
 	}
 }
 

@@ -29,12 +29,12 @@ func NewIngredientRepository(dbPool *pgxpool.Pool) IIngredientRepository {
 
 func (r *IngredientRepository) CreateIngredient(ctx context.Context, ingredientBase IngredientBase) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		id, addErr := r.addIngredient(ctx, tx, ingredientBase)
+		ctx = common.SetOperator(ctx, tx)
+		id, addErr := r.addIngredient(ctx, ingredientBase)
 		if addErr != nil {
 			return addErr
 		}
 		ingredientBase.Id = &id
-		ctx = common.SetOperator(ctx, tx)
 		translationErr := r.insertTranslation(ctx, ingredientBase, common.DefaultLang)
 		if translationErr != nil {
 			return translationErr
@@ -44,10 +44,11 @@ func (r *IngredientRepository) CreateIngredient(ctx context.Context, ingredientB
 	return err
 }
 
-func (r *IngredientRepository) addIngredient(ctx context.Context, tx pgx.Tx, ingredient IngredientBase) (int, error) {
+func (r *IngredientRepository) addIngredient(ctx context.Context, ingredient IngredientBase) (int, error) {
 	sql := `INSERT INTO ingredients (price, standard_unit_id, expires_in_days, standard_quantity) VALUES ($1, $2, $3, $4) RETURNING id`
 	var id int
-	err := tx.QueryRow(ctx, sql, ingredient.Price, ingredient.StandardUnitId, ingredient.ExpiresInDays, ingredient.StandardQty).Scan(&id)
+	op := common.GetOperator(ctx, r.Pool)
+	err := op.QueryRow(ctx, sql, ingredient.Price, ingredient.StandardUnitId, ingredient.ExpiresInDays, ingredient.StandardQty).Scan(&id)
 	if err != nil {
 		log.Printf("failed to create ingredient: %s", err.Error())
 		return 0, common.NewBadRequestError("Failed to create ingredient", zimutils.GetErrorCodeFromError(err))
