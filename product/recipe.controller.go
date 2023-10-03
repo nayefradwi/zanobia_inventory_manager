@@ -26,3 +26,14 @@ func (c RecipeController) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 }
+
+func (c RecipeController) AddIngredientToRecipe(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[RecipeBase](w, r.Body, func(recipe RecipeBase) {
+		err := c.service.AddIngredientToRecipe(r.Context(), recipe)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Ingredient added to recipe successfully",
+		})
+	})
+}

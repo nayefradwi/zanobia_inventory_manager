@@ -9,6 +9,7 @@ import (
 type IRecipeService interface {
 	CreateRecipes(ctx context.Context, recipes []RecipeBase) error
 	GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error)
+	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
 }
 
 type RecipeService struct {

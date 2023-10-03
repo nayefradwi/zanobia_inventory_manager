@@ -12,7 +12,7 @@ type Recipe struct {
 	Id          *int       `json:"id"`
 	ProductId   *int       `json:"productId"`
 	ProductName string     `json:"productName"`
-	Quantity    int        `json:"quantity"`
+	Quantity    float64    `json:"quantity"`
 	Unit        Unit       `json:"unit"`
 	Ingredient  Ingredient `json:"ingredient"`
 }
