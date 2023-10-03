@@ -278,3 +278,21 @@ func ValidateProductCategoryId(categoryId *int) common.ErrorDetails {
 	}
 	return common.ErrorDetails{}
 }
+
+func ValidateRecipe(recipe RecipeBase) error {
+	qtyValidation := ValidateQty(recipe.Quantity)
+	if len(qtyValidation.Message) > 0 {
+		return common.NewValidationError("invalid recipe input", qtyValidation)
+	}
+	return nil
+}
+
+func ValidateRecipes(recipes []RecipeBase) error {
+	for _, recipe := range recipes {
+		err := ValidateRecipe(recipe)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

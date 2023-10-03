@@ -27,7 +27,7 @@ func NewProductRepository(dbPool *pgxpool.Pool) IProductRepo {
 
 func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductBase) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		common.SetOperator(ctx, tx)
+		ctx = common.SetOperator(ctx, tx)
 		id, addErr := r.addProduct(ctx, product)
 		if addErr != nil {
 			return addErr
