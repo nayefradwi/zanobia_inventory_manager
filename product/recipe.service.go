@@ -10,6 +10,7 @@ type IRecipeService interface {
 	CreateRecipes(ctx context.Context, recipes []RecipeBase) error
 	GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error)
 	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
+	DeleteRecipe(ctx context.Context, id int) error
 }
 
 type RecipeService struct {
@@ -43,4 +44,8 @@ func (s *RecipeService) AddIngredientToRecipe(ctx context.Context, recipe Recipe
 
 func (s *RecipeService) GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error) {
 	return s.repo.GetRecipeOfProduct(ctx, productId)
+}
+
+func (s *RecipeService) DeleteRecipe(ctx context.Context, id int) error {
+	return s.repo.DeleteRecipe(ctx, id)
 }

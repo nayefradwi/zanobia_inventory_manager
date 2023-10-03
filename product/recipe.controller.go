@@ -2,7 +2,9 @@ package product
 
 import (
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -35,5 +37,16 @@ func (c RecipeController) AddIngredientToRecipe(w http.ResponseWriter, r *http.R
 			Writer:  w,
 			Message: "Ingredient added to recipe successfully",
 		})
+	})
+}
+
+func (c RecipeController) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, _ := strconv.Atoi(idParam)
+	err := c.service.DeleteRecipe(r.Context(), id)
+	common.WriteEmptyResponse(common.EmptyResult{
+		Error:   err,
+		Writer:  w,
+		Message: "Recipe deleted successfully",
 	})
 }

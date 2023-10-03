@@ -13,6 +13,7 @@ type IRecipeRepository interface {
 	CreateRecipes(ctx context.Context, recipes []RecipeBase) error
 	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
 	GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error)
+	DeleteRecipe(ctx context.Context, id int) error
 }
 
 type RecipeRepository struct {
@@ -87,4 +88,15 @@ func (r *RecipeRepository) GetRecipeOfProduct(ctx context.Context, productId int
 		recipes = append(recipes, recipe)
 	}
 	return recipes, nil
+}
+
+func (r *RecipeRepository) DeleteRecipe(ctx context.Context, id int) error {
+	sql := `DELETE FROM recipes WHERE id = $1`
+	op := common.GetOperator(ctx, r.Pool)
+	_, err := op.Exec(ctx, sql, id)
+	if err != nil {
+		log.Printf("failed to delete recipe: %s", err.Error())
+		return common.NewBadRequestFromMessage("failed to delete recipe")
+	}
+	return nil
 }

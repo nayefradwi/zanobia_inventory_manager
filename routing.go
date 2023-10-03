@@ -113,6 +113,7 @@ func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	recipeRouter := chi.NewRouter()
 	recipeRouter.Post("/", recipeController.CreateRecipe)
 	recipeRouter.Put("/recipe", recipeController.AddIngredientToRecipe)
+	recipeRouter.Delete("/{id}", recipeController.DeleteRecipe)
 	mainRouter.Mount("/recipes", recipeRouter)
 }
 
