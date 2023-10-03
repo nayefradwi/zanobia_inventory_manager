@@ -2,7 +2,9 @@ package product
 
 import (
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -45,5 +47,16 @@ func (c ProductController) GetProducts(w http.ResponseWriter, r *http.Request) {
 		Error:  err,
 		Writer: w,
 		Data:   products,
+	})
+}
+
+func (c ProductController) GetProduct(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, _ := strconv.Atoi(idParam)
+	product, err := c.service.GetProduct(r.Context(), id)
+	common.WriteResponse(common.Result[Product]{
+		Error:  err,
+		Writer: w,
+		Data:   product,
 	})
 }

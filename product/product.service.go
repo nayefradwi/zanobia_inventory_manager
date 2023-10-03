@@ -11,6 +11,7 @@ type IProductService interface {
 	CreateProduct(ctx context.Context, product ProductBase) error
 	TranslateProduct(ctx context.Context, product ProductBase, languageCode string) error
 	GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[Product], error)
+	GetProduct(ctx context.Context, id int) (Product, error)
 }
 
 type ProductService struct {
@@ -50,4 +51,8 @@ func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (commo
 	}
 	lastId := products[len(products)-1].Id
 	return common.CreatePaginatedResponse[Product](size, strconv.Itoa(*lastId), products), nil
+}
+
+func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error) {
+	return s.repo.GetProduct(ctx, id)
 }
