@@ -12,6 +12,7 @@ import (
 type IRecipeRepository interface {
 	CreateRecipes(ctx context.Context, recipes []RecipeBase) error
 	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
+	GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error)
 }
 
 type RecipeRepository struct {
@@ -52,5 +53,38 @@ func (r *RecipeRepository) RemoveIngredientFromRecipe(ctx context.Context, id, i
 }
 
 func (r *RecipeRepository) GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error) {
-	return nil, nil
+	sql := `select r.id, r.product_id, ptx.name, r.quantity, utx.unit_id, utx.name,
+	utx.symbol, ingtx.ingredient_id, ingtx.name, ingtx.brand, ing.price,
+	ing.expires_in_days from recipes r
+	join product_translations ptx on r.product_id = ptx.product_id
+	join unit_translations utx on r.unit_id = utx.unit_id and ptx.language_code = utx.language_code
+	join ingredients ing on r.ingredient_id = ing.id
+	join ingredient_translations ingtx on ingtx.ingredient_id = r.ingredient_id and utx.language_code = ingtx.language_code
+	where ptx.product_id = $1 and ptx.language_code = $2;`
+	op := common.GetOperator(ctx, r.Pool)
+	languageCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, productId, languageCode)
+	if err != nil {
+		log.Printf("failed to get recipe of product: %s", err.Error())
+		return nil, common.NewBadRequestFromMessage("failed to get recipe of product")
+	}
+	defer rows.Close()
+	recipes := make([]Recipe, 0)
+	for rows.Next() {
+		var recipe Recipe
+		var unit Unit
+		var ingredient Ingredient
+		err := rows.Scan(&recipe.Id, &recipe.ProductId, &recipe.ProductName, &recipe.Quantity,
+			&unit.Id, &unit.Name, &unit.Symbol, &ingredient.Id, &ingredient.Name,
+			&ingredient.Brand, &ingredient.Price, &ingredient.ExpiresInDays,
+		)
+		if err != nil {
+			log.Printf("failed to scan recipe: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		recipe.Unit = unit
+		recipe.Ingredient = ingredient
+		recipes = append(recipes, recipe)
+	}
+	return recipes, nil
 }

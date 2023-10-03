@@ -8,6 +8,7 @@ import (
 
 type IRecipeService interface {
 	CreateRecipes(ctx context.Context, recipes []RecipeBase) error
+	GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error)
 }
 
 type RecipeService struct {
@@ -37,4 +38,8 @@ func (s *RecipeService) AddIngredientToRecipe(ctx context.Context, recipe Recipe
 		return validationErr
 	}
 	return s.repo.AddIngredientToRecipe(ctx, recipe)
+}
+
+func (s *RecipeService) GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error) {
+	return s.repo.GetRecipeOfProduct(ctx, productId)
 }

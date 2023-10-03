@@ -104,8 +104,8 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		UnitService:    unitService,
 	}
 	inventoryService := product.NewInventoryService(inventoryServiceWorkUnit)
-	productService := product.NewProductService(repositories.productRepository)
 	recipeService := product.NewRecipeService(repositories.recipeRepository)
+	productService := product.NewProductService(repositories.productRepository, recipeService)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,

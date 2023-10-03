@@ -15,12 +15,14 @@ type IProductService interface {
 }
 
 type ProductService struct {
-	repo IProductRepo
+	repo          IProductRepo
+	recipeService IRecipeService
 }
 
-func NewProductService(repo IProductRepo) IProductService {
+func NewProductService(repo IProductRepo, recipeService IRecipeService) IProductService {
 	return &ProductService{
 		repo,
+		recipeService,
 	}
 }
 
@@ -54,5 +56,14 @@ func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (commo
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error) {
-	return s.repo.GetProduct(ctx, id)
+	product, err := s.repo.GetProduct(ctx, id)
+	if err != nil {
+		return Product{}, err
+	}
+	recipe, err := s.recipeService.GetRecipeOfProduct(ctx, id)
+	if err != nil {
+		return Product{}, err
+	}
+	product.Recipe = recipe
+	return product, nil
 }

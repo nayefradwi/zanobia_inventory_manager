@@ -20,5 +20,5 @@ type Product struct {
 	ProductBase
 	StandardUnit *Unit     `json:"standardUnit,omitempty"`
 	Category     *Category `json:"category,omitempty"`
-	// TODO missing recipe
+	Recipe       []Recipe  `json:"recipe"`
 }
