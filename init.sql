@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS category_translations CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS product_translations CASCADE;
 DROP TABLE IF EXISTS recipes CASCADE;
+DROP TABLE IF EXISTS batches CASCADE;
 
 
 DROP INDEX IF EXISTS idx_email CASCADE;
@@ -37,6 +38,7 @@ DROP INDEX IF EXISTS idx_product_category CASCADE;
 DROP INDEX IF EXISTS idx_recipe CASCADE;
 DROP INDEX IF EXISTS idx_category_translation_name CASCADE;
 DROP INDEX IF EXISTS idx_category_translation CASCADE;
+DROP INDEX IF EXISTS idx_batch CASCADE;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -188,6 +190,17 @@ CREATE TABLE recipes (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE batches (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
+    quantity NUMERIC(12, 4) NOT NULL,
+    unit_id INTEGER NOT NULL REFERENCES units(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL
+);
+
 
 -- AUTHENTICATION INDEXES
 CREATE UNIQUE INDEX idx_email ON users(email);
@@ -222,6 +235,7 @@ CREATE UNIQUE INDEX idx_recipe ON recipes(product_id, ingredient_id);
 CREATE UNIQUE INDEX idx_category_translation_name ON category_translations(name);
 CREATE UNIQUE INDEX idx_category_translation ON category_translations(category_id, language_code);
 
-
+-- BATCH INDEXES
+CREATE UNIQUE INDEX idx_batch ON batches(product_id, warehouse_id, expires_at);
 
 
