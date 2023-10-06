@@ -4,15 +4,15 @@ import "time"
 
 type InventoryBase struct {
 	Id           *int    `json:"id,omitempty"`
-	IngredientId int     `json:"ingredientId,omitempty"`
-	WarehouseId  int     `json:"warehouseId,omitempty"`
+	IngredientId int     `json:"ingredientId"`
+	WarehouseId  *int    `json:"warehouseId,omitempty"`
 	Quantity     float64 `json:"quantity"`
 	UnitId       int     `json:"unitId,omitempty"`
 }
 
 type Inventory struct {
 	Id          *int       `json:"id,omitempty"`
-	WarehouseId *int       `json:"warehouse"`
+	WarehouseId *int       `json:"warehouse,omitempty"`
 	Ingredient  Ingredient `json:"ingredient"`
 	Quantity    float64    `json:"quantity"`
 	Unit        Unit       `json:"unit"`

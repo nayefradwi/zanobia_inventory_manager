@@ -15,6 +15,10 @@ type IInventoryService interface {
 	BulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
 	BulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
 	GetInventories(ctx context.Context) (common.PaginatedResponse[Inventory], error)
+
+	// private methods for services to use from their own transaction
+	bulkIncrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
+	bulkDecrementInventory(ctx context.Context, inventoryInputs []InventoryInput) error
 }
 type InventoryServiceWorkUnit struct {
 	InventoryRepo  IInventoryRepository

@@ -67,3 +67,5 @@ func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error
 	product.Recipe = recipe
 	return product, nil
 }
+
+// TODO get base product
