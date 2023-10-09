@@ -27,6 +27,7 @@ type systemRepositories struct {
 	inventoryRepository  product.IInventoryRepository
 	productRepository    product.IProductRepo
 	recipeRepository     product.IRecipeRepository
+	variantRepository    product.IVariantRepository
 }
 
 type systemServices struct {
@@ -40,6 +41,7 @@ type systemServices struct {
 	inventoryService  product.IInventoryService
 	productService    product.IProductService
 	recipeService     product.IRecipeService
+	variantService    product.IVariantService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -71,6 +73,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	inventoryRepo := product.NewInventoryRepository(connections.dbPool)
 	productRepo := product.NewProductRepository(connections.dbPool)
 	recipeRepo := product.NewRecipeRepository(connections.dbPool)
+	variantRepo := product.NewVariantRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
 		permissionRepository: permssionRepo,
@@ -81,6 +84,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 		inventoryRepository:  inventoryRepo,
 		productRepository:    productRepo,
 		recipeRepository:     recipeRepo,
+		variantRepository:    variantRepo,
 	}
 }
 
@@ -105,6 +109,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	}
 	inventoryService := product.NewInventoryService(inventoryServiceWorkUnit)
 	recipeService := product.NewRecipeService(repositories.recipeRepository)
+	variantService := product.NewVariantService(repositories.variantRepository)
 	productService := product.NewProductService(repositories.productRepository, recipeService)
 	s.services = systemServices{
 		userService:       userService,
@@ -117,6 +122,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		inventoryService:  inventoryService,
 		productService:    productService,
 		recipeService:     recipeService,
+		variantService:    variantService,
 	}
 }
 

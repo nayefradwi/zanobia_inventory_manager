@@ -11,7 +11,7 @@ type Variant struct {
 func ValidateVariant(variant Variant) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
-		validateVariantName(variant.Name),
+		common.ValidateAlphanuemericName(variant.Name, "name"),
 		validateVariantValues(variant.Values),
 	)
 	errors := make([]common.ErrorDetails, 0)
@@ -24,16 +24,6 @@ func ValidateVariant(variant Variant) error {
 		return common.NewValidationError("invalid variant input", errors...)
 	}
 	return nil
-}
-
-func validateVariantName(name string) common.ErrorDetails {
-	if !isNameValid(name) {
-		return common.ErrorDetails{
-			Message: "invalid variant name",
-			Field:   "name",
-		}
-	}
-	return common.ErrorDetails{}
 }
 
 func ValidateVariantValues(values []string) error {
@@ -52,11 +42,9 @@ func validateVariantValues(values []string) common.ErrorDetails {
 		}
 	}
 	for _, value := range values {
-		if !isNameValid(value) {
-			return common.ErrorDetails{
-				Message: "invalid variant value",
-				Field:   "values",
-			}
+		result := common.ValidateAlphanuemericName(value, "variant value")
+		if len(result.Message) > 0 {
+			return result
 		}
 	}
 	return common.ErrorDetails{}
