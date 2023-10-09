@@ -211,7 +211,7 @@ CREATE TABLE product_variant_options (
 CREATE TABLE product_variants (
     id SERIAL PRIMARY KEY,
     product_id INTEGER NOT NULL REFERENCES products(id),
-    sku VARCHAR(20) UNIQUE NOT NULL,
+    sku VARCHAR(36) UNIQUE NOT NULL,
     image VARCHAR(255),
     price DECIMAL(12,2) NOT NULL,
     width_in_cm DECIMAL(12, 2),
@@ -253,7 +253,7 @@ CREATE TABLE recipes (
 
 CREATE TABLE batches (
     id SERIAL PRIMARY KEY,
-    sku VARCHAR(20) NOT NULL REFERENCES product_variants(sku),
+    sku VARCHAR(36) NOT NULL REFERENCES product_variants(sku),
     warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
     quantity NUMERIC(12, 4) NOT NULL,
     unit_id INTEGER NOT NULL REFERENCES units(id),

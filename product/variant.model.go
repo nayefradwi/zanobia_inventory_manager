@@ -1,6 +1,10 @@
 package product
 
-import "github.com/nayefradwi/zanobia_inventory_manager/common"
+import (
+	"strings"
+
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+)
 
 type VariantInput struct {
 	Id     *int     `json:"id"`
@@ -17,6 +21,15 @@ type Variant struct {
 	Id     *int           `json:"id"`
 	Name   string         `json:"name"`
 	Values []VariantValue `json:"values"`
+}
+
+func (v Variant) GenerateNameFromValues() string {
+	name := ""
+	for _, value := range v.Values {
+		lowerCaseValue := strings.ToLower(value.Value)
+		name += lowerCaseValue + "_"
+	}
+	return name[:len(name)-1]
 }
 
 func ValidateVariant(variant VariantInput) error {
