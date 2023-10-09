@@ -132,6 +132,8 @@ func registerVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	variantController := product.NewVariantController(provider.services.variantService)
 	variantRouter := chi.NewRouter()
 	variantRouter.Post("/", variantController.CreateVariant)
+	variantRouter.Get("/{id}", variantController.GetVariant)
+	variantRouter.Put("/{id}", variantController.UpdateVariantName)
 	variantRouter.Post("/{id}/values", variantController.AddVariantValues)
 	mainRouter.Mount("/variants", variantRouter)
 }

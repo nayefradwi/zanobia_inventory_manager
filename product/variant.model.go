@@ -2,13 +2,24 @@ package product
 
 import "github.com/nayefradwi/zanobia_inventory_manager/common"
 
-type Variant struct {
+type VariantInput struct {
 	Id     *int     `json:"id"`
 	Name   string   `json:"name"`
 	Values []string `json:"values"`
 }
 
-func ValidateVariant(variant Variant) error {
+type VariantValue struct {
+	Id    int    `json:"id"`
+	Value string `json:"value"`
+}
+
+type Variant struct {
+	Id     *int           `json:"id"`
+	Name   string         `json:"name"`
+	Values []VariantValue `json:"values"`
+}
+
+func ValidateVariant(variant VariantInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
 		common.ValidateAlphanuemericName(variant.Name, "name"),

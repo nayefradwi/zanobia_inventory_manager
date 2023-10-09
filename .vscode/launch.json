@@ -15,6 +15,7 @@
             "name": "Start development server",
             "type": "go",
             "request": "launch",
+            "output": "__debug_bin",
             "mode": "auto",
             "args": ["dev"],
             "program": "${workspaceFolder}",
