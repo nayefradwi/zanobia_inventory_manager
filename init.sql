@@ -12,10 +12,18 @@ DROP TABLE IF EXISTS ingredient_translations CASCADE;
 DROP TABLE IF EXISTS inventories CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS category_translations CASCADE;
-DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS product_variant_selected_values CASCADE;
+DROP TABLE IF EXISTS product_variant_translations CASCADE;
+DROP TABLE IF EXISTS product_variants CASCADE;
+DROP TABLE IF EXISTS variant_values CASCADE;
+DROP TABLE IF EXISTS variants CASCADE;
+DROP TABLE IF EXISTS variant_translations CASCADE;
+DROP TABLE IF EXISTS product_variant_options CASCADE;
 DROP TABLE IF EXISTS product_translations CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS recipes CASCADE;
 DROP TABLE IF EXISTS batches CASCADE;
+
 
 
 DROP INDEX IF EXISTS idx_email CASCADE;
@@ -158,15 +166,8 @@ CREATE TABLE category_translations (
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
     image VARCHAR(255),
-    price DECIMAL(12,2) NOT NULL,
-    width_in_cm DECIMAL(12, 2),
-    height_in_cm DECIMAL(12, 2),
-    depth_in_cm DECIMAL(12, 2),
-    weight_in_g DECIMAL(12, 2),
-    standard_unit_id INTEGER NOT NULL REFERENCES units(id),
     category_id INTEGER REFERENCES categories(id),
     is_archived BOOLEAN NOT NULL DEFAULT FALSE,
-    expires_in_days INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -175,14 +176,74 @@ CREATE TABLE product_translations (
     id SERIAL PRIMARY KEY,
     product_id INTEGER NOT NULL REFERENCES products(id),
     name VARCHAR(50) NOT NULL,
-    standard_unit_id INTEGER NOT NULL REFERENCES units(id),
     description VARCHAR(255),
     language_code VARCHAR(2) NOT NULL DEFAULT 'en'
 );
 
-CREATE TABLE recipes (
+CREATE TABLE variants (
+    id SERIAL PRIMARY KEY,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE variant_translations (
+    id SERIAL PRIMARY KEY,
+    variant_id INTEGER NOT NULL REFERENCES variants(id),
+    name VARCHAR(50) NOT NULL,
+    language_code VARCHAR(2) NOT NULL DEFAULT 'en'
+);
+
+CREATE TABLE variant_values (
+    id SERIAL PRIMARY KEY,
+    variant_id INTEGER NOT NULL REFERENCES variants(id),
+    value VARCHAR(50) NOT NULL,
+    language_code VARCHAR(2) NOT NULL DEFAULT 'en'
+);
+
+CREATE TABLE product_variant_options (
     id SERIAL PRIMARY KEY,
     product_id INTEGER NOT NULL REFERENCES products(id),
+    variant_id INTEGER NOT NULL REFERENCES variants(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE product_variants (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    sku VARCHAR(20) UNIQUE NOT NULL,
+    image VARCHAR(255),
+    price DECIMAL(12,2) NOT NULL,
+    width_in_cm DECIMAL(12, 2),
+    height_in_cm DECIMAL(12, 2),
+    depth_in_cm DECIMAL(12, 2),
+    weight_in_g DECIMAL(12, 2),
+    standard_unit_id INTEGER NOT NULL REFERENCES units(id),
+    is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_in_days INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE product_variant_translations (
+    id SERIAL PRIMARY KEY,
+    product_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
+    name VARCHAR(50) NOT NULL,
+    language_code VARCHAR(2) NOT NULL DEFAULT 'en'
+);
+
+CREATE TABLE product_variant_selected_values (
+    id SERIAL PRIMARY KEY,
+    product_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
+    variant_value_id INTEGER NOT NULL REFERENCES variant_values(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE recipes (
+    id SERIAL PRIMARY KEY,
+    product_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
     ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
     unit_id INTEGER NOT NULL REFERENCES units(id),
     quantity NUMERIC(12, 4) NOT NULL,
@@ -192,7 +253,7 @@ CREATE TABLE recipes (
 
 CREATE TABLE batches (
     id SERIAL PRIMARY KEY,
-    product_id INTEGER NOT NULL REFERENCES products(id),
+    sku VARCHAR(20) NOT NULL REFERENCES product_variants(sku),
     warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
     quantity NUMERIC(12, 4) NOT NULL,
     unit_id INTEGER NOT NULL REFERENCES units(id),
@@ -200,7 +261,6 @@ CREATE TABLE batches (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL
 );
-
 
 -- AUTHENTICATION INDEXES
 CREATE UNIQUE INDEX idx_email ON users(email);
@@ -225,17 +285,37 @@ CREATE UNIQUE INDEX inventory_warehouse_ingredient_idx ON inventories (warehouse
 CREATE INDEX idx_inventory_updated_at ON inventories (updated_at);
 
 -- PRODUCT INDEXES
-CREATE UNIQUE INDEX idx_product_translation_name ON product_translations(name, standard_unit_id);
+CREATE UNIQUE INDEX idx_product_translation_name ON product_translations(name);
 CREATE UNIQUE INDEX idx_product_translation ON product_translations(product_id, language_code);
 CREATE INDEX idx_product_is_archived ON products(is_archived);
 CREATE INDEX idx_product_category ON products(category_id);
-CREATE UNIQUE INDEX idx_recipe ON recipes(product_id, ingredient_id); 
+CREATE INDEX idx_product_created_at ON products(created_at);
 
 -- CATEGORY INDEXES
 CREATE UNIQUE INDEX idx_category_translation_name ON category_translations(name);
 CREATE UNIQUE INDEX idx_category_translation ON category_translations(category_id, language_code);
 
+-- VARIANT INDEXES
+CREATE UNIQUE INDEX idx_variant_translation_name ON variant_translations(name);
+CREATE UNIQUE INDEX idx_variant_translation on variant_translations(variant_id, language_code);
+
+-- VARIANT VALUE INDEXES
+CREATE UNIQUE INDEX idx_variant_value_translation ON variant_values(value, language_code);
+
+-- PRODUCT VARIANT OPTIONS INDEXES
+CREATE UNIQUE INDEX idx_product_variant_option ON product_variant_options(product_id, variant_id);
+
+-- PRODUCT VARIANTS INDEXES
+CREATE UNIQUE INDEX idx_product_variant_sku ON product_variants(sku);
+CREATE INDEX idx_product_variant_created_at ON product_variants(created_at);
+CREATE INDEX idx_product_variant_is_archived ON product_variants(is_archived);
+CREATE INDEX idx_product_variant_is_default ON product_variants(is_default);
+CREATE INDEX idx_product_variant_price ON product_variants(price);
+
+-- PRODUCT VARIANT TRANSLATIONS INDEXES
+CREATE UNIQUE INDEX idx_product_variant_translation_name ON product_variant_translations(name);
+CREATE UNIQUE INDEX idx_product_variant_translation ON product_variant_translations(product_variant_id, language_code);
+
+-- RECIPE INDEXES
+
 -- BATCH INDEXES
-CREATE UNIQUE INDEX idx_batch ON batches(product_id, warehouse_id, expires_at);
-
-
