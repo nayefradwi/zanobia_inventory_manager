@@ -19,7 +19,7 @@ func NewProductController(service IProductService) ProductController {
 }
 
 func (c ProductController) CreateProduct(w http.ResponseWriter, r *http.Request) {
-	common.ParseBody[ProductBase](w, r.Body, func(product ProductBase) {
+	common.ParseBody[ProductInput](w, r.Body, func(product ProductInput) {
 		err := c.service.CreateProduct(r.Context(), product)
 		common.WriteCreatedResponse(common.EmptyResult{
 			Error:   err,
@@ -30,7 +30,7 @@ func (c ProductController) CreateProduct(w http.ResponseWriter, r *http.Request)
 }
 
 func (c ProductController) TranslateProduct(w http.ResponseWriter, r *http.Request) {
-	common.GetTranslatedBody[ProductBase](w, r.Body, func(t common.Translation[ProductBase]) {
+	common.GetTranslatedBody[ProductInput](w, r.Body, func(t common.Translation[ProductInput]) {
 		err := c.service.TranslateProduct(r.Context(), t.Data, t.LanguageCode)
 		common.WriteCreatedResponse(common.EmptyResult{
 			Error:   err,

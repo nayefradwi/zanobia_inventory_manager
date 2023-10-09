@@ -73,19 +73,13 @@ func ValidateInventoryInput(inventoryInput InventoryInput) error {
 	return nil
 }
 
-func ValidateProduct(product ProductBase) error {
+func ValidateProduct(product ProductInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
 		common.ValidateAlphaNuemericPtr(product.Name, "name"),
 		common.ValidateStringLength(product.Description, "description", 0, 255),
-		common.ValidateUrl(product.Image, "image"),
 		common.ValidateNotZero(product.Price, "price"),
-		ValidateProductDimension(product.WidthInCm, "widthInCm"),
-		ValidateProductDimension(product.HeightInCm, "heightInCm"),
-		ValidateProductDimension(product.DepthInCm, "depthInCm"),
-		ValidateProductDimension(product.WeightInG, "weightInG"),
 		common.ValidateIdPtr(product.StandardUnitId, "standardUnitId"),
-		common.ValidateIdPtr(product.CategoryId, "categoryId"),
 		common.ValidateNotZero(product.ExpiresInDays, "expiresInDays"),
 	)
 	errors := make([]common.ErrorDetails, 0)
