@@ -41,9 +41,9 @@ func (r *VariantRepository) CreateVariant(ctx context.Context, variant Variant) 
 
 func (r *VariantRepository) createVariant(ctx context.Context, variant Variant) (int, error) {
 	op := common.GetOperator(ctx, r.Pool)
-	sql := `INSERT INTO variants (name) VALUES ($1) RETURNING id`
+	sql := `INSERT INTO variants DEFAULT VALUES RETURNING id`
 	var id int
-	err := op.QueryRow(ctx, sql, variant.Name).Scan(&id)
+	err := op.QueryRow(ctx, sql).Scan(&id)
 	if err != nil {
 		log.Printf("failed to create variant: %s", err.Error())
 		return 0, common.NewBadRequestError("Failed to create variant", zimutils.GetErrorCodeFromError(err))
@@ -52,7 +52,7 @@ func (r *VariantRepository) createVariant(ctx context.Context, variant Variant) 
 }
 
 func (r *VariantRepository) insertVariantTranslation(ctx context.Context, variantId int, name string, languageCode string) error {
-	op := common.GetOperator(context.Background(), r.Pool)
+	op := common.GetOperator(ctx, r.Pool)
 	sql := `INSERT INTO variant_translations (variant_id, name, language_code) VALUES ($1, $2, $3)`
 	_, err := op.Exec(ctx, sql, variantId, name, languageCode)
 	if err != nil {
@@ -72,7 +72,7 @@ func (r *VariantRepository) AddVariantValues(ctx context.Context, variantId int,
 
 func (r *VariantRepository) addVariantValues(ctx context.Context, variantId int, values []string) error {
 	for _, value := range values {
-		addValueErr := r.addVariantValue(ctx, variantId, value)
+		addValueErr := r.addVariantValue(ctx, variantId, value, common.DefaultLang)
 		if addValueErr != nil {
 			return addValueErr
 		}
@@ -80,34 +80,17 @@ func (r *VariantRepository) addVariantValues(ctx context.Context, variantId int,
 	return nil
 }
 
-func (r *VariantRepository) addVariantValue(ctx context.Context, variantId int, value string) error {
-	id, err := r.createVariantValue(variantId, value)
-	if err != nil {
-		return err
-	}
-	translationErr := r.insertVariantValueTranslation(id, value, common.DefaultLang)
-	return translationErr
+func (r *VariantRepository) addVariantValue(ctx context.Context, variantId int, value string, langCode string) error {
+	return r.createVariantValue(ctx, variantId, value, langCode)
 }
 
-func (r *VariantRepository) createVariantValue(variantId int, value string) (int, error) {
-	op := common.GetOperator(context.Background(), r.Pool)
-	sql := `INSERT INTO variant_values (variant_id, value) VALUES ($1, $2) RETURNING id`
-	var id int
-	err := op.QueryRow(context.Background(), sql, variantId, value).Scan(&id)
+func (r *VariantRepository) createVariantValue(ctx context.Context, variantId int, value string, langCode string) error {
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `INSERT INTO variant_values (variant_id, value, language_code) VALUES ($1, $2, $3) RETURNING id`
+	_, err := op.Exec(ctx, sql, variantId, value, langCode)
 	if err != nil {
 		log.Printf("failed to create variant value: %s", err.Error())
-		return 0, common.NewBadRequestError("Failed to create variant value", zimutils.GetErrorCodeFromError(err))
-	}
-	return id, nil
-}
-
-func (r *VariantRepository) insertVariantValueTranslation(variantValueId int, value string, languageCode string) error {
-	op := common.GetOperator(context.Background(), r.Pool)
-	sql := `INSERT INTO variant_value_translations (variant_value_id, value, language_code) VALUES ($1, $2, $3)`
-	_, err := op.Exec(context.Background(), sql, variantValueId, value, languageCode)
-	if err != nil {
-		log.Printf("failed to translate variant value: %s", err.Error())
-		return common.NewBadRequestError("Failed to translate variant value", zimutils.GetErrorCodeFromError(err))
+		return common.NewBadRequestError("Failed to create variant value", zimutils.GetErrorCodeFromError(err))
 	}
 	return nil
 }

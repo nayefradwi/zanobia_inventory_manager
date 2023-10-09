@@ -26,6 +26,7 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	registerRoleRoutes(r, provider)
 	registerProductRoutes(r, provider)
 	registerWarehouseRoutes(r, provider)
+	registerVariantRoutes(r, provider)
 	return r
 }
 
@@ -125,6 +126,14 @@ func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	warehouseRouter.Post("/", warehouseController.CreateWarehouse)
 	warehouseRouter.Get("/", warehouseController.GetWarehouses)
 	mainRouter.Mount("/warehouses", warehouseRouter)
+}
+
+func registerVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	variantController := product.NewVariantController(provider.services.variantService)
+	variantRouter := chi.NewRouter()
+	variantRouter.Post("/", variantController.CreateVariant)
+	variantRouter.Post("/{id}/values", variantController.AddVariantValues)
+	mainRouter.Mount("/variants", variantRouter)
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {

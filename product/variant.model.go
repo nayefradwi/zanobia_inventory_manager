@@ -35,9 +35,9 @@ func ValidateVariantValues(values []string) error {
 }
 
 func validateVariantValues(values []string) common.ErrorDetails {
-	if len(values) == 0 || len(values) > 10 {
+	if len(values) == 0 || len(values) > 100 {
 		return common.ErrorDetails{
-			Message: "variant values must be between 1 and 10",
+			Message: "variant values must be between 1 and 100",
 			Field:   "values",
 		}
 	}
