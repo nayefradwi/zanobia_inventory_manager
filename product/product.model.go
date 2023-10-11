@@ -24,7 +24,6 @@ type ProductInput struct {
 	StandardUnitId                       *int      `json:"standardUnitId,omitempty"`
 	Price                                float64   `json:"price"`
 	Variants                             []Variant `json:"variants,omitempty"`
-	ProductVariantLookupByName           map[string]ProductVariant
 	ProductVariantsLookupBySelectedValue map[string][]ProductVariant
 	ProductVariants                      []ProductVariant
 }
@@ -53,7 +52,6 @@ type ProductVariant struct {
 
 func (p ProductInput) GenerateProductDetails() ProductInput {
 	p.ProductVariants = p.generateProductVariants()
-	p.ProductVariantLookupByName = p.GenerateProductVariantLookupByName()
 	return p
 }
 
@@ -104,12 +102,4 @@ func (p ProductInput) createProductVariant(value string, isDefault bool) Product
 			Sku:            uuid,
 		},
 	}
-}
-
-func (p ProductInput) GenerateProductVariantLookupByName() map[string]ProductVariant {
-	productVariantLookupByValue := make(map[string]ProductVariant)
-	for _, productVariant := range p.ProductVariants {
-		productVariantLookupByValue[productVariant.Name] = productVariant
-	}
-	return productVariantLookupByValue
 }
