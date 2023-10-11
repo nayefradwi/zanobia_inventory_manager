@@ -20,12 +20,13 @@ type Product struct {
 
 type ProductInput struct {
 	ProductBase
-	ExpiresInDays               int       `json:"expiresInDays"`
-	StandardUnitId              *int      `json:"standardUnitId,omitempty"`
-	Price                       float64   `json:"price"`
-	Variants                    []Variant `json:"variants,omitempty"`
-	ProductVariantLookupByValue map[string]ProductVariant
-	ProductVariants             []ProductVariant
+	ExpiresInDays                        int       `json:"expiresInDays"`
+	StandardUnitId                       *int      `json:"standardUnitId,omitempty"`
+	Price                                float64   `json:"price"`
+	Variants                             []Variant `json:"variants,omitempty"`
+	ProductVariantLookupByName           map[string]ProductVariant
+	ProductVariantsLookupBySelectedValue map[string][]ProductVariant
+	ProductVariants                      []ProductVariant
 }
 
 type ProductVariantBase struct {
@@ -52,7 +53,7 @@ type ProductVariant struct {
 
 func (p ProductInput) GenerateProductDetails() ProductInput {
 	p.ProductVariants = p.generateProductVariants()
-	p.ProductVariantLookupByValue = p.GenerateProductVariantLookupByValue()
+	p.ProductVariantLookupByName = p.GenerateProductVariantLookupByName()
 	return p
 }
 
@@ -105,7 +106,7 @@ func (p ProductInput) createProductVariant(value string, isDefault bool) Product
 	}
 }
 
-func (p ProductInput) GenerateProductVariantLookupByValue() map[string]ProductVariant {
+func (p ProductInput) GenerateProductVariantLookupByName() map[string]ProductVariant {
 	productVariantLookupByValue := make(map[string]ProductVariant)
 	for _, productVariant := range p.ProductVariants {
 		productVariantLookupByValue[productVariant.Name] = productVariant

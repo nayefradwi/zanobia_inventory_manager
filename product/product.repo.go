@@ -40,7 +40,7 @@ func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) e
 		if productVariantsErr := r.addProductVariants(ctx, product.ProductVariants); productVariantsErr != nil {
 			return productVariantsErr
 		}
-		if err := r.addProductVariantOptionsAndValues(ctx, product.Id, product.Variants); err != nil {
+		if err := r.addProductVariantOptions(ctx, product.Id, product.Variants); err != nil {
 			return err
 		}
 		return nil
@@ -78,10 +78,12 @@ func (r *ProductRepo) TranslateProduct(ctx context.Context, product ProductInput
 }
 
 func (r *ProductRepo) addProductVariants(ctx context.Context, productVariants []ProductVariant) error {
+
 	for _, productVariant := range productVariants {
 		if err := r.addProductVariant(ctx, productVariant); err != nil {
 			return err
 		}
+
 	}
 	return nil
 }
@@ -108,21 +110,21 @@ func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, produ
 	return nil
 }
 
-func (r *ProductRepo) addProductVariantOptionsAndValues(ctx context.Context, productId *int, options []Variant) error {
-	// for _, option := range options {
-	// 	for _, value := range option.Values {
-	// 		if err := r.addProductVariantSelectedValue(ctx, id, option, value); err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
-	// TODO add product variant options
-	// TODO add product_variant_selected_values
+func (r *ProductRepo) addProductVariantOptions(ctx context.Context, productId *int, options []Variant) error {
+	for _, option := range options {
+		if err := r.addProductVariantOption(ctx, productId, option); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-// TODO fill
-// func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, productVariantId *i)
+func (r *ProductRepo) addProductVariantOption(ctx context.Context, productId *int, option Variant) error {
+	// TODO add product variant option
+	return nil
+}
+
+// func (r *ProductRepo) addProductVariantSelectedValues
 
 func (r *ProductRepo) GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]Product, error) {
 	// TODO refactor
