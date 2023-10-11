@@ -2,14 +2,6 @@ package product
 
 import "github.com/nayefradwi/zanobia_inventory_manager/common"
 
-type ProductInput struct {
-	ProductBase
-	ExpiresInDays  int       `json:"expiresInDays"`
-	StandardUnitId *int      `json:"standardUnitId,omitempty"`
-	Price          float64   `json:"price"`
-	Variants       []Variant `json:"variants,omitempty"`
-}
-
 type ProductBase struct {
 	Id          *int    `json:"id"`
 	Name        *string `json:"name"`
@@ -24,6 +16,16 @@ type Product struct {
 	Category        *Category        `json:"category,omitempty"`
 	Options         []Variant        `json:"options,omitempty"`
 	ProductVariants []ProductVariant `json:"productVariants,omitempty"`
+}
+
+type ProductInput struct {
+	ProductBase
+	ExpiresInDays               int       `json:"expiresInDays"`
+	StandardUnitId              *int      `json:"standardUnitId,omitempty"`
+	Price                       float64   `json:"price"`
+	Variants                    []Variant `json:"variants,omitempty"`
+	ProductVariantLookupByValue map[string]ProductVariant
+	ProductVariants             []ProductVariant
 }
 
 type ProductVariantBase struct {
@@ -48,20 +50,46 @@ type ProductVariant struct {
 	StandardUnit *Unit `json:"standardUnit,omitempty"`
 }
 
-func (p ProductInput) GenerateProductVariants() []ProductVariant {
-	productVariants := []ProductVariant{}
+func (p ProductInput) GenerateProductDetails() ProductInput {
+	p.ProductVariants = p.generateProductVariants()
+	p.ProductVariantLookupByValue = p.GenerateProductVariantLookupByValue()
+	return p
+}
+
+func (p ProductInput) generateProductVariants() []ProductVariant {
 	if len(p.Variants) == 0 {
-		productVariants = append(productVariants, p.generateProductVariantForNoOptionsProduct())
-		return productVariants
+		return []ProductVariant{p.createProductVariant("normal", true)}
 	}
-	for index, option := range p.Variants {
-		productVariant := p.generateProductVariantFromOption(option, index == 0)
+	if len(p.Variants) == 1 {
+		return p.createProductVariantsFromOneOption()
+	}
+
+	// assume you have packaging, weight, and flavor
+	// packaging: 1, 2, 3
+	// weight: a, b
+	// flavor: @, #
+	// then you will have 6 variants
+	// [1a@, 1a#, 1b@, 1b#, 2a@, 2a#, 2b@, 2b#, 3a@, 3a#, 3b@, 3b#]
+	// the first variant is the default one
+	crossProductOfNames := GenerateCrossProductOfValueNames(p.Variants)
+	productVariants := make([]ProductVariant, 0)
+	for index, value := range crossProductOfNames {
+		productVariant := p.createProductVariant(value, index == 0)
 		productVariants = append(productVariants, productVariant)
 	}
 	return productVariants
 }
 
-func (p ProductInput) generateProductVariantForNoOptionsProduct() ProductVariant {
+func (p ProductInput) createProductVariantsFromOneOption() []ProductVariant {
+	productVariants := make([]ProductVariant, 0)
+	for index, value := range p.Variants[0].Values {
+		productVariant := p.createProductVariant(value.Value, index == 0)
+		productVariants = append(productVariants, productVariant)
+	}
+	return productVariants
+}
+
+func (p ProductInput) createProductVariant(value string, isDefault bool) ProductVariant {
 	uuid, _ := common.GenerateUuid()
 	return ProductVariant{
 		ProductVariantBase: ProductVariantBase{
@@ -71,25 +99,16 @@ func (p ProductInput) generateProductVariantForNoOptionsProduct() ProductVariant
 			Image:          p.Image,
 			StandardUnitId: p.StandardUnitId,
 			ExpiresInDays:  p.ExpiresInDays,
-			Name:           "normal",
+			Name:           value,
 			Sku:            uuid,
 		},
 	}
 }
 
-func (p ProductInput) generateProductVariantFromOption(option Variant, isDefault bool) ProductVariant {
-	uuid, _ := common.GenerateUuid()
-	name := option.GenerateNameFromValues()
-	return ProductVariant{
-		ProductVariantBase: ProductVariantBase{
-			Price:          p.Price,
-			IsArchived:     p.IsArchived,
-			IsDefault:      true,
-			Image:          p.Image,
-			StandardUnitId: p.StandardUnitId,
-			ExpiresInDays:  p.ExpiresInDays,
-			Name:           name,
-			Sku:            uuid,
-		},
+func (p ProductInput) GenerateProductVariantLookupByValue() map[string]ProductVariant {
+	productVariantLookupByValue := make(map[string]ProductVariant)
+	for _, productVariant := range p.ProductVariants {
+		productVariantLookupByValue[productVariant.Name] = productVariant
 	}
+	return productVariantLookupByValue
 }

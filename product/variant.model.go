@@ -1,8 +1,6 @@
 package product
 
 import (
-	"strings"
-
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -23,13 +21,10 @@ type Variant struct {
 	Values []VariantValue `json:"values"`
 }
 
-func (v Variant) GenerateNameFromValues() string {
-	name := ""
-	for _, value := range v.Values {
-		lowerCaseValue := strings.ToLower(value.Value)
-		name += lowerCaseValue + "_"
-	}
-	return name[:len(name)-1]
+func GenerateCrossProductOfValueNames(variants []Variant) []string {
+	// TODO fill
+	// crossProduct := make([]string, 0)
+	return []string{}
 }
 
 func ValidateVariant(variant VariantInput) error {

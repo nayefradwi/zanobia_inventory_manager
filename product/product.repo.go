@@ -36,12 +36,13 @@ func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) e
 		if translationErr := r.insertTranslation(ctx, product, common.DefaultLang); translationErr != nil {
 			return translationErr
 		}
-		productVariants := product.GenerateProductVariants()
-		if productVariantsErr := r.addProductVariants(ctx, productVariants); productVariantsErr != nil {
+		product = product.GenerateProductDetails()
+		if productVariantsErr := r.addProductVariants(ctx, product.ProductVariants); productVariantsErr != nil {
 			return productVariantsErr
 		}
-		// TODO add product variant options
-		// TODO add product_variant_selected_values
+		if err := r.addProductVariantOptionsAndValues(ctx, product.Id, product.Variants); err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -107,7 +108,24 @@ func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, produ
 	return nil
 }
 
+func (r *ProductRepo) addProductVariantOptionsAndValues(ctx context.Context, productId *int, options []Variant) error {
+	// for _, option := range options {
+	// 	for _, value := range option.Values {
+	// 		if err := r.addProductVariantSelectedValue(ctx, id, option, value); err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
+	// TODO add product variant options
+	// TODO add product_variant_selected_values
+	return nil
+}
+
+// TODO fill
+// func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, productVariantId *i)
+
 func (r *ProductRepo) GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]Product, error) {
+	// TODO refactor
 	// sql := `select p.id, ptx.name,  p.image, p.is_archived, p.expires_in_days, utx.name, utx.symbol, utx.unit_id from products p
 	// join unit_translations utx on utx.unit_id = p.standard_unit_id
 	// join product_translations ptx on p.id = ptx.product_id
@@ -141,6 +159,7 @@ func (r *ProductRepo) GetProducts(ctx context.Context, pageSize int, endCursor s
 }
 
 func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
+	// TODO refactor
 	// sql := `select p.id, p.image, p.price, p.width_in_cm, p.height_in_cm,
 	// p.depth_in_cm, p.weight_in_g, p.standard_unit_id, p.category_id,
 	// p.is_archived, p.expires_in_days, ptx.name, ptx.description, utx.name, utx.symbol, utx.unit_id,
