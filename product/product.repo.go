@@ -33,12 +33,13 @@ func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) e
 			return addErr
 		}
 		product.Id = &id
-		translationErr := r.insertTranslation(ctx, product, common.DefaultLang)
-		if translationErr != nil {
+		if translationErr := r.insertTranslation(ctx, product, common.DefaultLang); translationErr != nil {
 			return translationErr
 		}
-		// TODO add product variants
-		// TODO add product variant translations
+		productVariants := product.GenerateProductVariants()
+		if productVariantsErr := r.addProductVariants(ctx, productVariants); productVariantsErr != nil {
+			return productVariantsErr
+		}
 		// TODO add product variant options
 		// TODO add product_variant_selected_values
 		return nil
@@ -73,6 +74,37 @@ func (r *ProductRepo) insertTranslation(ctx context.Context, product ProductInpu
 
 func (r *ProductRepo) TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error {
 	return r.insertTranslation(ctx, product, languageCode)
+}
+
+func (r *ProductRepo) addProductVariants(ctx context.Context, productVariants []ProductVariant) error {
+	for _, productVariant := range productVariants {
+		if err := r.addProductVariant(ctx, productVariant); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *ProductRepo) addProductVariant(ctx context.Context, productVariant ProductVariant) error {
+	id, err := r.insertProductVariant(ctx, productVariant)
+	if err != nil {
+		return err
+	}
+	productVariant.Id = &id
+	if err := r.insertProductVariantTranslation(ctx, productVariant, common.DefaultLang); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ProductRepo) insertProductVariant(ctx context.Context, productVariant ProductVariant) (int, error) {
+	// TODO insert product variant
+	return 0, nil
+}
+
+func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, productVariant ProductVariant, languageCode string) error {
+	// TODO insert product variant translation
+	return nil
 }
 
 func (r *ProductRepo) GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]Product, error) {

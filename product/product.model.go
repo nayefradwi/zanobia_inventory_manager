@@ -48,20 +48,20 @@ type ProductVariant struct {
 	StandardUnit *Unit `json:"standardUnit,omitempty"`
 }
 
-func (p ProductInput) GenerateProductVariantsFromOptions() []ProductVariant {
+func (p ProductInput) GenerateProductVariants() []ProductVariant {
 	productVariants := []ProductVariant{}
 	if len(p.Variants) == 0 {
-		productVariants = append(productVariants, p.GenerateProductVariantForNoOptionsProduct())
+		productVariants = append(productVariants, p.generateProductVariantForNoOptionsProduct())
 		return productVariants
 	}
 	for index, option := range p.Variants {
-		productVariant := p.GenerateProductVariantFromOption(option, index == 0)
+		productVariant := p.generateProductVariantFromOption(option, index == 0)
 		productVariants = append(productVariants, productVariant)
 	}
 	return productVariants
 }
 
-func (p ProductInput) GenerateProductVariantForNoOptionsProduct() ProductVariant {
+func (p ProductInput) generateProductVariantForNoOptionsProduct() ProductVariant {
 	uuid, _ := common.GenerateUuid()
 	return ProductVariant{
 		ProductVariantBase: ProductVariantBase{
@@ -77,7 +77,7 @@ func (p ProductInput) GenerateProductVariantForNoOptionsProduct() ProductVariant
 	}
 }
 
-func (p ProductInput) GenerateProductVariantFromOption(option Variant, isDefault bool) ProductVariant {
+func (p ProductInput) generateProductVariantFromOption(option Variant, isDefault bool) ProductVariant {
 	uuid, _ := common.GenerateUuid()
 	name := option.GenerateNameFromValues()
 	return ProductVariant{
