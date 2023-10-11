@@ -42,7 +42,7 @@ func (s *ProductService) TranslateProduct(ctx context.Context, product ProductIn
 }
 
 func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[Product], error) {
-	// TODO fill
+	// TODO refactor
 	// 	size, cursor, _ := common.GetPaginationParams(ctx, "0")
 	// 	products, err := s.repo.GetProducts(ctx, size, cursor, isArchive)
 	// 	if err != nil {
@@ -57,7 +57,7 @@ func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (commo
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error) {
-	// TODO fill
+	// TODO refactor
 	// 	product, err := s.repo.GetProduct(ctx, id)
 	// 	if err != nil {
 	// 		return Product{}, err
