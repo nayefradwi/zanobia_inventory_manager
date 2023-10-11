@@ -62,13 +62,13 @@ func (p ProductInput) generateProductVariants() []ProductVariant {
 	if len(p.Variants) == 1 {
 		return p.createProductVariantsFromOneOption()
 	}
-
+	// TODO: create a map of name to variant ids by splitting the name
 	// assume you have packaging, weight, and flavor
 	// packaging: 1, 2, 3
 	// weight: a, b
 	// flavor: @, #
 	// then you will have 6 variants
-	// [1a@, 1a#, 1b@, 1b#, 2a@, 2a#, 2b@, 2b#, 3a@, 3a#, 3b@, 3b#]
+	// [1_a_@, 1_a_#, 1_b_@, 1_b_#, 2_a_@, 2_a_#, 2_b_@, 2_b_#, 3_a_@, 3_a_#, 3_b_@, 3_b_#]
 	// the first variant is the default one
 	crossProductOfNames := GenerateCrossProductOfValueNames(p.Variants)
 	productVariants := make([]ProductVariant, 0)
