@@ -36,6 +36,7 @@ func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) e
 		if translationErr := r.insertTranslation(ctx, product, common.DefaultLang); translationErr != nil {
 			return translationErr
 		}
+		// TODO test
 		product = product.GenerateProductDetails()
 		if productVariantsErr := r.addProductVariants(ctx, product.ProductVariants); productVariantsErr != nil {
 			return productVariantsErr
@@ -113,7 +114,7 @@ func (r *ProductRepo) addProductVariantOptions(ctx context.Context, product Prod
 		if err := r.addProductVariantOption(ctx, product.Id, option); err != nil {
 			return err
 		}
-		if err := r.addProductVariantSelectedValues(ctx, product.ProductVariantsLookupBySelectedValue, option.Values); err != nil {
+		if err := r.addProductVariantSelectedValues(ctx, product, option.Values); err != nil {
 			return err
 		}
 	}
@@ -125,9 +126,12 @@ func (r *ProductRepo) addProductVariantOption(ctx context.Context, productId *in
 	return nil
 }
 
-func (r *ProductRepo) addProductVariantSelectedValues(ctx context.Context, productVariantsLookupBySelectedValue map[string][]ProductVariant, values []VariantValue) error {
+func (r *ProductRepo) addProductVariantSelectedValues(ctx context.Context, product ProductInput, values []VariantValue) error {
 	for _, value := range values {
-		productVariants, ok := productVariantsLookupBySelectedValue[value.Value]
+		if err := r.mapProductToVariantValue(ctx, product.Id, value); err != nil {
+			return err
+		}
+		productVariants, ok := product.ProductVariantsLookupByValue[value.Value]
 		if !ok {
 			continue
 		}
@@ -142,6 +146,11 @@ func (r *ProductRepo) addProductVariantSelectedValues(ctx context.Context, produ
 
 func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, productVariantId *int, value VariantValue) error {
 	// TODO add product_variant_selected_value
+	return nil
+}
+
+func (r *ProductRepo) mapProductToVariantValue(ctx context.Context, productId *int, variantValue VariantValue) error {
+	// TODO map product to variant values
 	return nil
 }
 

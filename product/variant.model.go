@@ -21,12 +21,6 @@ type Variant struct {
 	Values []VariantValue `json:"values"`
 }
 
-func GenerateCrossProductOfValueNames(variants []Variant) []string {
-	// TODO fill
-	// crossProduct := make([]string, 0)
-	return []string{}
-}
-
 func ValidateVariant(variant VariantInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,

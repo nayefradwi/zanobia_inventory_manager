@@ -20,12 +20,12 @@ type Product struct {
 
 type ProductInput struct {
 	ProductBase
-	ExpiresInDays                        int       `json:"expiresInDays"`
-	StandardUnitId                       *int      `json:"standardUnitId,omitempty"`
-	Price                                float64   `json:"price"`
-	Variants                             []Variant `json:"variants,omitempty"`
-	ProductVariantsLookupBySelectedValue map[string][]ProductVariant
-	ProductVariants                      []ProductVariant
+	ExpiresInDays                int       `json:"expiresInDays"`
+	StandardUnitId               *int      `json:"standardUnitId,omitempty"`
+	Price                        float64   `json:"price"`
+	Variants                     []Variant `json:"variants,omitempty"`
+	ProductVariantsLookupByValue map[string][]ProductVariant
+	ProductVariants              []ProductVariant
 }
 
 type ProductVariantBase struct {
@@ -50,33 +50,40 @@ type ProductVariant struct {
 	StandardUnit *Unit `json:"standardUnit,omitempty"`
 }
 
+func GenerateCrossProductOfValueNames(variants []Variant) ([]string, map[string][]ProductVariant) {
+	// TODO fill
+
+	return []string{}, map[string][]ProductVariant{}
+}
+
 func (p ProductInput) GenerateProductDetails() ProductInput {
-	p.ProductVariants = p.generateProductVariants()
+	productVariants, productVariantsLookupByValue := p.generateProductVariants()
+	p.ProductVariants = productVariants
+	p.ProductVariantsLookupByValue = productVariantsLookupByValue
 	return p
 }
 
-func (p ProductInput) generateProductVariants() []ProductVariant {
+// assume you have packaging, weight, and flavor
+// packaging: 1, 2, 3
+// weight: a, b
+// flavor: @, #
+// then you will have 12 variants
+// [1_a_@, 1_a_#, 1_b_@, 1_b_#, 2_a_@, 2_a_#, 2_b_@, 2_b_#, 3_a_@, 3_a_#, 3_b_@, 3_b_#]
+// the first variant is the default one
+func (p ProductInput) generateProductVariants() ([]ProductVariant, map[string][]ProductVariant) {
 	if len(p.Variants) == 0 {
-		return []ProductVariant{p.createProductVariant("normal", true)}
+		return []ProductVariant{p.createProductVariant("normal", true)}, map[string][]ProductVariant{}
 	}
 	if len(p.Variants) == 1 {
-		return p.createProductVariantsFromOneOption()
+		return p.createProductVariantsFromOneOption(), map[string][]ProductVariant{}
 	}
-	// TODO: create a map of name to variant ids by splitting the name
-	// assume you have packaging, weight, and flavor
-	// packaging: 1, 2, 3
-	// weight: a, b
-	// flavor: @, #
-	// then you will have 6 variants
-	// [1_a_@, 1_a_#, 1_b_@, 1_b_#, 2_a_@, 2_a_#, 2_b_@, 2_b_#, 3_a_@, 3_a_#, 3_b_@, 3_b_#]
-	// the first variant is the default one
-	crossProductOfNames := GenerateCrossProductOfValueNames(p.Variants)
+	crossProductOfNames, productVariantsLookupByValue := GenerateCrossProductOfValueNames(p.Variants)
 	productVariants := make([]ProductVariant, 0)
 	for index, value := range crossProductOfNames {
 		productVariant := p.createProductVariant(value, index == 0)
 		productVariants = append(productVariants, productVariant)
 	}
-	return productVariants
+	return productVariants, productVariantsLookupByValue
 }
 
 func (p ProductInput) createProductVariantsFromOneOption() []ProductVariant {
