@@ -36,7 +36,8 @@ func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) e
 		if translationErr := r.insertTranslation(ctx, product, common.DefaultLang); translationErr != nil {
 			return translationErr
 		}
-		// TODO test
+		// TODO add product <-> variant value mapping
+		// TODO add product variant <-> variant value mapping
 		product = product.GenerateProductDetails()
 		if productVariantsErr := r.addProductVariants(ctx, product.ProductVariants); productVariantsErr != nil {
 			return productVariantsErr
@@ -106,41 +107,6 @@ func (r *ProductRepo) insertProductVariant(ctx context.Context, productVariant P
 
 func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, productVariant ProductVariant, languageCode string) error {
 	// TODO insert product variant translation
-	return nil
-}
-
-func (r *ProductRepo) addProductVariantOptions(ctx context.Context, product ProductInput, options []Variant) error {
-	for _, option := range options {
-		if err := r.addProductVariantOption(ctx, product.Id, option); err != nil {
-			return err
-		}
-		if err := r.addProductVariantSelectedValues(ctx, product, option.Values); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *ProductRepo) addProductVariantOption(ctx context.Context, productId *int, option Variant) error {
-	// TODO add product variant option
-	return nil
-}
-
-func (r *ProductRepo) addProductVariantSelectedValues(ctx context.Context, product ProductInput, values []VariantValue) error {
-	for _, value := range values {
-		if err := r.mapProductToVariantValue(ctx, product.Id, value); err != nil {
-			return err
-		}
-		productVariants, ok := product.ProductVariantsLookupByValue[value.Value]
-		if !ok {
-			continue
-		}
-		for _, productVariant := range productVariants {
-			if err := r.addProductVariantSelectedValue(ctx, productVariant.Id, value); err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
 

@@ -22,12 +22,13 @@ type Product struct {
 
 type ProductInput struct {
 	ProductBase
-	ExpiresInDays                int       `json:"expiresInDays"`
-	StandardUnitId               *int      `json:"standardUnitId,omitempty"`
-	Price                        float64   `json:"price"`
-	Variants                     []Variant `json:"variants,omitempty"`
-	ProductVariantsLookupByValue map[string][]ProductVariant
-	ProductVariants              []ProductVariant
+	ExpiresInDays         int       `json:"expiresInDays"`
+	StandardUnitId        *int      `json:"standardUnitId,omitempty"`
+	Price                 float64   `json:"price"`
+	Variants              []Variant `json:"variants,omitempty"`
+	ProductVariants       []ProductVariant
+	DefaultProductVariant ProductVariant
+	DefaultValues         []VariantValue
 }
 
 type ProductVariantBase struct {
@@ -52,80 +53,35 @@ type ProductVariant struct {
 	StandardUnit *Unit `json:"standardUnit,omitempty"`
 }
 
-func generateCrossProductOfValueNames(variants []Variant) []VariantValue {
-	crossProduct := make([]VariantValue, 0)
-	if len(variants) == 2 {
-		return getCrossProduct(variants[0].Values, variants[1].Values)
-	}
-	i := 0
-	for i < len(variants) {
-		variant1 := variants[i]
-		variants2 := variants[i+1]
-		initialProduct := getCrossProduct(variant1.Values, variants2.Values)
-		variants[i+1] = Variant{Values: initialProduct}
-		variants = variants[i+1:]
-		i++
-	}
-	return crossProduct
-}
-
-func getCrossProduct(values1 []VariantValue, values2 []VariantValue) []VariantValue {
-	crossProduct := make([]VariantValue, 0)
-	for _, value1 := range values1 {
-		for _, value2 := range values2 {
-			crossProduct = append(crossProduct, VariantValue{
-				Value: value1.Value + "_" + value2.Value,
-			})
-		}
-	}
-	return crossProduct
-}
-
-func generateProductVariantsLookupByValue(productVariants []ProductVariant) map[string][]ProductVariant {
-	// TODO fill
-	return map[string][]ProductVariant{}
-}
-
 func (p ProductInput) GenerateProductDetails() ProductInput {
-	productVariants := p.generateProductVariants()
-	p.ProductVariants = productVariants
-	p.ProductVariantsLookupByValue = generateProductVariantsLookupByValue(productVariants)
+	productVariant, defaultValues := p.generateProductVariant()
+	p.ProductVariants = []ProductVariant{productVariant}
+	p.DefaultProductVariant = productVariant
+	p.DefaultValues = defaultValues
 	return p
 }
 
 // assume you have packaging, weight, and flavor
-// packaging: 1, 2, 3
-// weight: a, b
-// flavor: @, #
-// then you will have 12 variants
-// [1_a_@, 1_a_#, 1_b_@, 1_b_#, 2_a_@, 2_a_#, 2_b_@, 2_b_#, 3_a_@, 3_a_#, 3_b_@, 3_b_#]
+// the first variant will have packaging[0]_weight[0]_flavor[0]
+// the reset can be added in any order by the user
+// the selected variant values will be mapped to the product to limit the options
 // the first variant is the default one
-func (p ProductInput) generateProductVariants() []ProductVariant {
+func (p ProductInput) generateProductVariant() (ProductVariant, []VariantValue) {
 	if len(p.Variants) == 0 {
-		return []ProductVariant{p.createProductVariant(VariantValue{Value: "normal"}, true)}
+		return p.createProductVariant("normal", true), []VariantValue{}
 	}
-	if len(p.Variants) == 1 {
-		return p.createProductVariantsFromOneOption()
+	variantValues := make([]VariantValue, 0)
+	name := ""
+	for _, variant := range p.Variants {
+		variantValues = append(variantValues, variant.Values[0])
+		name += variant.Name + "_"
 	}
-	crossProductOfNames := generateCrossProductOfValueNames(p.Variants)
-	productVariants := make([]ProductVariant, 0)
-	for index, value := range crossProductOfNames {
-		productVariant := p.createProductVariant(value, index == 0)
-		productVariants = append(productVariants, productVariant)
-	}
-	return productVariants
+	name = name[:len(name)-1]
+	productVariant := p.createProductVariant(name, true)
+	return productVariant, variantValues
 }
 
-func (p ProductInput) createProductVariantsFromOneOption() []ProductVariant {
-	productVariants := make([]ProductVariant, 0)
-	for index, value := range p.Variants[0].Values {
-		productVariant := p.createProductVariant(value, index == 0)
-		productVariants = append(productVariants, productVariant)
-	}
-	return productVariants
-}
-
-func (p ProductInput) createProductVariant(value VariantValue, isDefault bool) ProductVariant {
+func (p ProductInput) createProductVariant(value string, isDefault bool) ProductVariant {
 	uuid, _ := common.GenerateUuid()
 	return ProductVariant{
 		ProductVariantBase: ProductVariantBase{
@@ -135,7 +91,7 @@ func (p ProductInput) createProductVariant(value VariantValue, isDefault bool) P
 			Image:          p.Image,
 			StandardUnitId: p.StandardUnitId,
 			ExpiresInDays:  p.ExpiresInDays,
-			Name:           value.Value,
+			Name:           value,
 			Sku:            uuid,
 		},
 	}
