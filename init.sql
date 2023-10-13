@@ -241,6 +241,14 @@ CREATE TABLE product_variant_selected_values (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE product_selected_values (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    variant_value_id INTEGER NOT NULL REFERENCES variant_values(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE recipes (
     id SERIAL PRIMARY KEY,
     product_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
@@ -315,6 +323,12 @@ CREATE INDEX idx_product_variant_price ON product_variants(price);
 -- PRODUCT VARIANT TRANSLATIONS INDEXES
 CREATE UNIQUE INDEX idx_product_variant_translation_name ON product_variant_translations(name);
 CREATE UNIQUE INDEX idx_product_variant_translation ON product_variant_translations(product_variant_id, language_code);
+
+-- PRODUCT VARIANT SELECTED VALUES INDEXES
+CREATE UNIQUE INDEX idx_product_variant_selected_value ON product_variant_selected_values(product_variant_id, variant_value_id);
+
+-- PRODUCT SELECTED VALUES INDEXES
+CREATE UNIQUE INDEX idx_product_selected_value ON product_selected_values(product_id, variant_value_id);
 
 -- RECIPE INDEXES
 

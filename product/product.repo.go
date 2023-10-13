@@ -85,7 +85,7 @@ func (r *ProductRepo) TranslateProduct(ctx context.Context, product ProductInput
 	return r.insertTranslation(ctx, product, languageCode)
 }
 
-func (r *ProductRepo) addProductVariants(ctx context.Context, productVariants []ProductVariant) error {
+func (r *ProductRepo) AddProductVariants(ctx context.Context, productVariants []ProductVariant) error {
 	for _, productVariant := range productVariants {
 		if _, err := r.addProductVariant(ctx, productVariant); err != nil {
 			return err
