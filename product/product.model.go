@@ -1,6 +1,8 @@
 package product
 
-import "github.com/nayefradwi/zanobia_inventory_manager/common"
+import (
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+)
 
 type ProductBase struct {
 	Id          *int    `json:"id"`
@@ -50,16 +52,44 @@ type ProductVariant struct {
 	StandardUnit *Unit `json:"standardUnit,omitempty"`
 }
 
-func GenerateCrossProductOfValueNames(variants []Variant) ([]string, map[string][]ProductVariant) {
-	// TODO fill
+func generateCrossProductOfValueNames(variants []Variant) []VariantValue {
+	crossProduct := make([]VariantValue, 0)
+	if len(variants) == 2 {
+		return getCrossProduct(variants[0].Values, variants[1].Values)
+	}
+	i := 0
+	for i < len(variants) {
+		variant1 := variants[i]
+		variants2 := variants[i+1]
+		initialProduct := getCrossProduct(variant1.Values, variants2.Values)
+		variants[i+1] = Variant{Values: initialProduct}
+		variants = variants[i+1:]
+		i++
+	}
+	return crossProduct
+}
 
-	return []string{}, map[string][]ProductVariant{}
+func getCrossProduct(values1 []VariantValue, values2 []VariantValue) []VariantValue {
+	crossProduct := make([]VariantValue, 0)
+	for _, value1 := range values1 {
+		for _, value2 := range values2 {
+			crossProduct = append(crossProduct, VariantValue{
+				Value: value1.Value + "_" + value2.Value,
+			})
+		}
+	}
+	return crossProduct
+}
+
+func generateProductVariantsLookupByValue(productVariants []ProductVariant) map[string][]ProductVariant {
+	// TODO fill
+	return map[string][]ProductVariant{}
 }
 
 func (p ProductInput) GenerateProductDetails() ProductInput {
-	productVariants, productVariantsLookupByValue := p.generateProductVariants()
+	productVariants := p.generateProductVariants()
 	p.ProductVariants = productVariants
-	p.ProductVariantsLookupByValue = productVariantsLookupByValue
+	p.ProductVariantsLookupByValue = generateProductVariantsLookupByValue(productVariants)
 	return p
 }
 
@@ -70,32 +100,32 @@ func (p ProductInput) GenerateProductDetails() ProductInput {
 // then you will have 12 variants
 // [1_a_@, 1_a_#, 1_b_@, 1_b_#, 2_a_@, 2_a_#, 2_b_@, 2_b_#, 3_a_@, 3_a_#, 3_b_@, 3_b_#]
 // the first variant is the default one
-func (p ProductInput) generateProductVariants() ([]ProductVariant, map[string][]ProductVariant) {
+func (p ProductInput) generateProductVariants() []ProductVariant {
 	if len(p.Variants) == 0 {
-		return []ProductVariant{p.createProductVariant("normal", true)}, map[string][]ProductVariant{}
+		return []ProductVariant{p.createProductVariant(VariantValue{Value: "normal"}, true)}
 	}
 	if len(p.Variants) == 1 {
-		return p.createProductVariantsFromOneOption(), map[string][]ProductVariant{}
+		return p.createProductVariantsFromOneOption()
 	}
-	crossProductOfNames, productVariantsLookupByValue := GenerateCrossProductOfValueNames(p.Variants)
+	crossProductOfNames := generateCrossProductOfValueNames(p.Variants)
 	productVariants := make([]ProductVariant, 0)
 	for index, value := range crossProductOfNames {
 		productVariant := p.createProductVariant(value, index == 0)
 		productVariants = append(productVariants, productVariant)
 	}
-	return productVariants, productVariantsLookupByValue
+	return productVariants
 }
 
 func (p ProductInput) createProductVariantsFromOneOption() []ProductVariant {
 	productVariants := make([]ProductVariant, 0)
 	for index, value := range p.Variants[0].Values {
-		productVariant := p.createProductVariant(value.Value, index == 0)
+		productVariant := p.createProductVariant(value, index == 0)
 		productVariants = append(productVariants, productVariant)
 	}
 	return productVariants
 }
 
-func (p ProductInput) createProductVariant(value string, isDefault bool) ProductVariant {
+func (p ProductInput) createProductVariant(value VariantValue, isDefault bool) ProductVariant {
 	uuid, _ := common.GenerateUuid()
 	return ProductVariant{
 		ProductVariantBase: ProductVariantBase{
@@ -105,7 +135,7 @@ func (p ProductInput) createProductVariant(value string, isDefault bool) Product
 			Image:          p.Image,
 			StandardUnitId: p.StandardUnitId,
 			ExpiresInDays:  p.ExpiresInDays,
-			Name:           value,
+			Name:           value.Value,
 			Sku:            uuid,
 		},
 	}
