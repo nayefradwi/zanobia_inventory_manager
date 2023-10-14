@@ -16,6 +16,7 @@ import (
 func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(common.Recover)
 	r.Use(common.JsonResponseMiddleware)
 	r.Use(common.SetLanguageMiddleware)
 	r.Use(common.SetPaginatedDataMiddleware)
