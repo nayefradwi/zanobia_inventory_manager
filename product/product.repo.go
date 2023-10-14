@@ -45,9 +45,6 @@ func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) e
 		if err := r.addDefaultProductVariantValues(ctx, product.DefaultProductVariant, product.DefaultValues); err != nil {
 			return err
 		}
-		if err := r.mapProductToVariantValue(ctx, product.Id, product.DefaultValues[0]); err != nil {
-			return err
-		}
 		if err := r.addProductOptions(ctx, product.Id, product.Variants); err != nil {
 			return err
 		}
@@ -71,7 +68,7 @@ func (r *ProductRepo) addProduct(ctx context.Context, product ProductInput) (int
 }
 
 func (r *ProductRepo) insertTranslation(ctx context.Context, product ProductInput, languageCode string) error {
-	sql := `INSERT INTO product_translations (product_id, name, description, language_code) VALUES ($1, $2, $3, $4, $5)`
+	sql := `INSERT INTO product_translations (product_id, name, description, language_code) VALUES ($1, $2, $3, $4)`
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, product.Id, product.Name, product.Description, languageCode)
 	if err != nil {
@@ -111,22 +108,21 @@ func (r *ProductRepo) insertProductVariant(ctx context.Context, productId *int, 
 	sql := `INSERT INTO product_variants 
 	(
 		product_id, price, sku, is_archived, is_default, image, 
-		standard_unit_id, expires_in_days, name, sku
+		standard_unit_id, expires_in_days
 	) values (
-		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+		$1, $2, $3, $4, $5, $6, $7, $8
 	) RETURNING id`
 	var id int
 	err := op.QueryRow(
 		ctx, sql, productId, productVariant.Price, productVariant.Sku, productVariant.IsArchived,
 		productVariant.IsDefault, productVariant.Image, productVariant.StandardUnitId,
-		productVariant.ExpiresInDays, productVariant.Name,
-		productVariant.Sku,
+		productVariant.ExpiresInDays,
 	).Scan(&id)
 	if err != nil {
 		log.Printf("failed to insert product variant: %s", err.Error())
 		return 0, common.NewBadRequestError("Failed to insert product variant", zimutils.GetErrorCodeFromError(err))
 	}
-	return 0, nil
+	return id, nil
 }
 
 func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, productVariant ProductVariant, languageCode string) error {
@@ -175,6 +171,11 @@ func (r *ProductRepo) addProductOptions(ctx context.Context, productId *int, var
 	for _, variant := range variants {
 		if err := r.addProductOption(ctx, productId, variant); err != nil {
 			return err
+		}
+		for _, value := range variant.Values {
+			if err := r.mapProductToVariantValue(ctx, productId, value); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
