@@ -13,7 +13,7 @@ import (
 type IProductRepo interface {
 	CreateProduct(ctx context.Context, product ProductInput) error
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
-	GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]Product, error)
+	GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]ProductBase, error)
 	GetProduct(ctx context.Context, id int) (Product, error)
 }
 
@@ -195,38 +195,35 @@ func (r *ProductRepo) addProductOption(ctx context.Context, productId *int, vari
 	return nil
 }
 
-func (r *ProductRepo) GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]Product, error) {
-	// TODO refactor
-	// sql := `select p.id, ptx.name,  p.image, p.is_archived, p.expires_in_days, utx.name, utx.symbol, utx.unit_id from products p
-	// join unit_translations utx on utx.unit_id = p.standard_unit_id
-	// join product_translations ptx on p.id = ptx.product_id
-	// where is_archived = $2 and ptx.language_code = $3
-	// and (
-	// 	p.id < $1 or $1 = 0
-	// )
-	// order by created_at desc limit $4;`
-	// op := common.GetOperator(ctx, r.Pool)
-	// languageCode := common.GetLanguageParam(ctx)
-	// rows, err := op.Query(ctx, sql, endCursor, isArchive, languageCode, pageSize)
-	// if err != nil {
-	// 	log.Printf("failed to get products: %s", err.Error())
-	// 	return nil, common.NewBadRequestError("Failed to get products", zimutils.GetErrorCodeFromError(err))
-	// }
-	// defer rows.Close()
-	// products := make([]Product, 0)
-	// for rows.Next() {
-	// 	var product Product
-	// 	var unit Unit
-	// 	err := rows.Scan(&product.Id, &product.Name, &product.Image, &product.IsArchived, &product.ExpiresInDays, &unit.Name, &unit.Symbol, &unit.Id)
-	// 	if err != nil {
-	// 		log.Printf("failed to scan product: %s", err.Error())
-	// 		return nil, common.NewInternalServerError()
-	// 	}
-	// 	product.StandardUnit = &unit
-	// 	products = append(products, product)
-	// }
-	// return products, nil
-	return []Product{}, nil
+func (r *ProductRepo) GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]ProductBase, error) {
+	sql := `select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id
+	from products p join product_translations ptx on p.id = ptx.product_id
+	where is_archived = $2 and ptx.language_code = $3
+	and (
+		p.id < $1 or $1 = 0
+	)
+	order by created_at desc limit $4;`
+	op := common.GetOperator(ctx, r.Pool)
+	languageCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, endCursor, isArchive, languageCode, pageSize)
+	if err != nil {
+		log.Printf("failed to get products: %s", err.Error())
+		return nil, common.NewBadRequestError("Failed to get products", zimutils.GetErrorCodeFromError(err))
+	}
+	defer rows.Close()
+	products := make([]ProductBase, 0)
+	for rows.Next() {
+		var product ProductBase
+		err := rows.Scan(&product.Id, &product.Name,
+			&product.Description, &product.Image, &product.IsArchived, &product.CategoryId,
+		)
+		if err != nil {
+			log.Printf("failed to scan product: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		products = append(products, product)
+	}
+	return products, nil
 }
 
 func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {

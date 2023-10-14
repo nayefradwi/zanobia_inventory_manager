@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
@@ -9,7 +10,7 @@ import (
 type IProductService interface {
 	CreateProduct(ctx context.Context, product ProductInput) error
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
-	GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[Product], error)
+	GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error)
 	GetProduct(ctx context.Context, id int) (Product, error)
 }
 
@@ -48,19 +49,17 @@ func (s *ProductService) TranslateProduct(ctx context.Context, product ProductIn
 	return s.repo.TranslateProduct(ctx, product, languageCode)
 }
 
-func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[Product], error) {
-	// TODO refactor
-	// 	size, cursor, _ := common.GetPaginationParams(ctx, "0")
-	// 	products, err := s.repo.GetProducts(ctx, size, cursor, isArchive)
-	// 	if err != nil {
-	// 		return common.CreateEmptyPaginatedResponse[Product](size), err
-	// 	}
-	// 	if len(products) == 0 {
-	// 		return common.CreateEmptyPaginatedResponse[Product](size), nil
-	// 	}
-	// 	lastId := products[len(products)-1].Id
-	// 	return common.CreatePaginatedResponse[Product](size, strconv.Itoa(*lastId), products), nil
-	return common.PaginatedResponse[Product]{}, nil
+func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error) {
+	size, cursor, _ := common.GetPaginationParams(ctx, "0")
+	products, err := s.repo.GetProducts(ctx, size, cursor, isArchive)
+	if err != nil {
+		return common.CreateEmptyPaginatedResponse[ProductBase](size), err
+	}
+	if len(products) == 0 {
+		return common.CreateEmptyPaginatedResponse[ProductBase](size), nil
+	}
+	lastId := products[len(products)-1].Id
+	return common.CreatePaginatedResponse[ProductBase](size, strconv.Itoa(*lastId), products), nil
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error) {
