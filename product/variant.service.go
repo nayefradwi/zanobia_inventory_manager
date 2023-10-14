@@ -11,6 +11,7 @@ type IVariantService interface {
 	AddVariantValues(ctx context.Context, variantId int, values []string) error
 	GetVariant(ctx context.Context, variantId int) (Variant, error)
 	UpdateVariantName(ctx context.Context, variantId int, newName string) error
+	GetVariantsFromListOfIds(ctx context.Context, variants []Variant) ([]Variant, error)
 }
 
 type VariantService struct {
@@ -54,4 +55,22 @@ func (s *VariantService) UpdateVariantName(ctx context.Context, variantId int, n
 		return common.NewValidationError("invalid name", validationErr)
 	}
 	return s.repo.UpdateVariantName(ctx, variantId, newName)
+}
+
+func (s *VariantService) GetVariantsFromListOfIds(ctx context.Context, variants []Variant) ([]Variant, error) {
+	if len(variants) == 0 {
+		return []Variant{}, common.NewBadRequestFromMessage("variants list is empty")
+	}
+	variantIds, variantValueIds := make([]int, 0), make([]int, 0)
+	for _, variant := range variants {
+		if variant.Id != nil {
+			variantIds = append(variantIds, *variant.Id)
+		}
+		for _, value := range variant.Values {
+			if value.Id > 0 {
+				variantValueIds = append(variantValueIds, value.Id)
+			}
+		}
+	}
+	return s.repo.GetVariantsAndValuesFromIds(ctx, variantIds, variantValueIds)
 }

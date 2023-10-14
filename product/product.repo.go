@@ -28,30 +28,33 @@ func NewProductRepository(dbPool *pgxpool.Pool) IProductRepo {
 func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
 		ctx = common.SetOperator(ctx, tx)
-		id, addErr := r.addProduct(ctx, product)
-		if addErr != nil {
-			return addErr
-		}
-		product.Id = &id
-		if translationErr := r.insertTranslation(ctx, product, common.DefaultLang); translationErr != nil {
-			return translationErr
-		}
-		product = product.GenerateProductDetails()
-		defaultProductVariantId, addVariantErr := r.addProductVariant(ctx, product.Id, product.DefaultProductVariant)
-		if addVariantErr != nil {
-			return addVariantErr
-		}
-		product.DefaultProductVariant.Id = &defaultProductVariantId
-		if err := r.addDefaultProductVariantValues(ctx, product.DefaultProductVariant, product.DefaultValues); err != nil {
-			return err
-		}
-		if err := r.addProductOptions(ctx, product.Id, product.Variants); err != nil {
-			return err
-		}
-		return nil
+		return r.createProduct(ctx, product)
 	})
-
 	return err
+}
+
+func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) error {
+	id, addErr := r.addProduct(ctx, product)
+	if addErr != nil {
+		return addErr
+	}
+	product.Id = &id
+	if translationErr := r.insertTranslation(ctx, product, common.DefaultLang); translationErr != nil {
+		return translationErr
+	}
+	product = product.GenerateProductDetails()
+	defaultProductVariantId, addVariantErr := r.addProductVariant(ctx, product.Id, product.DefaultProductVariant)
+	if addVariantErr != nil {
+		return addVariantErr
+	}
+	product.DefaultProductVariant.Id = &defaultProductVariantId
+	if err := r.addDefaultProductVariantValues(ctx, product.DefaultProductVariant, product.DefaultValues); err != nil {
+		return err
+	}
+	if err := r.addProductOptions(ctx, product.Id, product.Variants); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *ProductRepo) addProduct(ctx context.Context, product ProductInput) (int, error) {

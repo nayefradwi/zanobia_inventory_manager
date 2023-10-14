@@ -14,14 +14,16 @@ type IProductService interface {
 }
 
 type ProductService struct {
-	repo          IProductRepo
-	recipeService IRecipeService
+	repo            IProductRepo
+	recipeService   IRecipeService
+	variantsService IVariantService
 }
 
-func NewProductService(repo IProductRepo, recipeService IRecipeService) IProductService {
+func NewProductService(repo IProductRepo, recipeService IRecipeService, variantService IVariantService) IProductService {
 	return &ProductService{
 		repo,
 		recipeService,
+		variantService,
 	}
 }
 
@@ -30,6 +32,11 @@ func (s *ProductService) CreateProduct(ctx context.Context, product ProductInput
 	if validationErr != nil {
 		return validationErr
 	}
+	variants, err := s.variantsService.GetVariantsFromListOfIds(ctx, product.Variants)
+	if err != nil {
+		return err
+	}
+	product.Variants = variants
 	return s.repo.CreateProduct(ctx, product)
 }
 
