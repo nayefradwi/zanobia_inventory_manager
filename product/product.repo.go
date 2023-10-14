@@ -15,6 +15,7 @@ type IProductRepo interface {
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
 	GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]ProductBase, error)
 	GetProduct(ctx context.Context, id int) (Product, error)
+	GetProductVariants(ctx context.Context, productId int) ([]ProductVariant, error)
 }
 
 type ProductRepo struct {
@@ -227,35 +228,77 @@ func (r *ProductRepo) GetProducts(ctx context.Context, pageSize int, endCursor s
 }
 
 func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
-	// TODO refactor
-	// sql := `select p.id, p.image, p.price, p.width_in_cm, p.height_in_cm,
-	// p.depth_in_cm, p.weight_in_g, p.standard_unit_id, p.category_id,
-	// p.is_archived, p.expires_in_days, ptx.name, ptx.description, utx.name, utx.symbol, utx.unit_id,
-	// ctx.name, ctx.category_id
-	// from products p
-	// join product_translations ptx on p.id = ptx.product_id
-	// join unit_translations utx on utx.unit_id = p.standard_unit_id
-	// left join category_translations ctx on ctx.category_id = p.category_id
-	// where p.id = $1 and ptx.language_code = $2;`
-	// op := common.GetOperator(ctx, r.Pool)
-	// languageCode := common.GetLanguageParam(ctx)
-	// var product Product
-	// var unit Unit
-	// var category Category
-	// err := op.QueryRow(ctx, sql, id, languageCode).Scan(
-	// 	&product.Id, &product.Image, &product.Price, &product.WidthInCm, &product.HeightInCm,
-	// 	&product.DepthInCm, &product.WeightInG, &product.StandardUnitId, &product.CategoryId,
-	// 	&product.IsArchived, &product.ExpiresInDays, &product.Name, &product.Description,
-	// 	&unit.Name, &unit.Symbol, &unit.Id, &category.Name, &category.Id,
-	// )
-	// if err != nil {
-	// 	log.Printf("failed to get product: %s", err.Error())
-	// 	return Product{}, common.NewBadRequestError("Failed to get product", zimutils.GetErrorCodeFromError(err))
-	// }
-	// product.StandardUnit = &unit
-	// if category.Id != nil {
-	// 	product.Category = &category
-	// }
-	// return product, nil
-	return Product{}, nil
+	sql := `
+	select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id, vartx.variant_id,
+	vartx.name, varvl.id, varvl.value from products p
+	join product_selected_values pvl on pvl.product_id = p.id
+	join variant_values varvl on pvl.variant_value_id = varvl.id
+	join product_options popt on popt.product_id = p.id 
+	join variant_translations vartx on vartx.variant_id = popt.variant_id
+	join product_translations ptx on ptx.product_id = p.id
+	where p.id = $1 and ptx.language_code = $2;
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	langCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, id, langCode)
+	if err != nil {
+		log.Printf("failed to get product: %s", err.Error())
+		return Product{}, common.NewBadRequestFromMessage("Failed to get product")
+	}
+	defer rows.Close()
+	var product Product
+	variants := map[string]Variant{}
+	for rows.Next() {
+		var variant Variant
+		var variantValue VariantValue
+		err := rows.Scan(
+			&product.Id, &product.Name, &product.Description, &product.Image, &product.IsArchived,
+			&product.CategoryId, &variant.Id, &variant.Name, &variantValue.Id, &variantValue.Value,
+		)
+		if err != nil {
+			log.Printf("failed to scan product: %s", err.Error())
+			return Product{}, common.NewInternalServerError()
+		}
+		// TODO fix this to show the correct variant values
+		if _variant, ok := variants[variant.Name]; ok {
+			variant.Values = append(_variant.Values, variantValue)
+		} else {
+			variant.Values = []VariantValue{variantValue}
+		}
+		variants[variant.Name] = variant
+	}
+	product.Options = variants
+	return product, nil
+}
+
+func (r *ProductRepo) GetProductVariants(ctx context.Context, productId int) ([]ProductVariant, error) {
+	sql := `
+	select pvar.id, pvar.product_id, pvartx.name, pvar.sku, pvar.image, pvar.price, 
+	pvar.is_archived, pvar.is_default from product_variants pvar 
+	join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id
+	where pvar.product_id = $1 and pvartx.language_code = $2;
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	langCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, productId, langCode)
+	if err != nil {
+		log.Printf("failed to get product variants: %s", err.Error())
+		return []ProductVariant{}, common.NewBadRequestFromMessage("Failed to get product variants")
+	}
+	defer rows.Close()
+	productVariants := make([]ProductVariant, 0)
+	for rows.Next() {
+		var productVariant ProductVariant
+		err := rows.Scan(
+			&productVariant.Id, &productVariant.ProductId, &productVariant.Name, &productVariant.Sku,
+			&productVariant.Image, &productVariant.Price, &productVariant.IsArchived, &productVariant.IsDefault,
+		)
+		if err != nil {
+			log.Printf("failed to scan product variant: %s", err.Error())
+			return []ProductVariant{}, common.NewInternalServerError()
+		}
+		productVariants = append(productVariants, productVariant)
+	}
+
+	return productVariants, nil
 }

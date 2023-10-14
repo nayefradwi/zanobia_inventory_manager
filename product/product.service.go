@@ -63,18 +63,17 @@ func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (commo
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error) {
-	// TODO refactor
-	// 	product, err := s.repo.GetProduct(ctx, id)
-	// 	if err != nil {
-	// 		return Product{}, err
-	// 	}
-	// 	recipe, err := s.recipeService.GetRecipeOfProduct(ctx, id)
-	// 	if err != nil {
-	// 		return Product{}, err
-	// 	}
-	// 	product.Recipe = recipe
-	// 	return product, nil
-	return Product{}, nil
+	product, err := s.repo.GetProduct(ctx, id)
+	if err != nil {
+		return Product{}, err
+	}
+	if product.Id == nil {
+		return Product{}, common.NewNotFoundError("product not found")
+	}
+	productVariants, err := s.repo.GetProductVariants(ctx, *product.Id)
+	if err != nil {
+		return Product{}, err
+	}
+	product.ProductVariants = productVariants
+	return product, nil
 }
-
-// TODO get base product

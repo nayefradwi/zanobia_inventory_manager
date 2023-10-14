@@ -15,9 +15,9 @@ type ProductBase struct {
 
 type Product struct {
 	ProductBase
-	Category        *Category        `json:"category,omitempty"`
-	Options         []Variant        `json:"options,omitempty"`
-	ProductVariants []ProductVariant `json:"productVariants,omitempty"`
+	Category        *Category          `json:"category,omitempty"`
+	Options         map[string]Variant `json:"options,omitempty"`
+	ProductVariants []ProductVariant   `json:"productVariants,omitempty"`
 }
 
 type ProductInput struct {
