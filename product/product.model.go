@@ -74,7 +74,7 @@ func (p ProductInput) generateProductVariant() (ProductVariant, []VariantValue) 
 	name := ""
 	for _, variant := range p.Variants {
 		variantValues = append(variantValues, variant.Values[0])
-		name += variant.Name + "_"
+		name += variant.Values[0].Value + "_"
 	}
 	name = name[:len(name)-1]
 	productVariant := p.createProductVariant(name, true)

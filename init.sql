@@ -86,7 +86,7 @@ CREATE TABLE unit_translations (
     id SERIAL PRIMARY KEY,
     unit_id INTEGER NOT NULL REFERENCES units(id),
     language_code VARCHAR(2) NOT NULL DEFAULT 'en',
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(50) UNIQUE NOT NULL,
     symbol VARCHAR(10) NOT NULL
 );
 
@@ -99,9 +99,7 @@ CREATE TABLE unit_conversions (
 
 DROP INDEX IF EXISTS idx_unit_name CASCADE;
 DROP INDEX IF EXISTS idx_unit_conversion CASCADE;
-DROP INDEX IF EXISTS idx_unit_translations CASCADE;
 
-CREATE UNIQUE INDEX idx_unit_name ON unit_translations(name);
 CREATE UNIQUE INDEX idx_unit_conversion ON unit_conversions(to_unit_id, from_unit_id);
 CREATE UNIQUE INDEX idx_unit_translations ON unit_translations(unit_id, language_code);
 
@@ -185,7 +183,7 @@ CREATE TABLE categories (
 
 CREATE TABLE category_translations (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(50) UNIQUE NOT NULL,
     category_id INTEGER NOT NULL REFERENCES categories(id),
     language_code VARCHAR(2) NOT NULL DEFAULT 'en'
 );
@@ -202,11 +200,10 @@ CREATE TABLE products (
 CREATE TABLE product_translations (
     id SERIAL PRIMARY KEY,
     product_id INTEGER NOT NULL REFERENCES products(id),
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(50) UNIQUE NOT NULL,
     description VARCHAR(255),
     language_code VARCHAR(2) NOT NULL DEFAULT 'en'
 );
-DROP INDEX IF EXISTS idx_category_translation_name CASCADE;
 DROP INDEX IF EXISTS idx_category_translation CASCADE;
 DROP INDEX IF EXISTS idx_product_translation_name CASCADE;
 DROP INDEX IF EXISTS idx_product_translation CASCADE;
@@ -214,9 +211,7 @@ DROP INDEX IF EXISTS idx_product_is_archived CASCADE;
 DROP INDEX IF EXISTS idx_product_category CASCADE;
 DROP INDEX IF EXISTS idx_product_created_at CASCADE;
 
-CREATE UNIQUE INDEX idx_category_translation_name ON category_translations(name);
 CREATE UNIQUE INDEX idx_category_translation ON category_translations(category_id, language_code);
-CREATE UNIQUE INDEX idx_product_translation_name ON product_translations(name);
 CREATE UNIQUE INDEX idx_product_translation ON product_translations(product_id, language_code);
 CREATE INDEX idx_product_is_archived ON products(is_archived);
 CREATE INDEX idx_product_category ON products(category_id);
