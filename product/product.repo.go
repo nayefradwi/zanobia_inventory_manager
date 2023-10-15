@@ -231,10 +231,10 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	sql := `
 	select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id, vartx.variant_id,
 	vartx.name, varvl.id, varvl.value from products p
-	join product_selected_values pvl on pvl.product_id = p.id
-	join variant_values varvl on pvl.variant_value_id = varvl.id
 	join product_options popt on popt.product_id = p.id 
 	join variant_translations vartx on vartx.variant_id = popt.variant_id
+	join product_selected_values pvl on pvl.product_id = p.id
+	join variant_values varvl on pvl.variant_value_id = varvl.id and varvl.variant_id = popt.variant_id
 	join product_translations ptx on ptx.product_id = p.id
 	where p.id = $1 and ptx.language_code = $2;
 	`
@@ -259,7 +259,6 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 			log.Printf("failed to scan product: %s", err.Error())
 			return Product{}, common.NewInternalServerError()
 		}
-		// TODO fix this to show the correct variant values
 		if _variant, ok := variants[variant.Name]; ok {
 			variant.Values = append(_variant.Values, variantValue)
 		} else {
