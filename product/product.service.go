@@ -70,7 +70,7 @@ func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error
 	if product.Id == nil {
 		return Product{}, common.NewNotFoundError("product not found")
 	}
-	productVariants, err := s.repo.GetProductVariants(ctx, *product.Id)
+	productVariants, err := s.repo.GetProductVariantsOfProduct(ctx, *product.Id)
 	if err != nil {
 		return Product{}, err
 	}

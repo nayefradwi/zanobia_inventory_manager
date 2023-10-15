@@ -15,7 +15,7 @@ type IProductRepo interface {
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
 	GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]ProductBase, error)
 	GetProduct(ctx context.Context, id int) (Product, error)
-	GetProductVariants(ctx context.Context, productId int) ([]ProductVariant, error)
+	GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error)
 }
 
 type ProductRepo struct {
@@ -270,7 +270,7 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	return product, nil
 }
 
-func (r *ProductRepo) GetProductVariants(ctx context.Context, productId int) ([]ProductVariant, error) {
+func (r *ProductRepo) GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error) {
 	sql := `
 	select pvar.id, pvar.product_id, pvartx.name, pvar.sku, pvar.image, pvar.price, 
 	pvar.is_archived, pvar.is_default from product_variants pvar 
