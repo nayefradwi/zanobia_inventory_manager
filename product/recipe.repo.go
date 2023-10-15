@@ -49,42 +49,40 @@ func (r *RecipeRepository) AddIngredientToRecipe(ctx context.Context, recipe Rec
 	return nil
 }
 
-func (r *RecipeRepository) GetRecipeOfProductVariant(ctx context.Context, productId int) ([]Recipe, error) {
-	// sql := `select r.id, r.product_id, ptx.name, r.quantity, utx.unit_id, utx.name,
-	// utx.symbol, ingtx.ingredient_id, ingtx.name, ingtx.brand, ing.price,
-	// ing.expires_in_days from recipes r
-	// join product_translations ptx on r.product_id = ptx.product_id
-	// join unit_translations utx on r.unit_id = utx.unit_id and ptx.language_code = utx.language_code
-	// join ingredients ing on r.ingredient_id = ing.id
-	// join ingredient_translations ingtx on ingtx.ingredient_id = r.ingredient_id and utx.language_code = ingtx.language_code
-	// where ptx.product_id = $1 and ptx.language_code = $2;`
-	// op := common.GetOperator(ctx, r.Pool)
-	// languageCode := common.GetLanguageParam(ctx)
-	// rows, err := op.Query(ctx, sql, productId, languageCode)
-	// if err != nil {
-	// 	log.Printf("failed to get recipe of product: %s", err.Error())
-	// 	return nil, common.NewBadRequestFromMessage("failed to get recipe of product")
-	// }
-	// defer rows.Close()
-	// recipes := make([]Recipe, 0)
-	// for rows.Next() {
-	// 	var recipe Recipe
-	// 	var unit Unit
-	// 	var ingredient Ingredient
-	// 	err := rows.Scan(&recipe.Id, &recipe.ProductId, &recipe.ProductName, &recipe.Quantity,
-	// 		&unit.Id, &unit.Name, &unit.Symbol, &ingredient.Id, &ingredient.Name,
-	// 		&ingredient.Brand, &ingredient.Price, &ingredient.ExpiresInDays,
-	// 	)
-	// 	if err != nil {
-	// 		log.Printf("failed to scan recipe: %s", err.Error())
-	// 		return nil, common.NewInternalServerError()
-	// 	}
-	// 	recipe.Unit = unit
-	// 	recipe.Ingredient = ingredient
-	// 	recipes = append(recipes, recipe)
-	// }
-	// return recipes, nil
-	return []Recipe{}, nil
+func (r *RecipeRepository) GetRecipeOfProductVariant(ctx context.Context, productVariantId int) ([]Recipe, error) {
+	sql := `select r.id, r.quantity, ingtx.ingredient_id, ingtx.name, ingtx.brand,
+	ing.price, utx.unit_id, utx.name, utx.symbol from recipes r 
+	join unit_translations utx on r.unit_id = utx.unit_id
+	join ingredients ing on r.ingredient_id = ing.id
+	join ingredient_translations ingtx on ingtx.ingredient_id = r.ingredient_id and utx.language_code = ingtx.language_code
+	where r.product_variant_id = $1 and utx.language_code = $2`
+	op := common.GetOperator(ctx, r.Pool)
+	languageCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, productVariantId, languageCode)
+	if err != nil {
+		log.Printf("failed to get recipe of product: %s", err.Error())
+		return nil, common.NewBadRequestFromMessage("failed to get recipe of product")
+	}
+	defer rows.Close()
+	recipes := make([]Recipe, 0)
+	for rows.Next() {
+		var recipe Recipe
+		var unit Unit
+		var ingredient Ingredient
+		err := rows.Scan(
+			&recipe.Id, &recipe.Quantity, &ingredient.Id, &ingredient.Name,
+			&ingredient.Brand, &ingredient.Price,
+			&unit.Id, &unit.Name, &unit.Symbol,
+		)
+		if err != nil {
+			log.Printf("failed to scan recipe: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		recipe.Unit = unit
+		recipe.Ingredient = ingredient
+		recipes = append(recipes, recipe)
+	}
+	return recipes, nil
 }
 
 func (r *RecipeRepository) DeleteRecipe(ctx context.Context, id int) error {

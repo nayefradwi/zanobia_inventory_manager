@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"log"
 	"strconv"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -12,6 +13,7 @@ type IProductService interface {
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
 	GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error)
 	GetProduct(ctx context.Context, id int) (Product, error)
+	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
 }
 
 type ProductService struct {
@@ -76,4 +78,21 @@ func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error
 	}
 	product.ProductVariants = productVariants
 	return product, nil
+}
+
+func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error) {
+	productVariant, variantErr := s.repo.GetProductVariant(ctx, productVariantId)
+	if variantErr != nil {
+		return ProductVariant{}, variantErr
+	}
+	if productVariant.Id == nil {
+		return ProductVariant{}, common.NewNotFoundError("product variant not found")
+	}
+	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariant(ctx, *productVariant.Id)
+	if recipeErr != nil {
+		log.Printf("failed to get recipe of product variant: %s", recipeErr.Error())
+	} else if len(recipes) > 0 {
+		productVariant.Recipes = recipes
+	}
+	return productVariant, nil
 }

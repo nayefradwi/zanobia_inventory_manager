@@ -68,7 +68,7 @@ func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productRouter.Post("/translation", productController.TranslateProduct)
 	registerUnitRoutes(productRouter, provider)
 	registerIngredientRoutes(productRouter, provider)
-	registerRecipeRoutes(productRouter, provider)
+	registerProductVariantRoutes(productRouter, provider)
 	mainRouter.Mount("/products", productRouter)
 }
 
@@ -112,6 +112,14 @@ func registerInventoryRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	mainRouter.Mount("/inventories", inventoryRouter)
 }
 
+func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	productController := product.NewProductController(provider.services.productService)
+	productVariantRouter := chi.NewRouter()
+	// productVariantRouter.Post("/", productController.CreateProductVariant)
+	productVariantRouter.Get("/{id}", productController.GetProductVariant)
+	registerRecipeRoutes(productVariantRouter, provider)
+	mainRouter.Mount("/product-variants", productVariantRouter)
+}
 func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	recipeController := product.NewRecipeController(provider.services.recipeService)
 	recipeRouter := chi.NewRouter()

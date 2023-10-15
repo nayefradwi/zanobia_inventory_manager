@@ -352,4 +352,8 @@ CREATE TABLE batches (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL
 );
+
+DROP INDEX IF EXISTS idx_recipe CASCADE;
+
+CREATE UNIQUE INDEX idx_recipe ON recipes(product_variant_id, ingredient_id);
 -- END RECIPE AND BATCHES TABLES --

@@ -10,9 +10,9 @@ type RecipeBase struct {
 
 type Recipe struct {
 	Id                 *int       `json:"id"`
-	ProductVariantId   *int       `json:"productVariantId"`
-	ProductVariantName string     `json:"productVariantName"`
-	ProductName        string     `json:"productName"`
+	ProductVariantId   *int       `json:"productVariantId,omitempty"`
+	ProductVariantName string     `json:"productVariantName,omitempty"`
+	ProductName        string     `json:"productName,omitempty"`
 	Quantity           float64    `json:"quantity"`
 	Unit               Unit       `json:"unit"`
 	Ingredient         Ingredient `json:"ingredient"`

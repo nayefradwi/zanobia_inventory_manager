@@ -50,7 +50,9 @@ type ProductVariantBase struct {
 
 type ProductVariant struct {
 	ProductVariantBase
-	StandardUnit *Unit `json:"standardUnit,omitempty"`
+	ProductName  string   `json:"productName"`
+	Recipes      []Recipe `json:"recipes,omitempty"`
+	StandardUnit *Unit    `json:"standardUnit,omitempty"`
 }
 
 func (p ProductInput) GenerateProductDetails() ProductInput {

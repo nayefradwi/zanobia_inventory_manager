@@ -16,6 +16,7 @@ type IProductRepo interface {
 	GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]ProductBase, error)
 	GetProduct(ctx context.Context, id int) (Product, error)
 	GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error)
+	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
 }
 
 type ProductRepo struct {
@@ -268,36 +269,4 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	}
 	product.Options = variants
 	return product, nil
-}
-
-func (r *ProductRepo) GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error) {
-	sql := `
-	select pvar.id, pvar.product_id, pvartx.name, pvar.sku, pvar.image, pvar.price, 
-	pvar.is_archived, pvar.is_default from product_variants pvar 
-	join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id
-	where pvar.product_id = $1 and pvartx.language_code = $2;
-	`
-	op := common.GetOperator(ctx, r.Pool)
-	langCode := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, productId, langCode)
-	if err != nil {
-		log.Printf("failed to get product variants: %s", err.Error())
-		return []ProductVariant{}, common.NewBadRequestFromMessage("Failed to get product variants")
-	}
-	defer rows.Close()
-	productVariants := make([]ProductVariant, 0)
-	for rows.Next() {
-		var productVariant ProductVariant
-		err := rows.Scan(
-			&productVariant.Id, &productVariant.ProductId, &productVariant.Name, &productVariant.Sku,
-			&productVariant.Image, &productVariant.Price, &productVariant.IsArchived, &productVariant.IsDefault,
-		)
-		if err != nil {
-			log.Printf("failed to scan product variant: %s", err.Error())
-			return []ProductVariant{}, common.NewInternalServerError()
-		}
-		productVariants = append(productVariants, productVariant)
-	}
-
-	return productVariants, nil
 }

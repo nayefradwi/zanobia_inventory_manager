@@ -60,3 +60,14 @@ func (c ProductController) GetProduct(w http.ResponseWriter, r *http.Request) {
 		Data:   product,
 	})
 }
+
+func (c ProductController) GetProductVariant(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, _ := strconv.Atoi(idParam)
+	variant, err := c.service.GetProductVariant(r.Context(), id)
+	common.WriteResponse(common.Result[ProductVariant]{
+		Error:  err,
+		Writer: w,
+		Data:   variant,
+	})
+}
