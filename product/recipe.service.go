@@ -8,7 +8,7 @@ import (
 
 type IRecipeService interface {
 	CreateRecipes(ctx context.Context, recipes []RecipeBase) error
-	GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error)
+	GetRecipeOfProductVariant(ctx context.Context, productVariantId int) ([]Recipe, error)
 	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
 	DeleteRecipe(ctx context.Context, id int) error
 }
@@ -42,8 +42,8 @@ func (s *RecipeService) AddIngredientToRecipe(ctx context.Context, recipe Recipe
 	return s.repo.AddIngredientToRecipe(ctx, recipe)
 }
 
-func (s *RecipeService) GetRecipeOfProduct(ctx context.Context, productId int) ([]Recipe, error) {
-	return s.repo.GetRecipeOfProduct(ctx, productId)
+func (s *RecipeService) GetRecipeOfProductVariant(ctx context.Context, productVariantId int) ([]Recipe, error) {
+	return s.repo.GetRecipeOfProductVariant(ctx, productVariantId)
 }
 
 func (s *RecipeService) DeleteRecipe(ctx context.Context, id int) error {

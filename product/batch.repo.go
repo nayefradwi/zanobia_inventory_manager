@@ -21,10 +21,10 @@ func NewBatchRepository(pool *pgxpool.Pool) *BatchRepository {
 }
 
 func (r *BatchRepository) CreateBatch(ctx context.Context, input BatchInput, expiresAt time.Time) error {
-	sql := `INSERT INTO batches (product_id, warehouse_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)`
+	sql := `INSERT INTO batches (sku, warehouse_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)`
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
-	_, err := op.Exec(ctx, sql, input.ProductId, warehouseId, input.Quantity, input.UnitId, expiresAt)
+	_, err := op.Exec(ctx, sql, input.Sku, warehouseId, input.Quantity, input.UnitId, expiresAt)
 	if err != nil {
 		log.Printf("Failed to create batch: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to create batch")

@@ -19,7 +19,7 @@ func NewProductController(service IProductService) ProductController {
 }
 
 func (c ProductController) CreateProduct(w http.ResponseWriter, r *http.Request) {
-	common.ParseBody[ProductBase](w, r.Body, func(product ProductBase) {
+	common.ParseBody[ProductInput](w, r.Body, func(product ProductInput) {
 		err := c.service.CreateProduct(r.Context(), product)
 		common.WriteCreatedResponse(common.EmptyResult{
 			Error:   err,
@@ -30,7 +30,7 @@ func (c ProductController) CreateProduct(w http.ResponseWriter, r *http.Request)
 }
 
 func (c ProductController) TranslateProduct(w http.ResponseWriter, r *http.Request) {
-	common.GetTranslatedBody[ProductBase](w, r.Body, func(t common.Translation[ProductBase]) {
+	common.GetTranslatedBody[ProductInput](w, r.Body, func(t common.Translation[ProductInput]) {
 		err := c.service.TranslateProduct(r.Context(), t.Data, t.LanguageCode)
 		common.WriteCreatedResponse(common.EmptyResult{
 			Error:   err,
@@ -43,7 +43,7 @@ func (c ProductController) TranslateProduct(w http.ResponseWriter, r *http.Reque
 func (c ProductController) GetProducts(w http.ResponseWriter, r *http.Request) {
 	isArchive := r.URL.Query().Get("isArchive") == "true"
 	products, err := c.service.GetProducts(r.Context(), isArchive)
-	common.WriteResponse(common.Result[common.PaginatedResponse[Product]]{
+	common.WriteResponse(common.Result[common.PaginatedResponse[ProductBase]]{
 		Error:  err,
 		Writer: w,
 		Data:   products,
@@ -58,5 +58,16 @@ func (c ProductController) GetProduct(w http.ResponseWriter, r *http.Request) {
 		Error:  err,
 		Writer: w,
 		Data:   product,
+	})
+}
+
+func (c ProductController) GetProductVariant(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, _ := strconv.Atoi(idParam)
+	variant, err := c.service.GetProductVariant(r.Context(), id)
+	common.WriteResponse(common.Result[ProductVariant]{
+		Error:  err,
+		Writer: w,
+		Data:   variant,
 	})
 }

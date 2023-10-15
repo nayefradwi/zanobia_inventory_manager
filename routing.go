@@ -16,6 +16,7 @@ import (
 func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(common.Recover)
 	r.Use(common.JsonResponseMiddleware)
 	r.Use(common.SetLanguageMiddleware)
 	r.Use(common.SetPaginatedDataMiddleware)
@@ -26,6 +27,7 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	registerRoleRoutes(r, provider)
 	registerProductRoutes(r, provider)
 	registerWarehouseRoutes(r, provider)
+	registerVariantRoutes(r, provider)
 	return r
 }
 
@@ -66,7 +68,7 @@ func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productRouter.Post("/translation", productController.TranslateProduct)
 	registerUnitRoutes(productRouter, provider)
 	registerIngredientRoutes(productRouter, provider)
-	registerRecipeRoutes(productRouter, provider)
+	registerProductVariantRoutes(productRouter, provider)
 	mainRouter.Mount("/products", productRouter)
 }
 
@@ -110,6 +112,14 @@ func registerInventoryRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	mainRouter.Mount("/inventories", inventoryRouter)
 }
 
+func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	productController := product.NewProductController(provider.services.productService)
+	productVariantRouter := chi.NewRouter()
+	// productVariantRouter.Post("/", productController.CreateProductVariant)
+	productVariantRouter.Get("/{id}", productController.GetProductVariant)
+	registerRecipeRoutes(productVariantRouter, provider)
+	mainRouter.Mount("/product-variants", productVariantRouter)
+}
 func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	recipeController := product.NewRecipeController(provider.services.recipeService)
 	recipeRouter := chi.NewRouter()
@@ -125,6 +135,16 @@ func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	warehouseRouter.Post("/", warehouseController.CreateWarehouse)
 	warehouseRouter.Get("/", warehouseController.GetWarehouses)
 	mainRouter.Mount("/warehouses", warehouseRouter)
+}
+
+func registerVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	variantController := product.NewVariantController(provider.services.variantService)
+	variantRouter := chi.NewRouter()
+	variantRouter.Post("/", variantController.CreateVariant)
+	variantRouter.Get("/{id}", variantController.GetVariant)
+	variantRouter.Put("/{id}", variantController.UpdateVariantName)
+	variantRouter.Post("/{id}/values", variantController.AddVariantValues)
+	mainRouter.Mount("/variants", variantRouter)
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {

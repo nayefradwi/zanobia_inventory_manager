@@ -2,39 +2,48 @@ package product
 
 import (
 	"context"
+	"log"
 	"strconv"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
 type IProductService interface {
-	CreateProduct(ctx context.Context, product ProductBase) error
-	TranslateProduct(ctx context.Context, product ProductBase, languageCode string) error
-	GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[Product], error)
+	CreateProduct(ctx context.Context, product ProductInput) error
+	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
+	GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error)
 	GetProduct(ctx context.Context, id int) (Product, error)
+	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
 }
 
 type ProductService struct {
-	repo          IProductRepo
-	recipeService IRecipeService
+	repo            IProductRepo
+	recipeService   IRecipeService
+	variantsService IVariantService
 }
 
-func NewProductService(repo IProductRepo, recipeService IRecipeService) IProductService {
+func NewProductService(repo IProductRepo, recipeService IRecipeService, variantService IVariantService) IProductService {
 	return &ProductService{
 		repo,
 		recipeService,
+		variantService,
 	}
 }
 
-func (s *ProductService) CreateProduct(ctx context.Context, product ProductBase) error {
+func (s *ProductService) CreateProduct(ctx context.Context, product ProductInput) error {
 	validationErr := ValidateProduct(product)
 	if validationErr != nil {
 		return validationErr
 	}
+	variants, err := s.variantsService.GetVariantsFromListOfIds(ctx, product.Variants)
+	if err != nil {
+		return err
+	}
+	product.Variants = variants
 	return s.repo.CreateProduct(ctx, product)
 }
 
-func (s *ProductService) TranslateProduct(ctx context.Context, product ProductBase, languageCode string) error {
+func (s *ProductService) TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error {
 	validationErr := ValidateProduct(product)
 	if validationErr != nil {
 		return validationErr
@@ -42,17 +51,17 @@ func (s *ProductService) TranslateProduct(ctx context.Context, product ProductBa
 	return s.repo.TranslateProduct(ctx, product, languageCode)
 }
 
-func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[Product], error) {
+func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error) {
 	size, cursor, _ := common.GetPaginationParams(ctx, "0")
 	products, err := s.repo.GetProducts(ctx, size, cursor, isArchive)
 	if err != nil {
-		return common.CreateEmptyPaginatedResponse[Product](size), err
+		return common.CreateEmptyPaginatedResponse[ProductBase](size), err
 	}
 	if len(products) == 0 {
-		return common.CreateEmptyPaginatedResponse[Product](size), nil
+		return common.CreateEmptyPaginatedResponse[ProductBase](size), nil
 	}
 	lastId := products[len(products)-1].Id
-	return common.CreatePaginatedResponse[Product](size, strconv.Itoa(*lastId), products), nil
+	return common.CreatePaginatedResponse[ProductBase](size, strconv.Itoa(*lastId), products), nil
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error) {
@@ -60,12 +69,30 @@ func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error
 	if err != nil {
 		return Product{}, err
 	}
-	recipe, err := s.recipeService.GetRecipeOfProduct(ctx, id)
+	if product.Id == nil {
+		return Product{}, common.NewNotFoundError("product not found")
+	}
+	productVariants, err := s.repo.GetProductVariantsOfProduct(ctx, *product.Id)
 	if err != nil {
 		return Product{}, err
 	}
-	product.Recipe = recipe
+	product.ProductVariants = productVariants
 	return product, nil
 }
 
-// TODO get base product
+func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error) {
+	productVariant, variantErr := s.repo.GetProductVariant(ctx, productVariantId)
+	if variantErr != nil {
+		return ProductVariant{}, variantErr
+	}
+	if productVariant.Id == nil {
+		return ProductVariant{}, common.NewNotFoundError("product variant not found")
+	}
+	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariant(ctx, *productVariant.Id)
+	if recipeErr != nil {
+		log.Printf("failed to get recipe of product variant: %s", recipeErr.Error())
+	} else if len(recipes) > 0 {
+		productVariant.Recipes = recipes
+	}
+	return productVariant, nil
+}
