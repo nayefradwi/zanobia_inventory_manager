@@ -12,6 +12,7 @@ import (
 
 type IProductRepo interface {
 	CreateProduct(ctx context.Context, product ProductInput) error
+	AddProductVariant(ctx context.Context, input ProductVariantInput) error
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
 	GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]ProductBase, error)
 	GetProduct(ctx context.Context, id int) (Product, error)
@@ -50,7 +51,7 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 		return addVariantErr
 	}
 	product.DefaultProductVariant.Id = &defaultProductVariantId
-	if err := r.addDefaultProductVariantValues(ctx, product.DefaultProductVariant, product.DefaultValues); err != nil {
+	if err := r.addProductVariantValues(ctx, product.DefaultProductVariant, product.DefaultValues); err != nil {
 		return err
 	}
 	if err := r.addProductOptions(ctx, product.Id, product.Variants); err != nil {
@@ -141,7 +142,7 @@ func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, produ
 	return nil
 }
 
-func (r *ProductRepo) addDefaultProductVariantValues(ctx context.Context, productVariant ProductVariant, variantValues []VariantValue) error {
+func (r *ProductRepo) addProductVariantValues(ctx context.Context, productVariant ProductVariant, variantValues []VariantValue) error {
 	for _, variantValue := range variantValues {
 		if err := r.addProductVariantSelectedValue(ctx, productVariant.Id, variantValue); err != nil {
 			return err

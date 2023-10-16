@@ -55,6 +55,11 @@ type ProductVariant struct {
 	StandardUnit *Unit    `json:"standardUnit,omitempty"`
 }
 
+type ProductVariantInput struct {
+	ProductVariant ProductVariant `json:"productVariant"`
+	VariantValues  []VariantValue `json:"variantValues,omitempty"`
+}
+
 func (p ProductInput) GenerateProductDetails() ProductInput {
 	productVariant, defaultValues := p.generateProductVariant()
 	p.ProductVariants = []ProductVariant{productVariant}

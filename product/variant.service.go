@@ -12,6 +12,8 @@ type IVariantService interface {
 	GetVariant(ctx context.Context, variantId int) (Variant, error)
 	UpdateVariantName(ctx context.Context, variantId int, newName string) error
 	GetVariantsFromListOfIds(ctx context.Context, variants []Variant) ([]Variant, error)
+	GetProductOptions(ctx context.Context, productId int) ([]Variant, error)
+	GetProductSelectedValues(ctx context.Context, productId int) ([]VariantValue, error)
 }
 
 type VariantService struct {
@@ -73,4 +75,14 @@ func (s *VariantService) GetVariantsFromListOfIds(ctx context.Context, variants 
 		}
 	}
 	return s.repo.GetVariantsAndValuesFromIds(ctx, variantIds, variantValueIds)
+}
+
+func (s *VariantService) GetProductOptions(ctx context.Context, productId int) ([]Variant, error) {
+	// TODO: fill this
+	return []Variant{}, nil
+}
+
+func (s *VariantService) GetProductSelectedValues(ctx context.Context, productId int) ([]VariantValue, error) {
+	// TODO: fill this
+	return []VariantValue{}, nil
 }

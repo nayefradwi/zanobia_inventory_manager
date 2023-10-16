@@ -157,3 +157,24 @@ func ValidateRecipes(recipes []RecipeBase) error {
 	}
 	return nil
 }
+
+func ValidateProductVariant(input ProductVariantInput, min, max int) error {
+	validationResults := make([]common.ErrorDetails, 0)
+	validationResults = append(validationResults,
+		common.ValidateNotZero(input.ProductVariant.Price, "price"),
+		common.ValidateIdPtr(input.ProductVariant.StandardUnitId, "standardUnitId"),
+		common.ValidateIdPtr(input.ProductVariant.ProductId, "productId"),
+		common.ValidateNotZero(input.ProductVariant.ExpiresInDays, "expiresInDays"),
+		common.ValidateSliceSize[VariantValue](input.VariantValues, "variantValues", min, max),
+	)
+	errors := make([]common.ErrorDetails, 0)
+	for _, result := range validationResults {
+		if len(result.Message) > 0 {
+			errors = append(errors, result)
+		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid product input", errors...)
+	}
+	return nil
+}

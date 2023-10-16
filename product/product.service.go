@@ -96,3 +96,38 @@ func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId
 	}
 	return productVariant, nil
 }
+
+func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVariantInput) error {
+	if input.ProductVariant.ProductId == nil {
+		return common.NewValidationError("invalid product variant", common.ErrorDetails{
+			Message: "product id cannot be empty",
+			Field:   "productId",
+		})
+	}
+	variants, variantErr := s.variantsService.GetProductOptions(ctx, *input.ProductVariant.ProductId)
+	if variantErr != nil {
+		return variantErr
+	}
+	validationErr := ValidateProductVariant(input, 1, len(variants))
+	if validationErr != nil {
+		return validationErr
+	}
+	variantValues, valuesErr := s.variantsService.GetProductSelectedValues(ctx, *input.ProductVariant.ProductId)
+	if valuesErr != nil {
+		return valuesErr
+	}
+	allAreProductSelectedValues := common.HasAllValues[VariantValue, int](
+		input.VariantValues,
+		variantValues,
+		func(value VariantValue) int {
+			return value.Id
+		},
+	)
+	if !allAreProductSelectedValues {
+		return common.NewValidationError("invalid product variant", common.ErrorDetails{
+			Message: "invalid variant values",
+			Field:   "variantValues",
+		})
+	}
+	return s.repo.AddProductVariant(ctx, input)
+}

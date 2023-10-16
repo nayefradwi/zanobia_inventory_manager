@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
 )
@@ -69,4 +70,17 @@ func (r *ProductRepo) GetProductVariant(ctx context.Context, productVariantId in
 	}
 	productVariant.StandardUnit = &unit
 	return productVariant, nil
+}
+
+func (r *ProductRepo) AddProductVariant(ctx context.Context, input ProductVariantInput) error {
+	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		id, err := r.addProductVariant(ctx, input.ProductVariant.ProductId, input.ProductVariant)
+		if err != nil {
+			return err
+		}
+		input.ProductVariant.Id = &id
+		return r.addProductVariantValues(ctx, input.ProductVariant, input.VariantValues)
+	})
+	return err
 }

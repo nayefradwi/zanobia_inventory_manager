@@ -91,3 +91,13 @@ func ValidateUrl(value *string, field string) ErrorDetails {
 	}
 	return ErrorDetails{}
 }
+
+func ValidateSliceSize[T any](data []T, field string, min int, max int) ErrorDetails {
+	if len(data) < min || len(data) > max {
+		return ErrorDetails{
+			Message: field + " must have between " + strconv.Itoa(min) + " and " + strconv.Itoa(max) + " elements",
+			Field:   field,
+		}
+	}
+	return ErrorDetails{}
+}
