@@ -71,3 +71,14 @@ func (c ProductController) GetProductVariant(w http.ResponseWriter, r *http.Requ
 		Data:   variant,
 	})
 }
+
+func (c ProductController) CreateProductVariant(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[ProductVariantInput](w, r.Body, func(productVariant ProductVariantInput) {
+		err := c.service.AddProductVariant(r.Context(), productVariant)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product variant created successfully",
+		})
+	})
+}

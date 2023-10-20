@@ -115,8 +115,9 @@ func registerInventoryRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productController := product.NewProductController(provider.services.productService)
 	productVariantRouter := chi.NewRouter()
-	// productVariantRouter.Post("/", productController.CreateProductVariant)
+	productVariantRouter.Post("/", productController.CreateProductVariant)
 	productVariantRouter.Get("/{id}", productController.GetProductVariant)
+
 	registerRecipeRoutes(productVariantRouter, provider)
 	mainRouter.Mount("/product-variants", productVariantRouter)
 }

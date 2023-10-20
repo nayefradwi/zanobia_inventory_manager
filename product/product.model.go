@@ -103,3 +103,11 @@ func (p ProductInput) createProductVariant(value string, isDefault bool) Product
 		},
 	}
 }
+
+func GenerateName(values []VariantValue) string {
+	name := ""
+	for _, value := range values {
+		name += value.Value + "_"
+	}
+	return name[:len(name)-1]
+}

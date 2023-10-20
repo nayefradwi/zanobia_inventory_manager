@@ -18,6 +18,8 @@ type IVariantRepository interface {
 	UpdateVariantValue(ctx context.Context, value VariantValue) error
 	GetVariant(ctx context.Context, variantId int) (Variant, error)
 	GetVariantsAndValuesFromIds(ctx context.Context, variantIds []int, variantValueIds []int) ([]Variant, error)
+	GetProductOptionsIds(ctx context.Context, productId int) ([]Variant, error)
+	GetProductSelectedValues(ctx context.Context, productId int) ([]VariantValue, error)
 }
 
 type VariantRepository struct {
@@ -213,4 +215,54 @@ func (r *VariantRepository) GetVariantsAndValuesFromIds(ctx context.Context, var
 		variantsList = append(variantsList, variant)
 	}
 	return variantsList, nil
+}
+
+func (r *VariantRepository) GetProductOptionsIds(ctx context.Context, productId int) ([]Variant, error) {
+	sql := `
+	select variants.id from variants join product_options 
+	on product_options.variant_id = variants.id where product_options.product_id = $1;
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	rows, err := op.Query(ctx, sql, productId)
+	if err != nil {
+		log.Printf("failed to get product options: %s", err.Error())
+		return []Variant{}, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	variants := make([]Variant, 0)
+	for rows.Next() {
+		var variant Variant
+		err := rows.Scan(&variant.Id)
+		if err != nil {
+			log.Printf("failed to scan variant: %s", err.Error())
+			return []Variant{}, common.NewInternalServerError()
+		}
+		variants = append(variants, variant)
+	}
+	return variants, nil
+}
+
+func (r *VariantRepository) GetProductSelectedValues(ctx context.Context, productId int) ([]VariantValue, error) {
+	sql := `
+	select variant_values.id, value from variant_values join product_selected_values 
+	on product_selected_values.variant_value_id = variant_values.id where product_selected_values.product_id = $1;
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	rows, err := op.Query(ctx, sql, productId)
+	if err != nil {
+		log.Printf("failed to get product selected values: %s", err.Error())
+		return []VariantValue{}, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	variantValues := make([]VariantValue, 0)
+	for rows.Next() {
+		var variantValue VariantValue
+		err := rows.Scan(&variantValue.Id, &variantValue.Value)
+		if err != nil {
+			log.Printf("failed to scan variant value: %s", err.Error())
+			return []VariantValue{}, common.NewInternalServerError()
+		}
+		variantValues = append(variantValues, variantValue)
+	}
+	return variantValues, nil
 }

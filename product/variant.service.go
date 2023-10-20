@@ -78,11 +78,9 @@ func (s *VariantService) GetVariantsFromListOfIds(ctx context.Context, variants 
 }
 
 func (s *VariantService) GetProductOptions(ctx context.Context, productId int) ([]Variant, error) {
-	// TODO: fill this
-	return []Variant{}, nil
+	return s.repo.GetProductOptionsIds(ctx, productId)
 }
 
 func (s *VariantService) GetProductSelectedValues(ctx context.Context, productId int) ([]VariantValue, error) {
-	// TODO: fill this
-	return []VariantValue{}, nil
+	return s.repo.GetProductSelectedValues(ctx, productId)
 }

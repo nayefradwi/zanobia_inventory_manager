@@ -14,6 +14,7 @@ type IProductService interface {
 	GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error)
 	GetProduct(ctx context.Context, id int) (Product, error)
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
+	AddProductVariant(ctx context.Context, input ProductVariantInput) error
 }
 
 type ProductService struct {
@@ -129,5 +130,10 @@ func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVar
 			Field:   "variantValues",
 		})
 	}
+	if input.ProductVariant.Sku == "" {
+		sku, _ := common.GenerateUuid()
+		input.ProductVariant.Sku = sku
+	}
+	input.ProductVariant.Name = GenerateName(input.VariantValues)
 	return s.repo.AddProductVariant(ctx, input)
 }
