@@ -39,8 +39,8 @@ func (r *BatchRepository) CreateBatch(ctx context.Context, input BatchInput, exp
 func (r *BatchRepository) UpdateBatch(ctx context.Context, base BatchBase) error {
 	updatedAt := time.Now().UTC()
 	op := common.GetOperator(ctx, r.Pool)
-	sql := `UPDATE batches SET quantity = $1, updated_at = $2 WHERE id = $3`
-	_, err := op.Exec(ctx, sql, base.Quantity, updatedAt, base.Id)
+	sql := `UPDATE batches SET quantity = $1, updated_at = $2 WHERE id = $3 and warehouse_id = $4`
+	_, err := op.Exec(ctx, sql, base.Quantity, updatedAt, base.Id, base.WarehouseId)
 	if err != nil {
 		log.Printf("Failed to update batch: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to update batch")
@@ -49,9 +49,10 @@ func (r *BatchRepository) UpdateBatch(ctx context.Context, base BatchBase) error
 }
 
 func (r *BatchRepository) GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error) {
-	sql := `SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches WHERE sku = $1 AND expires_at = $2`
+	sql := `SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches WHERE sku = $1 AND expires_at = $2 and warehouse_id = $3`
 	op := common.GetOperator(ctx, r.Pool)
-	row := op.QueryRow(ctx, sql, sku, expirationDate)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	row := op.QueryRow(ctx, sql, sku, expirationDate, warehouseId)
 	var batchBase BatchBase
 	err := row.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
 	if err != nil {
