@@ -51,18 +51,22 @@ func (s *InventoryService) IncrementInventory(ctx context.Context, inventoryInpu
 		}
 		err := common.RunWithTransaction(ctx, s.inventoryRepo.(*InventoryRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 			ctx = common.SetOperator(ctx, tx)
-			InventoryBase, err := s.getConvertedInventory(ctx, &inventoryInput)
-			if err != nil {
-				return err
-			}
-			if InventoryBase.Id == nil {
-				return s.inventoryRepo.CreateInventory(ctx, inventoryInput)
-			}
-			return s.incrementInventory(ctx, InventoryBase, inventoryInput)
+			return s.tryToIncrementInventory(ctx, inventoryInput)
 		})
 		return err
 	})
 
+}
+
+func (s *InventoryService) tryToIncrementInventory(ctx context.Context, inventoryInput InventoryInput) error {
+	InventoryBase, err := s.getConvertedInventory(ctx, &inventoryInput)
+	if err != nil {
+		return err
+	}
+	if InventoryBase.Id == nil {
+		return s.inventoryRepo.CreateInventory(ctx, inventoryInput)
+	}
+	return s.incrementInventory(ctx, InventoryBase, inventoryInput)
 }
 
 func (s *InventoryService) getConvertedInventory(ctx context.Context, inventoryInput *InventoryInput) (InventoryBase, error) {
@@ -111,17 +115,21 @@ func (s *InventoryService) DecrementInventory(ctx context.Context, inventoryInpu
 		}
 		err := common.RunWithTransaction(ctx, s.inventoryRepo.(*InventoryRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 			ctx = common.SetOperator(ctx, tx)
-			InventoryBase, err := s.getConvertedInventory(ctx, &inventoryInput)
-			if err != nil {
-				return err
-			}
-			if InventoryBase.Id == nil {
-				return common.NewBadRequestFromMessage("Inventory not found")
-			}
-			return s.decrementInventory(ctx, InventoryBase, inventoryInput)
+			return s.tryToDecrementInventory(ctx, inventoryInput)
 		})
 		return err
 	})
+}
+
+func (s *InventoryService) tryToDecrementInventory(ctx context.Context, inventoryInput InventoryInput) error {
+	InventoryBase, err := s.getConvertedInventory(ctx, &inventoryInput)
+	if err != nil {
+		return err
+	}
+	if InventoryBase.Id == nil {
+		return common.NewBadRequestFromMessage("Inventory not found")
+	}
+	return s.decrementInventory(ctx, InventoryBase, inventoryInput)
 }
 
 func (s *InventoryService) decrementInventory(ctx context.Context, inventoryBase InventoryBase, inventoryInput InventoryInput) error {
@@ -156,18 +164,7 @@ func (s *InventoryService) bulkIncrementInventory(ctx context.Context, inventory
 		if validationErr != nil {
 			return validationErr
 		}
-		invBase, convErr := s.getConvertedInventory(ctx, &input)
-		if convErr != nil {
-			return convErr
-		}
-		var err error
-		if invBase.Id == nil {
-			err = s.inventoryRepo.CreateInventory(ctx, input)
-
-		} else {
-			err = s.incrementInventory(ctx, invBase, input)
-		}
-		if err != nil {
+		if err := s.tryToIncrementInventory(ctx, input); err != nil {
 			return err
 		}
 	}
@@ -197,12 +194,7 @@ func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventory
 		if validationErr != nil {
 			return validationErr
 		}
-		invBase, convErr := s.getConvertedInventory(ctx, &input)
-		if convErr != nil {
-			return convErr
-		}
-		err := s.decrementInventory(ctx, invBase, input)
-		if err != nil {
+		if err := s.tryToDecrementInventory(ctx, input); err != nil {
 			return err
 		}
 	}

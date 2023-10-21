@@ -103,7 +103,39 @@ func (s *BatchService) incrementBatch(ctx context.Context, batch BatchBase, inpu
 	return err
 }
 
-// Decrement batch
+func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {
+	return s.lockingService.RunWithLock(ctx, input.Sku, func() error {
+		if err := ValidateBatchInput(input); err != nil {
+			return err
+		}
+		err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+			ctx = common.SetOperator(ctx, tx)
+			return s.tryToDecrementBatch(ctx, input)
+		})
+		return err
+	})
+}
+
+func (s *BatchService) tryToDecrementBatch(ctx context.Context, input BatchInput) error {
+	batchBase, err := s.getConvertedBatch(ctx, &input)
+	if err != nil {
+		return err
+	}
+	if batchBase.Id == nil {
+		return common.NewBadRequestFromMessage("batch not found")
+	}
+	return s.decrementInventory(ctx, batchBase, input)
+}
+
+func (s *BatchService) decrementInventory(ctx context.Context, batchBase BatchBase, input BatchInput) error {
+	newQty := batchBase.Quantity - input.Quantity
+	if newQty < 0 {
+		return common.NewBadRequestFromMessage("batch not enough")
+	}
+	batchBase = batchBase.SetQuantity(newQty)
+	return s.batchRepo.UpdateBatch(ctx, batchBase)
+}
+
 // Bulk increment batches
 // Bulk decrement batches
 // Get batches paginated sorted by expiration date
