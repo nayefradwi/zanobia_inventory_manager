@@ -124,10 +124,10 @@ func (s *BatchService) tryToDecrementBatch(ctx context.Context, input BatchInput
 	if batchBase.Id == nil {
 		return common.NewBadRequestFromMessage("batch not found")
 	}
-	return s.decrementInventory(ctx, batchBase, input)
+	return s.decrementBatch(ctx, batchBase, input)
 }
 
-func (s *BatchService) decrementInventory(ctx context.Context, batchBase BatchBase, input BatchInput) error {
+func (s *BatchService) decrementBatch(ctx context.Context, batchBase BatchBase, input BatchInput) error {
 	newQty := batchBase.Quantity - input.Quantity
 	if newQty < 0 {
 		return common.NewBadRequestFromMessage("batch not enough")
@@ -136,6 +136,62 @@ func (s *BatchService) decrementInventory(ctx context.Context, batchBase BatchBa
 	return s.batchRepo.UpdateBatch(ctx, batchBase)
 }
 
-// Bulk increment batches
-// Bulk decrement batches
+func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInput) error {
+	err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.bulkIncrementBatch(ctx, inputs)
+	})
+	return err
+}
+
+func (s *BatchService) bulkIncrementBatch(ctx context.Context, inputs []BatchInput) error {
+	locks := make([]common.Lock, 0)
+	locksPtr := &locks
+	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
+	for _, input := range inputs {
+		lock, lockErr := s.lockingService.Acquire(ctx, input.Sku)
+		if lockErr != nil {
+			return common.NewBadRequestFromMessage("Failed to acquire lock")
+		}
+		locks = append(locks, lock)
+		locksPtr = &locks
+		if err := ValidateBatchInput(input); err != nil {
+			return err
+		}
+		if err := s.tryToIncrementBatch(ctx, input); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInput) error {
+	err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.bulkDecrementBatch(ctx, inputs)
+	})
+	return err
+}
+
+func (s *BatchService) bulkDecrementBatch(ctx context.Context, inputs []BatchInput) error {
+	locks := make([]common.Lock, 0)
+	locksPtr := &locks
+	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
+	for _, input := range inputs {
+		lock, lockErr := s.lockingService.Acquire(ctx, input.Sku)
+		if lockErr != nil {
+			return common.NewBadRequestFromMessage("Failed to acquire lock")
+		}
+		locks = append(locks, lock)
+		locksPtr = &locks
+		if err := ValidateBatchInput(input); err != nil {
+			return err
+		}
+		if err := s.tryToDecrementBatch(ctx, input); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Get batches paginated sorted by expiration date
