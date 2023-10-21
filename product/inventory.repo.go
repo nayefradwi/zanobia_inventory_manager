@@ -29,9 +29,9 @@ func NewInventoryRepository(dbPool *pgxpool.Pool) IInventoryRepository {
 
 func (r *InventoryRepository) UpdateInventory(ctx context.Context, base InventoryBase) error {
 	currentTimestamp := time.Now().UTC()
-	sql := `UPDATE inventories SET quantity = $1, updated_at = $2 WHERE id = $3`
+	sql := `UPDATE inventories SET quantity = $1, updated_at = $2 WHERE id = $3 and warehouse_id = $4`
 	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, base.Quantity, currentTimestamp, base.Id)
+	_, err := op.Exec(ctx, sql, base.Quantity, currentTimestamp, base.Id, base.WarehouseId)
 	if err != nil {
 		log.Printf("Failed to increment inventory: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to increment inventory")
@@ -102,6 +102,10 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 	%s;`
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
-	sql := fmt.Sprintf(preFormat, `where utx.language_code = $1 AND inv.updated_at < $2 order by inv.updated_at DESC limit $3;`)
-	return op.Query(ctx, sql, languageCode, endCursor, pageSize)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	sql := fmt.Sprintf(
+		preFormat,
+		`where utx.language_code = $1 AND inv.updated_at < $2 and warehouse_id = $3 order by inv.updated_at DESC limit $4;`,
+	)
+	return op.Query(ctx, sql, languageCode, endCursor, warehouseId, pageSize)
 }
