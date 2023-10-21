@@ -4,7 +4,18 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"time"
 )
+
+func ValidateTime(dateTime time.Time, field string) ErrorDetails {
+	if dateTime.IsZero() {
+		return ErrorDetails{
+			Message: field + " cannot be empty",
+			Field:   field,
+		}
+	}
+	return ErrorDetails{}
+}
 
 func ValidateIdPtr(id *int, field string) ErrorDetails {
 	if id == nil {

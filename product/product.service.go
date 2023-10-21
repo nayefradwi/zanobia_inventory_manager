@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
@@ -15,6 +16,8 @@ type IProductService interface {
 	GetProduct(ctx context.Context, id int) (Product, error)
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
 	AddProductVariant(ctx context.Context, input ProductVariantInput) error
+	GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error)
+	GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error)
 }
 
 type ProductService struct {
@@ -136,4 +139,12 @@ func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVar
 	}
 	input.ProductVariant.Name = GenerateName(input.VariantValues)
 	return s.repo.AddProductVariant(ctx, input)
+}
+
+func (s *ProductService) GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error) {
+	return s.repo.GetUnitIdOfProductVariantBySku(ctx, sku)
+}
+
+func (s *ProductService) GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error) {
+	return s.repo.GetProductVariantExpirationDate(ctx, sku)
 }

@@ -354,6 +354,9 @@ CREATE TABLE batches (
 );
 
 DROP INDEX IF EXISTS idx_recipe CASCADE;
+DROP INDEX IF EXISTS idx_batch CASCADE;
 
 CREATE UNIQUE INDEX idx_recipe ON recipes(product_variant_id, ingredient_id);
+CREATE UNIQUE INDEX idx_batch ON batches(sku, warehouse_id, expires_at);
+
 -- END RECIPE AND BATCHES TABLES --

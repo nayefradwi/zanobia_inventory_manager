@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -18,6 +19,8 @@ type IProductRepo interface {
 	GetProduct(ctx context.Context, id int) (Product, error)
 	GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error)
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
+	GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error)
+	GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error)
 }
 
 type ProductRepo struct {

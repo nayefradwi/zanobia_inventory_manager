@@ -1,5 +1,7 @@
 package common
 
+import "time"
+
 func HasAllValues[T any, P string | int](values []T, allValues []T, getKey func(value T) P) bool {
 	mapValues := make(map[P]bool)
 	for _, value := range allValues {
@@ -13,4 +15,14 @@ func HasAllValues[T any, P string | int](values []T, allValues []T, getKey func(
 		}
 	}
 	return true
+}
+
+func GetUtcDateOnlyString() string {
+	y, m, d := time.Now().UTC().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
+}
+
+func GetUtcDateOnlyStringFromTime(t time.Time) string {
+	y, m, d := t.UTC().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
 }

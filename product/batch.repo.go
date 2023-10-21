@@ -10,7 +10,11 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 )
 
-type IBatchRepository interface{}
+type IBatchRepository interface {
+	CreateBatch(ctx context.Context, input BatchInput, expiresAt string) error
+	UpdateBatch(ctx context.Context, base BatchBase) error
+	GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error)
+}
 
 type BatchRepository struct {
 	*pgxpool.Pool
@@ -20,7 +24,7 @@ func NewBatchRepository(pool *pgxpool.Pool) *BatchRepository {
 	return &BatchRepository{pool}
 }
 
-func (r *BatchRepository) CreateBatch(ctx context.Context, input BatchInput, expiresAt time.Time) error {
+func (r *BatchRepository) CreateBatch(ctx context.Context, input BatchInput, expiresAt string) error {
 	sql := `INSERT INTO batches (sku, warehouse_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)`
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
@@ -44,9 +48,17 @@ func (r *BatchRepository) UpdateBatch(ctx context.Context, base BatchBase) error
 	return nil
 }
 
-func (r *BatchRepository) GetBatchBase(ctx context.Context, productId int, expirationDate string) (Batch, error) {
-	// Get batch base by product id and expiration date
-	return Batch{}, nil
+func (r *BatchRepository) GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error) {
+	sql := `SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches WHERE sku = $1 AND expires_at = $2`
+	op := common.GetOperator(ctx, r.Pool)
+	row := op.QueryRow(ctx, sql, sku, expirationDate)
+	var batchBase BatchBase
+	err := row.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
+	if err != nil {
+		log.Printf("Failed to get batch base: %s", err.Error())
+		return BatchBase{}, common.NewBadRequestFromMessage("Failed to get batch base")
+	}
+	return BatchBase{}, nil
 }
 
 func (r *BatchRepository) GetBatches(ctx context.Context, pageSize int, cursor string) ([]Batch, error) {

@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -83,4 +84,34 @@ func (r *ProductRepo) AddProductVariant(ctx context.Context, input ProductVarian
 		return r.addProductVariantValues(ctx, input.ProductVariant, input.VariantValues)
 	})
 	return err
+}
+
+func (r *ProductRepo) GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error) {
+	sql := `
+		select standard_unit_id from product_variants where sku = $1
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	row := op.QueryRow(ctx, sql, sku)
+	var unitId int
+	err := row.Scan(&unitId)
+	if err != nil {
+		log.Printf("failed to scan unit id: %s", err.Error())
+		return 0, common.NewBadRequestError("failed to get unit id", zimutils.GetErrorCodeFromError(err))
+	}
+	return unitId, nil
+}
+
+func (r *ProductRepo) GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error) {
+	sql := `
+		select expires_in_days from product_variants where sku = $1
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	row := op.QueryRow(ctx, sql, sku)
+	var expiresInDays int
+	err := row.Scan(&expiresInDays)
+	if err != nil {
+		log.Printf("failed to scan expires in days: %s", err.Error())
+		return time.Time{}, common.NewBadRequestError("failed to get expires in days", zimutils.GetErrorCodeFromError(err))
+	}
+	return time.Now().AddDate(0, 0, expiresInDays), nil
 }
