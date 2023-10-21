@@ -12,6 +12,7 @@ type IBatchService interface {
 	DecrementBatch(ctx context.Context, input BatchInput) error
 	BulkIncrementBatch(ctx context.Context, inputs []BatchInput) error
 	BulkDecrementBatch(ctx context.Context, inputs []BatchInput) error
+	GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error)
 }
 
 type BatchService struct {
@@ -200,3 +201,16 @@ func (s *BatchService) bulkDecrementBatch(ctx context.Context, inputs []BatchInp
 }
 
 // Get batches paginated sorted by expiration date
+func (s *BatchService) GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error) {
+	pageSize, cursor, _ := common.GetPaginationParams(ctx, common.GetUtcDateOnlyString())
+	batches, err := s.batchRepo.GetBatches(ctx, cursor, pageSize)
+	if err != nil {
+		return common.PaginatedResponse[Batch]{}, err
+	}
+	if len(batches) == 0 {
+		return common.CreateEmptyPaginatedResponse[Batch](pageSize), nil
+	}
+	last := batches[len(batches)-1]
+	res := common.CreatePaginatedResponse[Batch](pageSize, common.GetUtcDateOnlyStringFromTime(last.ExpiresAt), batches)
+	return res, nil
+}

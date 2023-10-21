@@ -59,3 +59,14 @@ func (c BatchController) BulkDecrementBatch(w http.ResponseWriter, r *http.Reque
 		})
 	})
 }
+
+func (c BatchController) GetBatches(w http.ResponseWriter, r *http.Request) {
+	batchesPage, err := c.batchService.GetBatches(r.Context())
+	common.WriteResponse[common.PaginatedResponse[Batch]](
+		common.Result[common.PaginatedResponse[Batch]]{
+			Error:  err,
+			Writer: w,
+			Data:   batchesPage,
+		},
+	)
+}

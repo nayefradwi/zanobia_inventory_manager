@@ -23,12 +23,9 @@ type BatchBase struct {
 }
 
 type Batch struct {
-	Id                 *int                `json:"id,omitempty"`
-	WarehouseId        *int                `json:"warehouseId,omitempty"`
+	BatchBase
 	ProductVariantBase *ProductVariantBase `json:"productVariantBase,omitempty"`
-	Quantity           float64             `json:"quantity"`
 	Unit               Unit                `json:"unit"`
-	ExpiresAt          time.Time           `json:"expiresAt"`
 }
 
 func (b BatchBase) SetQuantity(quantity float64) BatchBase {

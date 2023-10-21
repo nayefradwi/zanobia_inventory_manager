@@ -137,7 +137,7 @@ func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	batchRouter.Delete("/batch/stock", batchController.DecrementBatch)
 	batchRouter.Post("/stock", batchController.BulkIncrementBatch)
 	batchRouter.Delete("/stock", batchController.BulkDecrementBatch)
-	// batchRouter.Get("/", batchController.GetBatches)
+	batchRouter.Get("/", batchController.GetBatches)
 	mainRouter.Mount("/batches", batchRouter)
 }
 
