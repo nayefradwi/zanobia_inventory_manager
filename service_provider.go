@@ -28,6 +28,7 @@ type systemRepositories struct {
 	productRepository    product.IProductRepo
 	recipeRepository     product.IRecipeRepository
 	variantRepository    product.IVariantRepository
+	batchRepository      product.IBatchRepository
 }
 
 type systemServices struct {
@@ -42,6 +43,7 @@ type systemServices struct {
 	productService    product.IProductService
 	recipeService     product.IRecipeService
 	variantService    product.IVariantService
+	batchService      product.IBatchService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -74,6 +76,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	productRepo := product.NewProductRepository(connections.dbPool)
 	recipeRepo := product.NewRecipeRepository(connections.dbPool)
 	variantRepo := product.NewVariantRepository(connections.dbPool)
+	batchRepo := product.NewBatchRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
 		permissionRepository: permssionRepo,
@@ -85,6 +88,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 		productRepository:    productRepo,
 		recipeRepository:     recipeRepo,
 		variantRepository:    variantRepo,
+		batchRepository:      batchRepo,
 	}
 }
 
@@ -111,6 +115,13 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	recipeService := product.NewRecipeService(repositories.recipeRepository)
 	variantService := product.NewVariantService(repositories.variantRepository)
 	productService := product.NewProductService(repositories.productRepository, recipeService, variantService)
+	batchService := product.NewBatchService(
+		repositories.batchRepository,
+		inventoryService,
+		productService,
+		lockingService,
+		unitService,
+	)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,
@@ -123,6 +134,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		productService:    productService,
 		recipeService:     recipeService,
 		variantService:    variantService,
+		batchService:      batchService,
 	}
 }
 

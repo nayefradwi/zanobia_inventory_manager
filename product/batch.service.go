@@ -7,7 +7,12 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
-type IBatchService interface{}
+type IBatchService interface {
+	IncrementBatch(ctx context.Context, batchInput BatchInput) error
+	DecrementBatch(ctx context.Context, input BatchInput) error
+	BulkIncrementBatch(ctx context.Context, inputs []BatchInput) error
+	BulkDecrementBatch(ctx context.Context, inputs []BatchInput) error
+}
 
 type BatchService struct {
 	batchRepo        IBatchRepository

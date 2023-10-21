@@ -117,8 +117,8 @@ func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider
 	productVariantRouter := chi.NewRouter()
 	productVariantRouter.Post("/", productController.CreateProductVariant)
 	productVariantRouter.Get("/{id}", productController.GetProductVariant)
-
 	registerRecipeRoutes(productVariantRouter, provider)
+	registerBatchesRoutes(productVariantRouter, provider)
 	mainRouter.Mount("/product-variants", productVariantRouter)
 }
 func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
@@ -128,6 +128,18 @@ func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	recipeRouter.Put("/recipe", recipeController.AddIngredientToRecipe)
 	recipeRouter.Delete("/{id}", recipeController.DeleteRecipe)
 	mainRouter.Mount("/recipes", recipeRouter)
+}
+
+func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	batchController := product.NewBatchController(provider.services.batchService)
+	batchRouter := chi.NewRouter()
+	batchRouter.Post("/batch/stock", batchController.IncrementBatch)
+	batchRouter.Delete("/batch/stock", batchController.DecrementBatch)
+	batchRouter.Post("/stock", batchController.BulkIncrementBatch)
+	batchRouter.Delete("/stock", batchController.BulkDecrementBatch)
+	// batchRouter.Get("/", batchController.GetBatches)
+
+	mainRouter.Mount("/batches", batchRouter)
 }
 
 func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
