@@ -70,3 +70,15 @@ func (c BatchController) GetBatches(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 }
+
+func (c BatchController) SearchBatchesBySku(w http.ResponseWriter, r *http.Request) {
+	sku := r.URL.Query().Get("sku")
+	batchesPage, err := c.batchService.SearchBatchesBySku(r.Context(), sku)
+	common.WriteResponse[common.PaginatedResponse[Batch]](
+		common.Result[common.PaginatedResponse[Batch]]{
+			Error:  err,
+			Writer: w,
+			Data:   batchesPage,
+		},
+	)
+}
