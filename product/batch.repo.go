@@ -62,7 +62,7 @@ func (r *BatchRepository) GetBatchBase(ctx context.Context, sku string, expirati
 		log.Printf("Failed to get batch base: %s", err.Error())
 		return BatchBase{}, common.NewBadRequestFromMessage("Failed to get batch base")
 	}
-	return BatchBase{}, nil
+	return batchBase, nil
 }
 
 func (r *BatchRepository) GetBatches(ctx context.Context, cursor string, pageSize int) ([]Batch, error) {
