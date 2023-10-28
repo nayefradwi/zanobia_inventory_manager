@@ -290,7 +290,7 @@ CREATE UNIQUE INDEX idx_product_options ON product_options(name, language_code, 
 CREATE UNIQUE INDEX idx_product_variant_sku ON product_variants(sku);
 CREATE INDEX idx_product_variant_created_at ON product_variants(created_at);
 CREATE INDEX idx_product_variant_is_archived ON product_variants(is_archived);
-CREATE UNIQUE INDEX idx_product_variant_is_default ON product_variants(is_default, product_id);
+CREATE INDEX idx_product_variant_is_default ON product_variants(is_default, product_id);
 CREATE INDEX idx_product_variant_price ON product_variants(price);
 CREATE UNIQUE INDEX idx_product_variant_translation ON product_variant_translations(product_variant_id, language_code, name);
 create UNIQUE index idx_product_variant_values on product_variant_values(product_option_value_id, product_variant_id);
