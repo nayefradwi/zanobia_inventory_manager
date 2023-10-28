@@ -49,15 +49,16 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 		return translationErr
 	}
 	product = product.GenerateProductDetails()
+	optionValueIdMap, err := r.addProductOptions(ctx, product.Id, product.Options)
+	if err != nil {
+		return err
+	}
 	defaultProductVariantId, addVariantErr := r.addProductVariant(ctx, product.Id, product.DefaultProductVariant)
 	if addVariantErr != nil {
 		return addVariantErr
 	}
 	product.DefaultProductVariant.Id = &defaultProductVariantId
-	if err := r.addProductVariantValues(ctx, product.DefaultProductVariant, product.DefaultOptionValues); err != nil {
-		return err
-	}
-	if err := r.addProductOptions(ctx, product.Id, product.Options); err != nil {
+	if err := r.addProductVariantValues(ctx, product, optionValueIdMap); err != nil {
 		return err
 	}
 	return nil
@@ -101,13 +102,11 @@ func (r *ProductRepo) AddProductVariants(ctx context.Context, productId *int, pr
 }
 
 func (r *ProductRepo) addProductVariant(ctx context.Context, productId *int, productVariant ProductVariant) (int, error) {
-	// TODO change sql
 	id, err := r.insertProductVariant(ctx, productId, productVariant)
 	if err != nil {
 		return 0, err
 	}
 	productVariant.Id = &id
-	// TODO change sql
 	if err := r.insertProductVariantTranslation(ctx, productVariant, common.DefaultLang); err != nil {
 		return 0, err
 	}
@@ -137,7 +136,6 @@ func (r *ProductRepo) insertProductVariant(ctx context.Context, productId *int, 
 }
 
 func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, productVariant ProductVariant, languageCode string) error {
-	// TODO change sql
 	op := common.GetOperator(ctx, r.Pool)
 	sql := `INSERT INTO product_variant_translations (product_variant_id, name, language_code) VALUES ($1, $2, $3)`
 	_, err := op.Exec(ctx, sql, productVariant.Id, productVariant.Name, languageCode)
@@ -148,10 +146,16 @@ func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, produ
 	return nil
 }
 
-func (r *ProductRepo) addProductVariantValues(ctx context.Context, productVariant ProductVariant, variantValues []ProductOptionValue) error {
-	for _, variantValue := range variantValues {
-		// TODO change sql
-		if err := r.addProductVariantSelectedValue(ctx, productVariant.Id, variantValue); err != nil {
+func (r *ProductRepo) addProductVariantValues(
+	ctx context.Context,
+	product ProductInput,
+	optionValueIdMap map[string]int,
+) error {
+	defaultVariant := product.DefaultProductVariant
+	for _, optionValue := range product.DefaultOptionValues {
+		id := optionValueIdMap[optionValue.Value]
+		optionValue.Id = &id
+		if err := r.addProductVariantSelectedValue(ctx, defaultVariant.Id, optionValue); err != nil {
 			return err
 		}
 	}
@@ -159,9 +163,8 @@ func (r *ProductRepo) addProductVariantValues(ctx context.Context, productVarian
 }
 
 func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, productVariantId *int, value ProductOptionValue) error {
-	// TODO change sql
 	op := common.GetOperator(ctx, r.Pool)
-	sql := `INSERT INTO product_variant_selected_values (product_variant_id, variant_value_id) VALUES ($1, $2)`
+	sql := `INSERT INTO product_variant_values (product_variant_id, product_option_value_id) VALUES ($1, $2)`
 	_, err := op.Exec(ctx, sql, productVariantId, value.Id)
 	if err != nil {
 		log.Printf("failed to insert product variant selected value: %s", err.Error())
@@ -170,41 +173,89 @@ func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, produc
 	return nil
 }
 
-func (r *ProductRepo) mapProductToVariantValue(ctx context.Context, productId *int, variantValue ProductOptionValue) error {
-	// TODO change sql
-	op := common.GetOperator(ctx, r.Pool)
-	sql := `INSERT INTO product_selected_values (product_id, variant_value_id) VALUES ($1, $2)`
-	_, err := op.Exec(ctx, sql, productId, variantValue.Id)
-	if err != nil {
-		log.Printf("failed to map product to variant value: %s", err.Error())
-		return common.NewBadRequestError("Failed to map product to variant value", zimutils.GetErrorCodeFromError(err))
-	}
-	return nil
-}
-
-func (r *ProductRepo) addProductOptions(ctx context.Context, productId *int, variants []ProductOption) error {
+func (r *ProductRepo) addProductOptions(ctx context.Context, productId *int, variants []ProductOption) (map[string]int, error) {
+	optionValueIdMap := make(map[string]int)
 	for _, variant := range variants {
-		// TODO change sql
-		if err := r.addProductOption(ctx, productId, variant); err != nil {
-			return err
+		id, insertErr := r.InsertProductOption(ctx, productId, variant)
+		if insertErr != nil {
+			return map[string]int{}, insertErr
 		}
 		for _, value := range variant.Values {
-			// TODO change sql
-			if err := r.mapProductToVariantValue(ctx, productId, value); err != nil {
-				return err
+			id, insertValueErr := r.InsertProductOptionValue(ctx, id, value)
+			if insertValueErr != nil {
+				return map[string]int{}, insertValueErr
 			}
+			optionValueIdMap[value.Value] = id
 		}
+	}
+	return optionValueIdMap, nil
+}
+func (r *ProductRepo) InsertProductOption(ctx context.Context, productId *int, option ProductOption) (int, error) {
+	id, addErr := r.addProductOption(ctx, productId)
+	if addErr != nil {
+		return 0, addErr
+	}
+	option.Id = &id
+	if err := r.translateProductOption(ctx, option, common.DefaultLang); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (r *ProductRepo) addProductOption(ctx context.Context, productId *int) (int, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `INSERT INTO product_options (product_id) VALUES ($1) RETURNING id`
+	var id int
+	err := op.QueryRow(ctx, sql, productId).Scan(&id)
+	if err != nil {
+		log.Printf("failed to add product option: %s", err.Error())
+		return 0, common.NewBadRequestError("Failed to add product option", zimutils.GetErrorCodeFromError(err))
+	}
+	return id, nil
+}
+
+func (r *ProductRepo) translateProductOption(ctx context.Context, option ProductOption, languageCode string) error {
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `INSERT INTO product_option_translations (product_option_id, name, language_code) VALUES ($1, $2, $3)`
+	_, err := op.Exec(ctx, sql, option.Id, option.Name, languageCode)
+	if err != nil {
+		log.Printf("failed to translate product option: %s", err.Error())
+		return common.NewBadRequestError("Failed to translate product option", zimutils.GetErrorCodeFromError(err))
 	}
 	return nil
 }
 
-func (r *ProductRepo) addProductOption(ctx context.Context, productId *int, variant ProductOption) error {
+func (r *ProductRepo) InsertProductOptionValue(ctx context.Context, optionId int, optionValue ProductOptionValue) (int, error) {
+	id, addErr := r.addProductOptionValue(ctx, optionId)
+	if addErr != nil {
+		return 0, addErr
+	}
+	optionValue.Id = &id
+	if err := r.translateProductOptionValue(ctx, optionValue, common.DefaultLang); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (r *ProductRepo) addProductOptionValue(ctx context.Context, productOptionId int) (int, error) {
 	op := common.GetOperator(ctx, r.Pool)
-	sql := `INSERT INTO product_options (product_id, variant_id) VALUES ($1, $2)`
-	_, err := op.Exec(ctx, sql, productId, variant.Id)
+	sql := `INSERT INTO product_option_values (product_option_id) VALUES ($1) returning id`
+	var id int
+	err := op.QueryRow(ctx, sql, productOptionId).Scan(&id)
 	if err != nil {
-		log.Printf("failed to add product option: %s", err.Error())
-		return common.NewBadRequestError("Failed to add product option", zimutils.GetErrorCodeFromError(err))
+		log.Printf("failed to map product to variant value: %s", err.Error())
+		return 0, common.NewBadRequestError("Failed to map product to variant value", zimutils.GetErrorCodeFromError(err))
+	}
+	return id, nil
+}
+
+func (r *ProductRepo) translateProductOptionValue(ctx context.Context, productOptionValue ProductOptionValue, languageCode string) error {
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `INSERT INTO product_option_values_translations(product_option_value_id, value, language_code) VALUES ($1, $2, $3)`
+	_, err := op.Exec(ctx, sql, productOptionValue.Id, productOptionValue.Value, languageCode)
+	if err != nil {
+		log.Printf("failed to translate product option value: %s", err.Error())
+		return common.NewBadRequestError("Failed to translate product option value", zimutils.GetErrorCodeFromError(err))
 	}
 	return nil
 }
