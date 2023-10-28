@@ -26,3 +26,11 @@ func GetUtcDateOnlyStringFromTime(t time.Time) string {
 	y, m, d := t.UTC().Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
 }
+
+func GetValues[K comparable, V any](input map[K]V) []V {
+	values := make([]V, 0)
+	for _, value := range input {
+		values = append(values, value)
+	}
+	return values
+}

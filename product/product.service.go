@@ -21,16 +21,14 @@ type IProductService interface {
 }
 
 type ProductService struct {
-	repo            IProductRepo
-	recipeService   IRecipeService
-	variantsService IVariantService
+	repo          IProductRepo
+	recipeService IRecipeService
 }
 
-func NewProductService(repo IProductRepo, recipeService IRecipeService, variantService IVariantService) IProductService {
+func NewProductService(repo IProductRepo, recipeService IRecipeService) IProductService {
 	return &ProductService{
 		repo,
 		recipeService,
-		variantService,
 	}
 }
 
@@ -39,11 +37,6 @@ func (s *ProductService) CreateProduct(ctx context.Context, product ProductInput
 	if validationErr != nil {
 		return validationErr
 	}
-	variants, err := s.variantsService.GetVariantsFromListOfIds(ctx, product.Variants)
-	if err != nil {
-		return err
-	}
-	product.Variants = variants
 	return s.repo.CreateProduct(ctx, product)
 }
 
@@ -108,26 +101,23 @@ func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVar
 			Field:   "productId",
 		})
 	}
-	variants, variantErr := s.variantsService.GetProductOptions(ctx, *input.ProductVariant.ProductId)
-	if variantErr != nil {
-		return variantErr
+	options, optionsErr := s.repo.GetProductOptions(ctx, *input.ProductVariant.ProductId)
+	if optionsErr != nil {
+		return optionsErr
 	}
-	validationErr := ValidateProductVariant(input, 1, len(variants))
+	if len(options) == 0 {
+		return common.NewBadRequestFromMessage("product has no options")
+	}
+	validationErr := ValidateProductVariant(input, len(options), len(options))
 	if validationErr != nil {
 		return validationErr
 	}
-	variantValues, valuesErr := s.variantsService.GetProductSelectedValues(ctx, *input.ProductVariant.ProductId)
+	productOptionValuesMap, valuesErr := s.repo.GetProductSelectedValues(ctx, *input.ProductVariant.ProductId, input.OptionValueIds)
 	if valuesErr != nil {
 		return valuesErr
 	}
-	allAreProductSelectedValues := common.HasAllValues[VariantValue, int](
-		input.VariantValues,
-		variantValues,
-		func(value VariantValue) int {
-			return value.Id
-		},
-	)
-	if !allAreProductSelectedValues {
+	optionValues := common.GetValues[string, ProductOptionValue](productOptionValuesMap)
+	if len(optionValues) != len(options) {
 		return common.NewValidationError("invalid product variant", common.ErrorDetails{
 			Message: "invalid variant values",
 			Field:   "variantValues",
@@ -137,7 +127,9 @@ func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVar
 		sku, _ := common.GenerateUuid()
 		input.ProductVariant.Sku = sku
 	}
-	input.ProductVariant.Name = GenerateName(input.VariantValues)
+	input.ProductVariant.Name = GenerateName(optionValues)
+	input.OptionValues = optionValues
+	input.ProductVariant.IsDefault = false
 	return s.repo.AddProductVariant(ctx, input)
 }
 
