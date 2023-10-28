@@ -150,7 +150,7 @@ func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	variantController := product.NewVariantController(provider.services.variantService)
+	variantController := product.NewVariantController()
 	variantRouter := chi.NewRouter()
 	variantRouter.Post("/", variantController.CreateVariant)
 	variantRouter.Get("/{id}", variantController.GetVariant)

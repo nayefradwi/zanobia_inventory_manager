@@ -158,41 +158,41 @@ func ValidateRecipes(recipes []RecipeBase) error {
 	return nil
 }
 
-func ValidateProductVariant(input ProductVariantInput, min, max int) error {
-	validationResults := make([]common.ErrorDetails, 0)
-	validationResults = append(validationResults,
-		common.ValidateNotZero(input.ProductVariant.Price, "price"),
-		common.ValidateIdPtr(input.ProductVariant.StandardUnitId, "standardUnitId"),
-		common.ValidateIdPtr(input.ProductVariant.ProductId, "productId"),
-		common.ValidateNotZero(input.ProductVariant.ExpiresInDays, "expiresInDays"),
-		ValidateProductVariantSelectedValues(input.VariantValues, min, max),
-	)
-	errors := make([]common.ErrorDetails, 0)
-	for _, result := range validationResults {
-		if len(result.Message) > 0 {
-			errors = append(errors, result)
-		}
-	}
-	if len(errors) > 0 {
-		return common.NewValidationError("invalid product input", errors...)
-	}
-	return nil
-}
+// func ValidateProductVariant(input ProductVariantInput, min, max int) error {
+// 	validationResults := make([]common.ErrorDetails, 0)
+// 	validationResults = append(validationResults,
+// 		common.ValidateNotZero(input.ProductVariant.Price, "price"),
+// 		common.ValidateIdPtr(input.ProductVariant.StandardUnitId, "standardUnitId"),
+// 		common.ValidateIdPtr(input.ProductVariant.ProductId, "productId"),
+// 		common.ValidateNotZero(input.ProductVariant.ExpiresInDays, "expiresInDays"),
+// 		ValidateProductVariantSelectedValues(input.VariantValues, min, max),
+// 	)
+// 	errors := make([]common.ErrorDetails, 0)
+// 	for _, result := range validationResults {
+// 		if len(result.Message) > 0 {
+// 			errors = append(errors, result)
+// 		}
+// 	}
+// 	if len(errors) > 0 {
+// 		return common.NewValidationError("invalid product input", errors...)
+// 	}
+// 	return nil
+// }
 
-func ValidateProductVariantSelectedValues(values []VariantValue, min, max int) common.ErrorDetails {
-	if details := common.ValidateSliceSize[VariantValue](values, "variantValues", min, max); details.Message != "" {
-		return details
-	}
-	for _, value := range values {
-		if value.Id <= 0 {
-			return common.ErrorDetails{
-				Message: "invalid variant value",
-				Field:   "variantValues",
-			}
-		}
-		if details := common.ValidateAlphanuemericName(value.Value, "value"); details.Message != "" {
-			return details
-		}
-	}
-	return common.ErrorDetails{}
-}
+// func ValidateProductVariantSelectedValues(values []VariantValue, min, max int) common.ErrorDetails {
+// 	if details := common.ValidateSliceSize[VariantValue](values, "variantValues", min, max); details.Message != "" {
+// 		return details
+// 	}
+// 	for _, value := range values {
+// 		if value.Id <= 0 {
+// 			return common.ErrorDetails{
+// 				Message: "invalid variant value",
+// 				Field:   "variantValues",
+// 			}
+// 		}
+// 		if details := common.ValidateAlphanuemericName(value.Value, "value"); details.Message != "" {
+// 			return details
+// 		}
+// 	}
+// 	return common.ErrorDetails{}
+// }

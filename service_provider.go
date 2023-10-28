@@ -27,7 +27,6 @@ type systemRepositories struct {
 	inventoryRepository  product.IInventoryRepository
 	productRepository    product.IProductRepo
 	recipeRepository     product.IRecipeRepository
-	variantRepository    product.IVariantRepository
 	batchRepository      product.IBatchRepository
 }
 
@@ -42,7 +41,6 @@ type systemServices struct {
 	inventoryService  product.IInventoryService
 	productService    product.IProductService
 	recipeService     product.IRecipeService
-	variantService    product.IVariantService
 	batchService      product.IBatchService
 }
 type ServiceProvider struct {
@@ -75,7 +73,6 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	inventoryRepo := product.NewInventoryRepository(connections.dbPool)
 	productRepo := product.NewProductRepository(connections.dbPool)
 	recipeRepo := product.NewRecipeRepository(connections.dbPool)
-	variantRepo := product.NewVariantRepository(connections.dbPool)
 	batchRepo := product.NewBatchRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
@@ -87,7 +84,6 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 		inventoryRepository:  inventoryRepo,
 		productRepository:    productRepo,
 		recipeRepository:     recipeRepo,
-		variantRepository:    variantRepo,
 		batchRepository:      batchRepo,
 	}
 }
@@ -113,8 +109,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	}
 	inventoryService := product.NewInventoryService(inventoryServiceWorkUnit)
 	recipeService := product.NewRecipeService(repositories.recipeRepository)
-	variantService := product.NewVariantService(repositories.variantRepository)
-	productService := product.NewProductService(repositories.productRepository, recipeService, variantService)
+	productService := product.NewProductService(repositories.productRepository, recipeService)
 	batchService := product.NewBatchService(
 		repositories.batchRepository,
 		inventoryService,
@@ -133,7 +128,6 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		inventoryService:  inventoryService,
 		productService:    productService,
 		recipeService:     recipeService,
-		variantService:    variantService,
 		batchService:      batchService,
 	}
 }

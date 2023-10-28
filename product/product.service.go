@@ -21,16 +21,14 @@ type IProductService interface {
 }
 
 type ProductService struct {
-	repo            IProductRepo
-	recipeService   IRecipeService
-	variantsService IVariantService
+	repo          IProductRepo
+	recipeService IRecipeService
 }
 
-func NewProductService(repo IProductRepo, recipeService IRecipeService, variantService IVariantService) IProductService {
+func NewProductService(repo IProductRepo, recipeService IRecipeService) IProductService {
 	return &ProductService{
 		repo,
 		recipeService,
-		variantService,
 	}
 }
 
@@ -39,11 +37,12 @@ func (s *ProductService) CreateProduct(ctx context.Context, product ProductInput
 	if validationErr != nil {
 		return validationErr
 	}
-	variants, err := s.variantsService.GetVariantsFromListOfIds(ctx, product.Variants)
-	if err != nil {
-		return err
-	}
-	product.Variants = variants
+	// TODO fill
+	// variants, err := s.variantsService.GetVariantsFromListOfIds(ctx, product.Variants)
+	// if err != nil {
+	// 	return err
+	// }
+	// product.Variants = variants
 	return s.repo.CreateProduct(ctx, product)
 }
 
@@ -108,31 +107,32 @@ func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVar
 			Field:   "productId",
 		})
 	}
-	variants, variantErr := s.variantsService.GetProductOptions(ctx, *input.ProductVariant.ProductId)
-	if variantErr != nil {
-		return variantErr
-	}
-	validationErr := ValidateProductVariant(input, 1, len(variants))
-	if validationErr != nil {
-		return validationErr
-	}
-	variantValues, valuesErr := s.variantsService.GetProductSelectedValues(ctx, *input.ProductVariant.ProductId)
-	if valuesErr != nil {
-		return valuesErr
-	}
-	allAreProductSelectedValues := common.HasAllValues[VariantValue, int](
-		input.VariantValues,
-		variantValues,
-		func(value VariantValue) int {
-			return value.Id
-		},
-	)
-	if !allAreProductSelectedValues {
-		return common.NewValidationError("invalid product variant", common.ErrorDetails{
-			Message: "invalid variant values",
-			Field:   "variantValues",
-		})
-	}
+	// TODO fill
+	// variants, variantErr := s.variantsService.GetProductOptions(ctx, *input.ProductVariant.ProductId)
+	// if variantErr != nil {
+	// 	return variantErr
+	// }
+	// validationErr := ValidateProductVariant(input, 1, len(variants))
+	// if validationErr != nil {
+	// 	return validationErr
+	// }
+	// variantValues, valuesErr := s.variantsService.GetProductSelectedValues(ctx, *input.ProductVariant.ProductId)
+	// if valuesErr != nil {
+	// 	return valuesErr
+	// }
+	// allAreProductSelectedValues := common.HasAllValues[VariantValue, int](
+	// 	input.VariantValues,
+	// 	variantValues,
+	// 	func(value VariantValue) int {
+	// 		return value.Id
+	// 	},
+	// )
+	// if !allAreProductSelectedValues {
+	// 	return common.NewValidationError("invalid product variant", common.ErrorDetails{
+	// 		Message: "invalid variant values",
+	// 		Field:   "variantValues",
+	// 	})
+	// }
 	if input.ProductVariant.Sku == "" {
 		sku, _ := common.GenerateUuid()
 		input.ProductVariant.Sku = sku

@@ -54,10 +54,10 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 		return addVariantErr
 	}
 	product.DefaultProductVariant.Id = &defaultProductVariantId
-	if err := r.addProductVariantValues(ctx, product.DefaultProductVariant, product.DefaultValues); err != nil {
+	if err := r.addProductVariantValues(ctx, product.DefaultProductVariant, product.DefaultOptionValues); err != nil {
 		return err
 	}
-	if err := r.addProductOptions(ctx, product.Id, product.Variants); err != nil {
+	if err := r.addProductOptions(ctx, product.Id, product.Options); err != nil {
 		return err
 	}
 	return nil
@@ -101,11 +101,13 @@ func (r *ProductRepo) AddProductVariants(ctx context.Context, productId *int, pr
 }
 
 func (r *ProductRepo) addProductVariant(ctx context.Context, productId *int, productVariant ProductVariant) (int, error) {
+	// TODO change sql
 	id, err := r.insertProductVariant(ctx, productId, productVariant)
 	if err != nil {
 		return 0, err
 	}
 	productVariant.Id = &id
+	// TODO change sql
 	if err := r.insertProductVariantTranslation(ctx, productVariant, common.DefaultLang); err != nil {
 		return 0, err
 	}
@@ -135,6 +137,7 @@ func (r *ProductRepo) insertProductVariant(ctx context.Context, productId *int, 
 }
 
 func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, productVariant ProductVariant, languageCode string) error {
+	// TODO change sql
 	op := common.GetOperator(ctx, r.Pool)
 	sql := `INSERT INTO product_variant_translations (product_variant_id, name, language_code) VALUES ($1, $2, $3)`
 	_, err := op.Exec(ctx, sql, productVariant.Id, productVariant.Name, languageCode)
@@ -145,8 +148,9 @@ func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, produ
 	return nil
 }
 
-func (r *ProductRepo) addProductVariantValues(ctx context.Context, productVariant ProductVariant, variantValues []VariantValue) error {
+func (r *ProductRepo) addProductVariantValues(ctx context.Context, productVariant ProductVariant, variantValues []ProductOptionValue) error {
 	for _, variantValue := range variantValues {
+		// TODO change sql
 		if err := r.addProductVariantSelectedValue(ctx, productVariant.Id, variantValue); err != nil {
 			return err
 		}
@@ -154,7 +158,8 @@ func (r *ProductRepo) addProductVariantValues(ctx context.Context, productVarian
 	return nil
 }
 
-func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, productVariantId *int, value VariantValue) error {
+func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, productVariantId *int, value ProductOptionValue) error {
+	// TODO change sql
 	op := common.GetOperator(ctx, r.Pool)
 	sql := `INSERT INTO product_variant_selected_values (product_variant_id, variant_value_id) VALUES ($1, $2)`
 	_, err := op.Exec(ctx, sql, productVariantId, value.Id)
@@ -165,7 +170,8 @@ func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, produc
 	return nil
 }
 
-func (r *ProductRepo) mapProductToVariantValue(ctx context.Context, productId *int, variantValue VariantValue) error {
+func (r *ProductRepo) mapProductToVariantValue(ctx context.Context, productId *int, variantValue ProductOptionValue) error {
+	// TODO change sql
 	op := common.GetOperator(ctx, r.Pool)
 	sql := `INSERT INTO product_selected_values (product_id, variant_value_id) VALUES ($1, $2)`
 	_, err := op.Exec(ctx, sql, productId, variantValue.Id)
@@ -176,12 +182,14 @@ func (r *ProductRepo) mapProductToVariantValue(ctx context.Context, productId *i
 	return nil
 }
 
-func (r *ProductRepo) addProductOptions(ctx context.Context, productId *int, variants []Variant) error {
+func (r *ProductRepo) addProductOptions(ctx context.Context, productId *int, variants []ProductOption) error {
 	for _, variant := range variants {
+		// TODO change sql
 		if err := r.addProductOption(ctx, productId, variant); err != nil {
 			return err
 		}
 		for _, value := range variant.Values {
+			// TODO change sql
 			if err := r.mapProductToVariantValue(ctx, productId, value); err != nil {
 				return err
 			}
@@ -190,7 +198,7 @@ func (r *ProductRepo) addProductOptions(ctx context.Context, productId *int, var
 	return nil
 }
 
-func (r *ProductRepo) addProductOption(ctx context.Context, productId *int, variant Variant) error {
+func (r *ProductRepo) addProductOption(ctx context.Context, productId *int, variant ProductOption) error {
 	op := common.GetOperator(ctx, r.Pool)
 	sql := `INSERT INTO product_options (product_id, variant_id) VALUES ($1, $2)`
 	_, err := op.Exec(ctx, sql, productId, variant.Id)
@@ -252,25 +260,25 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	}
 	defer rows.Close()
 	var product Product
-	variants := map[string]Variant{}
+	options := map[string]ProductOption{}
 	for rows.Next() {
-		var variant Variant
-		var variantValue VariantValue
+		var option ProductOption
+		var optionValue ProductOptionValue
 		err := rows.Scan(
 			&product.Id, &product.Name, &product.Description, &product.Image, &product.IsArchived,
-			&product.CategoryId, &variant.Id, &variant.Name, &variantValue.Id, &variantValue.Value,
+			&product.CategoryId, &option.Id, &option.Name, &optionValue.Id, &optionValue.Value,
 		)
 		if err != nil {
 			log.Printf("failed to scan product: %s", err.Error())
 			return Product{}, common.NewInternalServerError()
 		}
-		if _variant, ok := variants[variant.Name]; ok {
-			variant.Values = append(_variant.Values, variantValue)
+		if _variant, ok := options[option.Name]; ok {
+			option.Values = append(_variant.Values, optionValue)
 		} else {
-			variant.Values = []VariantValue{variantValue}
+			option.Values = []ProductOptionValue{optionValue}
 		}
-		variants[variant.Name] = variant
+		options[option.Name] = option
 	}
-	product.Options = variants
+	product.Options = options
 	return product, nil
 }

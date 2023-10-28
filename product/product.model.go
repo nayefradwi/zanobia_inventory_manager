@@ -4,6 +4,17 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
+type ProductOption struct {
+	Id     *int                 `json:"id,omitempty"`
+	Name   string               `json:"name"`
+	Values []ProductOptionValue `json:"values"`
+}
+
+type ProductOptionValue struct {
+	Id    *int   `json:"id,omitempty"`
+	Value string `json:"value"`
+}
+
 type ProductBase struct {
 	Id          *int    `json:"id"`
 	Name        *string `json:"name"`
@@ -15,20 +26,20 @@ type ProductBase struct {
 
 type Product struct {
 	ProductBase
-	Category        *Category          `json:"category,omitempty"`
-	Options         map[string]Variant `json:"options,omitempty"`
-	ProductVariants []ProductVariant   `json:"productVariants,omitempty"`
+	Category        *Category                `json:"category,omitempty"`
+	Options         map[string]ProductOption `json:"options,omitempty"`
+	ProductVariants []ProductVariant         `json:"productVariants,omitempty"`
 }
 
 type ProductInput struct {
 	ProductBase
-	ExpiresInDays         int       `json:"expiresInDays"`
-	StandardUnitId        *int      `json:"standardUnitId,omitempty"`
-	Price                 float64   `json:"price"`
-	Variants              []Variant `json:"variants,omitempty"`
+	ExpiresInDays         int             `json:"expiresInDays"`
+	StandardUnitId        *int            `json:"standardUnitId,omitempty"`
+	Price                 float64         `json:"price"`
+	Options               []ProductOption `json:"options,omitempty"`
 	ProductVariants       []ProductVariant
 	DefaultProductVariant ProductVariant
-	DefaultValues         []VariantValue
+	DefaultOptionValues   []ProductOptionValue
 }
 
 type ProductVariantBase struct {
@@ -56,15 +67,15 @@ type ProductVariant struct {
 }
 
 type ProductVariantInput struct {
-	ProductVariant ProductVariant `json:"productVariant"`
-	VariantValues  []VariantValue `json:"variantValues,omitempty"`
+	ProductVariant ProductVariant       `json:"productVariant"`
+	VariantValues  []ProductOptionValue `json:"optionsValues,omitempty"`
 }
 
 func (p ProductInput) GenerateProductDetails() ProductInput {
 	productVariant, defaultValues := p.generateProductVariant()
 	p.ProductVariants = []ProductVariant{productVariant}
 	p.DefaultProductVariant = productVariant
-	p.DefaultValues = defaultValues
+	p.DefaultOptionValues = defaultValues
 	return p
 }
 
@@ -73,19 +84,19 @@ func (p ProductInput) GenerateProductDetails() ProductInput {
 // the reset can be added in any order by the user
 // the selected variant values will be mapped to the product to limit the options
 // the first variant is the default one
-func (p ProductInput) generateProductVariant() (ProductVariant, []VariantValue) {
-	if len(p.Variants) == 0 {
-		return p.createProductVariant("normal", true), []VariantValue{}
+func (p ProductInput) generateProductVariant() (ProductVariant, []ProductOptionValue) {
+	if len(p.Options) == 0 {
+		return p.createProductVariant("normal", true), []ProductOptionValue{}
 	}
-	variantValues := make([]VariantValue, 0)
+	optionValues := make([]ProductOptionValue, 0)
 	name := ""
-	for _, variant := range p.Variants {
-		variantValues = append(variantValues, variant.Values[0])
+	for _, variant := range p.Options {
+		optionValues = append(optionValues, variant.Values[0])
 		name += variant.Values[0].Value + "_"
 	}
 	name = name[:len(name)-1]
 	productVariant := p.createProductVariant(name, true)
-	return productVariant, variantValues
+	return productVariant, optionValues
 }
 
 func (p ProductInput) createProductVariant(value string, isDefault bool) ProductVariant {
@@ -104,7 +115,7 @@ func (p ProductInput) createProductVariant(value string, isDefault bool) Product
 	}
 }
 
-func GenerateName(values []VariantValue) string {
+func GenerateName(values []ProductOptionValue) string {
 	name := ""
 	for _, value := range values {
 		name += value.Value + "_"
