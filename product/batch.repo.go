@@ -93,7 +93,7 @@ func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, cu
 	join unit_translations utx on utx.unit_id = b.unit_id
 	join product_variants pvar on pvar.sku = b.sku
 	join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
-	where utx.language_code = $1 and b.expires_at < $2 and b.warehouse_id = $3 and b.sku = $4 order by b.expires_at desc
+	where utx.language_code = $1 and (b.expires_at < $2 or $2 = $2) and b.warehouse_id = $3 and b.sku = $4 order by b.expires_at desc
 	limit $5;	
 	`
 	op := common.GetOperator(ctx, r.Pool)
