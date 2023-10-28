@@ -44,7 +44,7 @@ func ValidateBatchInput(input BatchInput) error {
 		common.ValidateStringLength(input.ExpiresAt, "expiresAt", 20, 27),
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
-		common.ValidateStringLength(input.Sku, "sku", 1, 255),
+		common.ValidateStringLength(input.Sku, "sku", 10, 30),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
