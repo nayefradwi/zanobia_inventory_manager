@@ -81,6 +81,7 @@ func ValidateProduct(product ProductInput) error {
 		common.ValidateNotZero(product.Price, "price"),
 		common.ValidateIdPtr(product.StandardUnitId, "standardUnitId"),
 		common.ValidateNotZero(product.ExpiresInDays, "expiresInDays"),
+		validateProductOptions(product.Options),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
@@ -92,6 +93,28 @@ func ValidateProduct(product ProductInput) error {
 		return common.NewValidationError("invalid product input", errors...)
 	}
 	return nil
+}
+func validateProductOptions(options []ProductOption) common.ErrorDetails {
+	if len(options) == 0 {
+		return common.ErrorDetails{}
+	}
+	for _, option := range options {
+		if len(option.Name) == 0 {
+			return common.ErrorDetails{
+				Message: "option name cannot be empty",
+				Field:   "options",
+			}
+		}
+		for _, value := range option.Values {
+			if len(value.Value) == 0 {
+				return common.ErrorDetails{
+					Message: "option value cannot be empty",
+					Field:   "options",
+				}
+			}
+		}
+	}
+	return common.ErrorDetails{}
 }
 
 func ValidateProductDescription(description string) common.ErrorDetails {
