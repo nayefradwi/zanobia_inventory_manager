@@ -39,8 +39,13 @@ func NewBatchService(
 		unitService,
 	}
 }
+
+func GenerateBatchLockKey(sku string) string {
+	return "batch:" + sku + ":lock"
+}
+
 func (s *BatchService) IncrementBatch(ctx context.Context, batchInput BatchInput) error {
-	return s.lockingService.RunWithLock(ctx, batchInput.Sku, func() error {
+	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(batchInput.Sku), func() error {
 		if err := ValidateBatchInput(batchInput); err != nil {
 			return err
 		}
@@ -111,7 +116,7 @@ func (s *BatchService) incrementBatch(ctx context.Context, batch BatchBase, inpu
 }
 
 func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {
-	return s.lockingService.RunWithLock(ctx, input.Sku, func() error {
+	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(input.Sku), func() error {
 		if err := ValidateBatchInput(input); err != nil {
 			return err
 		}
@@ -156,7 +161,7 @@ func (s *BatchService) bulkIncrementBatch(ctx context.Context, inputs []BatchInp
 	locksPtr := &locks
 	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inputs {
-		lock, lockErr := s.lockingService.Acquire(ctx, input.Sku)
+		lock, lockErr := s.lockingService.Acquire(ctx, GenerateBatchLockKey(input.Sku))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
@@ -185,7 +190,7 @@ func (s *BatchService) bulkDecrementBatch(ctx context.Context, inputs []BatchInp
 	locksPtr := &locks
 	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inputs {
-		lock, lockErr := s.lockingService.Acquire(ctx, input.Sku)
+		lock, lockErr := s.lockingService.Acquire(ctx, GenerateBatchLockKey(input.Sku))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}

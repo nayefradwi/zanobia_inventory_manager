@@ -39,8 +39,12 @@ func NewInventoryService(workUnit InventoryServiceWorkUnit) IInventoryService {
 	}
 }
 
+func GenerateInventoryLockKey(ingredientId int) string {
+	return "inventory:" + strconv.Itoa(ingredientId) + ":lock"
+}
+
 func (s *InventoryService) IncrementInventory(ctx context.Context, inventoryInput InventoryInput) error {
-	return s.lockingService.RunWithLock(ctx, strconv.Itoa(inventoryInput.IngredientId), func() error {
+	return s.lockingService.RunWithLock(ctx, GenerateInventoryLockKey(inventoryInput.IngredientId), func() error {
 		validationErr := ValidateInventoryInput(inventoryInput)
 		if validationErr != nil {
 			return validationErr
@@ -104,7 +108,7 @@ func (s *InventoryService) incrementInventory(ctx context.Context, inventoryBase
 }
 
 func (s *InventoryService) DecrementInventory(ctx context.Context, inventoryInput InventoryInput) error {
-	return s.lockingService.RunWithLock(ctx, strconv.Itoa(inventoryInput.IngredientId), func() error {
+	return s.lockingService.RunWithLock(ctx, GenerateInventoryLockKey(inventoryInput.IngredientId), func() error {
 		validationErr := ValidateInventoryInput(inventoryInput)
 		if validationErr != nil {
 			return validationErr
@@ -150,7 +154,7 @@ func (s *InventoryService) bulkIncrementInventory(ctx context.Context, inventory
 	locksPtr := &locks
 	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inventoryInputs {
-		lock, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
+		lock, lockErr := s.lockingService.Acquire(ctx, GenerateInventoryLockKey(input.IngredientId))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
@@ -180,7 +184,7 @@ func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventory
 	locksPtr := &locks
 	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inventoryInputs {
-		lock, lockErr := s.lockingService.Acquire(ctx, strconv.Itoa(input.IngredientId))
+		lock, lockErr := s.lockingService.Acquire(ctx, GenerateInventoryLockKey(input.IngredientId))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
