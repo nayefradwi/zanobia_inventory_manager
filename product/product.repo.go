@@ -21,6 +21,8 @@ type IProductRepo interface {
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
 	GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error)
 	GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error)
+	GetProductOptions(ctx context.Context, productId int) ([]ProductOption, error)
+	GetProductSelectedValues(ctx context.Context, productId int, optionValueIds []int) (map[string]ProductOptionValue, error)
 }
 
 type ProductRepo struct {
@@ -60,8 +62,7 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 	product.DefaultProductVariant.Id = &defaultProductVariantId
 	for _, value := range product.DefaultOptionValues {
 		id := optionValueIdMap[value.Value]
-		value.Id = &id
-		if err := r.addProductVariantSelectedValue(ctx, product.DefaultProductVariant.Id, value); err != nil {
+		if err := r.addProductVariantSelectedValue(ctx, product.DefaultProductVariant.Id, id); err != nil {
 			return err
 		}
 	}
@@ -156,17 +157,17 @@ func (r *ProductRepo) addProductVariantValues(
 	values []ProductOptionValue,
 ) error {
 	for _, optionValue := range values {
-		if err := r.addProductVariantSelectedValue(ctx, productVariant.Id, optionValue); err != nil {
+		if err := r.addProductVariantSelectedValue(ctx, productVariant.Id, *optionValue.Id); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, productVariantId *int, value ProductOptionValue) error {
+func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, productVariantId *int, valueId int) error {
 	op := common.GetOperator(ctx, r.Pool)
 	sql := `INSERT INTO product_variant_values (product_variant_id, product_option_value_id) VALUES ($1, $2)`
-	_, err := op.Exec(ctx, sql, productVariantId, value.Id)
+	_, err := op.Exec(ctx, sql, productVariantId, valueId)
 	if err != nil {
 		log.Printf("failed to insert product variant selected value: %s", err.Error())
 		return common.NewBadRequestError("Failed to insert product variant selected value", zimutils.GetErrorCodeFromError(err))

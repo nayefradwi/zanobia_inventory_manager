@@ -81,7 +81,7 @@ func (r *ProductRepo) AddProductVariant(ctx context.Context, input ProductVarian
 			return err
 		}
 		input.ProductVariant.Id = &id
-		return r.addProductVariantValues(ctx, input.ProductVariant, input.VariantValues)
+		return r.addProductVariantValues(ctx, input.ProductVariant, input.OptionValues)
 	})
 	return err
 }
@@ -114,4 +114,56 @@ func (r *ProductRepo) GetProductVariantExpirationDate(ctx context.Context, sku s
 		return time.Time{}, common.NewBadRequestError("failed to get expires in days", zimutils.GetErrorCodeFromError(err))
 	}
 	return time.Now().AddDate(0, 0, expiresInDays), nil
+}
+
+func (r *ProductRepo) GetProductOptions(ctx context.Context, productId int) ([]ProductOption, error) {
+	sql := `select id from product_options where product_id = $1 and language_code = $2`
+	op := common.GetOperator(ctx, r.Pool)
+	langCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, productId, langCode)
+	if err != nil {
+		log.Printf("failed to get product options: %s", err.Error())
+		return []ProductOption{}, common.NewBadRequestFromMessage("Failed to get product options")
+	}
+	defer rows.Close()
+	productOptions := make([]ProductOption, 0)
+	for rows.Next() {
+		var productOption ProductOption
+		err := rows.Scan(&productOption.Id)
+		if err != nil {
+			log.Printf("failed to scan product option: %s", err.Error())
+			return []ProductOption{}, common.NewInternalServerError()
+		}
+		productOptions = append(productOptions, productOption)
+	}
+	return productOptions, nil
+}
+
+func (r *ProductRepo) GetProductSelectedValues(ctx context.Context, productId int, optionValueIds []int) (map[string]ProductOptionValue, error) {
+	sql := `
+	select pvl.id, pvl.value, popt.name from product_option_values pvl 
+	join product_options popt on pvl.product_option_id = popt.id 
+	and popt.language_code = pvl.language_code
+	where popt.product_id = $1 and popt.language_code = $2 and pvl.id = any($3);
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	langCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, productId, langCode, optionValueIds)
+	if err != nil {
+		log.Printf("failed to get product selected values: %s", err.Error())
+		return map[string]ProductOptionValue{}, common.NewBadRequestFromMessage("Failed to get product selected values")
+	}
+	defer rows.Close()
+	productOptionValues := make(map[string]ProductOptionValue)
+	for rows.Next() {
+		var productOptionValue ProductOptionValue
+		var optionName string
+		err := rows.Scan(&productOptionValue.Id, &productOptionValue.Value, &optionName)
+		if err != nil {
+			log.Printf("failed to scan product option value: %s", err.Error())
+			return map[string]ProductOptionValue{}, common.NewInternalServerError()
+		}
+		productOptionValues[optionName] = productOptionValue
+	}
+	return productOptionValues, nil
 }

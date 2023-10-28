@@ -67,8 +67,9 @@ type ProductVariant struct {
 }
 
 type ProductVariantInput struct {
-	ProductVariant ProductVariant       `json:"productVariant"`
-	VariantValues  []ProductOptionValue `json:"optionsValues,omitempty"`
+	ProductVariant ProductVariant `json:"productVariant"`
+	OptionValueIds []int          `json:"optionsValueIds,omitempty"`
+	OptionValues   []ProductOptionValue
 }
 
 func (p ProductInput) GenerateProductDetails() ProductInput {
