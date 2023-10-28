@@ -112,7 +112,7 @@ func (r *ProductRepo) addProductVariant(ctx context.Context, productId *int, pro
 		return 0, err
 	}
 	productVariant.Id = &id
-	if err := r.insertProductVariantTranslation(ctx, productVariant, common.DefaultLang); err != nil {
+	if err := r.insertProductVariantTranslation(ctx, productId, productVariant, common.DefaultLang); err != nil {
 		return 0, err
 	}
 	return id, nil
@@ -140,10 +140,10 @@ func (r *ProductRepo) insertProductVariant(ctx context.Context, productId *int, 
 	return id, nil
 }
 
-func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, productVariant ProductVariant, languageCode string) error {
+func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, productId *int, productVariant ProductVariant, languageCode string) error {
 	op := common.GetOperator(ctx, r.Pool)
-	sql := `INSERT INTO product_variant_translations (product_variant_id, name, language_code) VALUES ($1, $2, $3)`
-	_, err := op.Exec(ctx, sql, productVariant.Id, productVariant.Name, languageCode)
+	sql := `INSERT INTO product_variant_translations (product_id, product_variant_id, name, language_code) VALUES ($1, $2, $3, $4)`
+	_, err := op.Exec(ctx, sql, productId, productVariant.Id, productVariant.Name, languageCode)
 	if err != nil {
 		log.Printf("failed to insert product variant translation: %s", err.Error())
 		return common.NewBadRequestError("Failed to insert product variant translation", zimutils.GetErrorCodeFromError(err))

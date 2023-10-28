@@ -265,6 +265,7 @@ CREATE TABLE product_variants (
 CREATE TABLE product_variant_translations (
     id SERIAL PRIMARY KEY,
     product_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
     name VARCHAR(50) NOT NULL,
     language_code VARCHAR(2) NOT NULL DEFAULT 'en'
 );
@@ -283,6 +284,7 @@ DROP INDEX IF EXISTS idx_product_variant_is_archived CASCADE;
 DROP INDEX IF EXISTS idx_product_variant_is_default CASCADE;
 DROP INDEX IF EXISTS idx_product_variant_price CASCADE;
 DROP INDEX IF EXISTS idx_product_variant_translation CASCADE;
+DROP INDEX IF EXISTS idx_product_variant_translation_id CASCADE;
 DROP INDEX IF EXISTS idx_product_variant_values CASCADE;
 DROP INDEX IF EXISTS idx_product_option_values CASCADE;
 
@@ -292,9 +294,10 @@ CREATE INDEX idx_product_variant_created_at ON product_variants(created_at);
 CREATE INDEX idx_product_variant_is_archived ON product_variants(is_archived);
 CREATE INDEX idx_product_variant_is_default ON product_variants(is_default, product_id);
 CREATE INDEX idx_product_variant_price ON product_variants(price);
-CREATE UNIQUE INDEX idx_product_variant_translation ON product_variant_translations(product_variant_id, language_code, name);
-create UNIQUE index idx_product_variant_values on product_variant_values(product_option_value_id, product_variant_id);
-create unique index idx_product_option_values on product_option_values(value, language_code, product_option_id);
+CREATE UNIQUE INDEX idx_product_variant_translation ON product_variant_translations(product_id, language_code, name);
+CREATE INDEX idx_product_variant_translation_id on product_variant_translations(product_variant_id, language_code);
+CREATE UNIQUE INDEX idx_product_variant_values on product_variant_values(product_option_value_id, product_variant_id);
+CREATE UNIQUE INDEX idx_product_option_values on product_option_values(value, language_code, product_option_id);
 -- END VARIANT TABLES --
 
 -- RECIPE AND BATCHES TABLES --
