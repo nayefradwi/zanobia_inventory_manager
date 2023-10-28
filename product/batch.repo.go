@@ -72,7 +72,7 @@ func (r *BatchRepository) GetBatches(ctx context.Context, cursor string, pageSiz
 	join unit_translations utx on utx.unit_id = b.unit_id
 	join product_variants pvar on pvar.sku = b.sku
 	join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
-	where utx.language_code = $1 and b.expires_at < $2 and b.warehouse_id = $3 order by b.expires_at desc
+	where utx.language_code = $1 and (b.expires_at < $2 or $2 = $2) and b.warehouse_id = $3 order by b.expires_at desc
 	limit $4;	
 	`
 	op := common.GetOperator(ctx, r.Pool)

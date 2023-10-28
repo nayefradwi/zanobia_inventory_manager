@@ -43,12 +43,12 @@ type ProductInput struct {
 }
 
 type ProductVariantBase struct {
-	Id             *int     `json:"id"`
-	ProductId      *int     `json:"productId"`
+	Id             *int     `json:"id,omitempty"`
+	ProductId      *int     `json:"productId,omitempty"`
 	Name           string   `json:"name"`
-	Sku            string   `json:"sku"`
+	Sku            string   `json:"sku,omitempty"`
 	Image          string   `json:"image,omitempty"`
-	Price          float64  `json:"price"`
+	Price          float64  `json:"price,omitempty"`
 	WidthInCm      *float64 `json:"widthInCm,omitempty"`
 	HeightInCm     *float64 `json:"heightInCm,omitempty"`
 	DepthInCm      *float64 `json:"depthInCm,omitempty"`
@@ -56,7 +56,7 @@ type ProductVariantBase struct {
 	StandardUnitId *int     `json:"standardUnitId,omitempty"`
 	IsArchived     bool     `json:"isArchived"`
 	IsDefault      bool     `json:"isDefault"`
-	ExpiresInDays  int      `json:"expiresInDays"`
+	ExpiresInDays  int      `json:"expiresInDays,omitempty"`
 }
 
 type ProductVariant struct {
