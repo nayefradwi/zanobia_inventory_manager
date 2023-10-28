@@ -77,7 +77,7 @@ func (s *BatchService) tryToCreateBatch(ctx context.Context, input BatchInput) e
 }
 
 func (s *BatchService) getConvertedBatch(ctx context.Context, input *BatchInput) (BatchBase, error) {
-	batchBase, err := s.batchRepo.GetBatchBase(ctx, input.Sku, input.ExpiresAt)
+	batchBase, _ := s.batchRepo.GetBatchBase(ctx, input.Sku, input.ExpiresAt)
 	unitId := batchBase.UnitId
 	if batchBase.Id == nil {
 		unitId, _ = s.productService.GetUnitIdOfProductVariantBySku(ctx, input.Sku)
@@ -90,7 +90,7 @@ func (s *BatchService) getConvertedBatch(ctx context.Context, input *BatchInput)
 		input.Quantity = convertedQty
 		input.UnitId = unitId
 	}
-	return batchBase, err
+	return batchBase, nil
 }
 
 func (s *BatchService) convertUnit(ctx context.Context, unitId int, input BatchInput) (float64, error) {
