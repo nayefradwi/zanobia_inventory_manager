@@ -44,7 +44,7 @@ func ValidateBatchInput(input BatchInput) error {
 		common.ValidateStringLength(input.ExpiresAt, "expiresAt", 20, 27),
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
-		common.ValidateStringLength(input.Sku, "sku", 10, 30),
+		common.ValidateStringLength(input.Sku, "sku", 10, 36),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
@@ -53,7 +53,7 @@ func ValidateBatchInput(input BatchInput) error {
 		}
 	}
 	if len(errors) > 0 {
-		return common.NewValidationError("invalid inventory input", errors...)
+		return common.NewValidationError("invalid batch input", errors...)
 	}
 	return nil
 }
