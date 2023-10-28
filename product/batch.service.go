@@ -45,10 +45,10 @@ func GenerateBatchLockKey(sku string) string {
 }
 
 func (s *BatchService) IncrementBatch(ctx context.Context, batchInput BatchInput) error {
+	if err := ValidateBatchInput(batchInput); err != nil {
+		return err
+	}
 	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(batchInput.Sku), func() error {
-		if err := ValidateBatchInput(batchInput); err != nil {
-			return err
-		}
 		err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 			ctx = common.SetOperator(ctx, tx)
 			return s.tryToIncrementBatch(ctx, batchInput)
@@ -116,10 +116,10 @@ func (s *BatchService) incrementBatch(ctx context.Context, batch BatchBase, inpu
 }
 
 func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {
+	if err := ValidateBatchInput(input); err != nil {
+		return err
+	}
 	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(input.Sku), func() error {
-		if err := ValidateBatchInput(input); err != nil {
-			return err
-		}
 		err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 			ctx = common.SetOperator(ctx, tx)
 			return s.tryToDecrementBatch(ctx, input)
@@ -161,15 +161,15 @@ func (s *BatchService) bulkIncrementBatch(ctx context.Context, inputs []BatchInp
 	locksPtr := &locks
 	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inputs {
+		if err := ValidateBatchInput(input); err != nil {
+			return err
+		}
 		lock, lockErr := s.lockingService.Acquire(ctx, GenerateBatchLockKey(input.Sku))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
 		locks = append(locks, lock)
 		locksPtr = &locks
-		if err := ValidateBatchInput(input); err != nil {
-			return err
-		}
 		if err := s.tryToIncrementBatch(ctx, input); err != nil {
 			return err
 		}
@@ -190,15 +190,15 @@ func (s *BatchService) bulkDecrementBatch(ctx context.Context, inputs []BatchInp
 	locksPtr := &locks
 	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inputs {
+		if err := ValidateBatchInput(input); err != nil {
+			return err
+		}
 		lock, lockErr := s.lockingService.Acquire(ctx, GenerateBatchLockKey(input.Sku))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
 		locks = append(locks, lock)
 		locksPtr = &locks
-		if err := ValidateBatchInput(input); err != nil {
-			return err
-		}
 		if err := s.tryToDecrementBatch(ctx, input); err != nil {
 			return err
 		}

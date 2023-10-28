@@ -42,6 +42,7 @@ func (s *RedisLockService) Acquire(ctx context.Context, name string) (Lock, erro
 }
 
 func (s *RedisLockService) CustomeDurationAcquire(ctx context.Context, name string, expiresAt, timeout time.Duration) (Lock, error) {
+	log.Printf("Acquiring lock: %s", name)
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	ch := make(chan Lock)
