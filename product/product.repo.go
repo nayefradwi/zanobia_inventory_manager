@@ -58,8 +58,12 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 		return addVariantErr
 	}
 	product.DefaultProductVariant.Id = &defaultProductVariantId
-	if err := r.addProductVariantValues(ctx, product, optionValueIdMap); err != nil {
-		return err
+	for _, value := range product.DefaultOptionValues {
+		id := optionValueIdMap[value.Value]
+		value.Id = &id
+		if err := r.addProductVariantSelectedValue(ctx, product.DefaultProductVariant.Id, value); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -148,14 +152,11 @@ func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, produ
 
 func (r *ProductRepo) addProductVariantValues(
 	ctx context.Context,
-	product ProductInput,
-	optionValueIdMap map[string]int,
+	productVariant ProductVariant,
+	values []ProductOptionValue,
 ) error {
-	defaultVariant := product.DefaultProductVariant
-	for _, optionValue := range product.DefaultOptionValues {
-		id := optionValueIdMap[optionValue.Value]
-		optionValue.Id = &id
-		if err := r.addProductVariantSelectedValue(ctx, defaultVariant.Id, optionValue); err != nil {
+	for _, optionValue := range values {
+		if err := r.addProductVariantSelectedValue(ctx, productVariant.Id, optionValue); err != nil {
 			return err
 		}
 	}

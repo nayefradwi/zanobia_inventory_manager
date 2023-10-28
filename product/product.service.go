@@ -37,12 +37,6 @@ func (s *ProductService) CreateProduct(ctx context.Context, product ProductInput
 	if validationErr != nil {
 		return validationErr
 	}
-	// TODO fill
-	// variants, err := s.variantsService.GetVariantsFromListOfIds(ctx, product.Variants)
-	// if err != nil {
-	// 	return err
-	// }
-	// product.Variants = variants
 	return s.repo.CreateProduct(ctx, product)
 }
 
@@ -107,7 +101,6 @@ func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVar
 			Field:   "productId",
 		})
 	}
-	// TODO fill
 	// variants, variantErr := s.variantsService.GetProductOptions(ctx, *input.ProductVariant.ProductId)
 	// if variantErr != nil {
 	// 	return variantErr
