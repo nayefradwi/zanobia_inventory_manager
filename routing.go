@@ -24,9 +24,12 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	r.Get("/health-check", healthCheck)
 	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)
-	registerRoleRoutes(r, provider)
-	registerProductRoutes(r, provider)
-	registerWarehouseRoutes(r, provider)
+	authorizedRouter := chi.NewRouter()
+	authorizedRouter.Use(common.AuthenticationHeaderMiddleware)
+	registerRoleRoutes(authorizedRouter, provider)
+	registerProductRoutes(authorizedRouter, provider)
+	registerWarehouseRoutes(authorizedRouter, provider)
+	r.Mount("/", authorizedRouter)
 	return r
 }
 
@@ -47,16 +50,20 @@ func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	permissionController := user.NewPermissionController(provider.services.permissionService)
 	permissionRouter := chi.NewRouter()
 	permissionRouter.Post("/initial-permissions", permissionController.InitiateInitialPermissions)
-	permissionRouter.Post("/", permissionController.CreatePermission)
-	permissionRouter.Get("/", permissionController.GetAllPermissions)
-	getPermissionByHandleRoute := fmt.Sprintf("/{%s}", user.PermissionHandleParam)
-	permissionRouter.Get(getPermissionByHandleRoute, permissionController.GetPermissionByHandle)
+	permissionRouter.Group(func(r chi.Router) {
+		r.Use(common.AuthenticationHeaderMiddleware)
+		r.Post("/", permissionController.CreatePermission)
+		r.Get("/", permissionController.GetAllPermissions)
+		getPermissionByHandleRoute := fmt.Sprintf("/{%s}", user.PermissionHandleParam)
+		r.Get(getPermissionByHandleRoute, permissionController.GetPermissionByHandle)
+	})
 	mainRouter.Mount("/permissions", permissionRouter)
 }
 
 func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	roleController := user.NewRoleController(provider.services.roleService)
 	roleRouter := chi.NewRouter()
+	roleRouter.Use(common.AuthenticationHeaderMiddleware)
 	roleRouter.Post("/", roleController.CreateRole)
 	roleRouter.Get("/", roleController.GetRoles)
 	mainRouter.Mount("/roles", roleRouter)
