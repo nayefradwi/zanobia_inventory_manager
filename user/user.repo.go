@@ -17,6 +17,7 @@ type IUserRepository interface {
 	GetAllUsers(ctx context.Context) ([]User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserById(ctx context.Context, id int) (User, error)
+	BanUser(ctx context.Context, id int) error
 }
 
 type UserRepository struct {
@@ -173,4 +174,14 @@ func createUserFromRows(rows pgx.Rows) (User, error) {
 	user.Hash = hash
 	user.IsActive = true
 	return user, nil
+}
+
+func (r *UserRepository) BanUser(ctx context.Context, id int) error {
+	sql := "UPDATE users SET is_active = false WHERE id = $1"
+	_, err := r.Exec(ctx, sql, id)
+	if err != nil {
+		log.Printf("failed to ban user: %s", err.Error())
+		return common.NewInternalServerError()
+	}
+	return nil
 }

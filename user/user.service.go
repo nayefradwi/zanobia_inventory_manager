@@ -14,6 +14,7 @@ type IUserService interface {
 	LoginUser(ctx context.Context, input UserLoginInput) (common.Token, error)
 	GetUserById(ctx context.Context, id int) (User, error)
 	GetUserByContext(ctx context.Context) (User, error)
+	BanUser(ctx context.Context, id int) error
 }
 
 type UserServiceInput struct {
@@ -103,4 +104,12 @@ func (s *UserService) GetUserByContext(ctx context.Context) (User, error) {
 		return user, nil
 	}
 	return User{}, common.NewUnAuthorizedError("Aunauthorized user")
+}
+
+func (s *UserService) BanUser(ctx context.Context, id int) error {
+	currentUser := ctx.Value(UserKey{}).(User)
+	if currentUser.Id == id {
+		return common.NewBadRequestError("You can't ban yourself", "ban_self")
+	}
+	return s.Repository.BanUser(ctx, id)
 }

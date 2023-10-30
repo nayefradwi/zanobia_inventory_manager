@@ -64,3 +64,15 @@ func (c UserController) GetUserByContext(w http.ResponseWriter, r *http.Request)
 		Error:  err,
 	})
 }
+
+func (c UserController) BanUser(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[map[string]interface{}](w, r.Body, func(m map[string]interface{}) {
+		id := int(m["id"].(float64))
+		err := c.service.BanUser(r.Context(), id)
+		common.WriteEmptyResponse(common.EmptyResult{
+			Writer:  w,
+			Error:   err,
+			Message: "User banned successfully",
+		})
+	})
+}

@@ -45,6 +45,7 @@ func registerUserRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 		r.Post("/", userController.CreateUser)
 		r.Get("/", userController.GetAllUsers)
 		r.Get("/me", userController.GetUserByContext)
+		r.Post("/ban", userController.BanUser)
 	})
 	userRouter.Post("/initial-sys-admin", userController.InitiateSysAdminUser)
 	userRouter.Post("/login", userController.LoginUser)
