@@ -12,6 +12,7 @@ type IUserService interface {
 	InitiateSystemAdmin(ctx context.Context) error
 	GetAllUsers(ctx context.Context) ([]User, error)
 	LoginUser(ctx context.Context, input UserLoginInput) (common.Token, error)
+	GetUserById(ctx context.Context, id int) (User, error)
 }
 
 type UserServiceInput struct {
@@ -81,4 +82,8 @@ func (s *UserService) LoginUser(ctx context.Context, input UserLoginInput) (comm
 		return common.Token{}, common.NewInternalServerError()
 	}
 	return common.GenerateAccessToken(userClaim)
+}
+
+func (s *UserService) GetUserById(ctx context.Context, id int) (User, error) {
+	return s.Repository.GetUserById(ctx, id)
 }

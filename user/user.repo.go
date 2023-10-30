@@ -16,6 +16,7 @@ type IUserRepository interface {
 	Create(ctx context.Context, user UserInput) error
 	GetAllUsers(ctx context.Context) ([]User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserById(ctx context.Context, id int) (User, error)
 }
 
 type UserRepository struct {
@@ -105,6 +106,30 @@ func (s *UserRepository) GetUserByEmail(ctx context.Context, email string) (User
 		return User{}, common.NewInternalServerError()
 	}
 	defer rows.Close()
+	return createUserFromRows(rows)
+}
+
+func (s *UserRepository) GetUserById(ctx context.Context, id int) (User, error) {
+	sql := `
+	select users.id, users.email, users.first_name, users.last_name, users.password, 
+	permissions.handle, permissions.name as permission_name, permissions.description,
+	warehouses.id, warehouses.name as warehouse_name, warehouses.lat, warehouses.lng from users
+	left join user_permissions ON user_permissions.user_id = users.id
+	left join permissions ON user_permissions.permission_handle = permissions.handle
+	left join user_warehouses on user_warehouses.user_id = users.id
+	left join warehouses on warehouses.id = user_warehouses.warehouse_id
+	where users.id = $1 and users.is_active = true;
+	`
+	rows, err := s.Query(ctx, sql, id)
+	if err != nil {
+		log.Printf("failed to get user: %s", err.Error())
+		return User{}, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	return createUserFromRows(rows)
+}
+
+func createUserFromRows(rows pgx.Rows) (User, error) {
 	permissionsMap := make(map[string]PermissionClaim)
 	warehousesSlice := make([]warehouse.Warehouse, 0)
 	var user User
@@ -146,5 +171,6 @@ func (s *UserRepository) GetUserByEmail(ctx context.Context, email string) (User
 	user.Warehouses = warehousesSlice
 	user.Permissions = permissionsMap
 	user.Hash = hash
+	user.IsActive = true
 	return user, nil
 }

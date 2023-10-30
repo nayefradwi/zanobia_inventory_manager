@@ -97,3 +97,11 @@ func parseToken(token *jwt.Token) jwt.MapClaims {
 	}
 	return jwt.MapClaims{}
 }
+
+func GetClaimsFromContext(ctx context.Context) map[string]interface{} {
+	claims := ctx.Value(ClaimsKey{})
+	if claims != nil {
+		return claims.(map[string]interface{})
+	}
+	return nil
+}
