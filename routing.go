@@ -39,9 +39,12 @@ func registerUserRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	userController := user.NewUserController(provider.services.userService)
 	userRouter := chi.NewRouter()
 	userRouter.Group(func(r chi.Router) {
+		middleware := user.NewUserMiddleware(provider.services.userService)
 		r.Use(common.AuthenticationHeaderMiddleware)
+		r.Use(middleware.SetUserFromHeader)
 		r.Post("/", userController.CreateUser)
 		r.Get("/", userController.GetAllUsers)
+		r.Get("/me", userController.GetUserByContext)
 	})
 	userRouter.Post("/initial-sys-admin", userController.InitiateSysAdminUser)
 	userRouter.Post("/login", userController.LoginUser)

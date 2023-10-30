@@ -13,6 +13,7 @@ type IUserService interface {
 	GetAllUsers(ctx context.Context) ([]User, error)
 	LoginUser(ctx context.Context, input UserLoginInput) (common.Token, error)
 	GetUserById(ctx context.Context, id int) (User, error)
+	GetUserByContext(ctx context.Context) (User, error)
 }
 
 type UserServiceInput struct {
@@ -85,5 +86,21 @@ func (s *UserService) LoginUser(ctx context.Context, input UserLoginInput) (comm
 }
 
 func (s *UserService) GetUserById(ctx context.Context, id int) (User, error) {
-	return s.Repository.GetUserById(ctx, id)
+	user, err := s.Repository.GetUserById(ctx, id)
+	if err != nil {
+		return User{}, err
+	}
+	user.Hash = nil
+	user.Email = nil
+	return user, nil
+}
+
+func (s *UserService) GetUserByContext(ctx context.Context) (User, error) {
+	userVal := ctx.Value(UserKey{})
+	if userVal != nil {
+		user := userVal.(User)
+		user.Hash = nil
+		return user, nil
+	}
+	return User{}, common.NewUnAuthorizedError("Aunauthorized user")
 }

@@ -55,3 +55,12 @@ func (c UserController) LoginUser(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 }
+
+func (c UserController) GetUserByContext(w http.ResponseWriter, r *http.Request) {
+	user, err := c.service.GetUserByContext(r.Context())
+	common.WriteResponse(common.Result[User]{
+		Writer: w,
+		Data:   user,
+		Error:  err,
+	})
+}
