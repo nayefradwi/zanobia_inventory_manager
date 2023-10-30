@@ -17,8 +17,8 @@ type User struct {
 	LastName    string                     `json:"lastName"`
 	IsActive    bool                       `json:"isActive"`
 	Hash        *string                    `json:"hash,omitempty"`
-	Warehouses  []warehouse.Warehouse      `json:"warehouses"`
-	Permissions map[string]PermissionClaim `json:"permissions"`
+	Warehouses  []warehouse.Warehouse      `json:"warehouses,omitempty"`
+	Permissions map[string]PermissionClaim `json:"permissions,omitempty"`
 }
 
 type UserLoginInput struct {
