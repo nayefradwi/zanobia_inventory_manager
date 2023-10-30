@@ -4,15 +4,18 @@ import (
 	"context"
 	"log"
 
+	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
 )
 
 type IUserRepository interface {
 	Create(ctx context.Context, user UserInput) error
 	GetAllUsers(ctx context.Context) ([]User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
 }
 
 type UserRepository struct {
@@ -83,4 +86,65 @@ func (s *UserRepository) GetAllUsers(ctx context.Context) ([]User, error) {
 		users = append(users, user)
 	}
 	return users, nil
+}
+
+func (s *UserRepository) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	sql := `
+	select users.id, users.email, users.first_name, users.last_name, users.password, 
+	permissions.handle, permissions.name as permission_name, permissions.description,
+	warehouses.id, warehouses.name as warehouse_name, warehouses.lat, warehouses.lng from users
+	left join user_permissions ON user_permissions.user_id = users.id
+	left join permissions ON user_permissions.permission_handle = permissions.handle
+	left join user_warehouses on user_warehouses.user_id = users.id
+	left join warehouses on warehouses.id = user_warehouses.warehouse_id
+	where email = $1 and users.is_active = true;
+	`
+	rows, err := s.Query(ctx, sql, email)
+	if err != nil {
+		log.Printf("failed to get user: %s", err.Error())
+		return User{}, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	permissionsMap := make(map[string]PermissionClaim)
+	warehousesSlice := make([]warehouse.Warehouse, 0)
+	var user User
+	var hash *string
+	for rows.Next() {
+		var warehouseId pgtype.Int4
+		var warehouseName, permissionName, permissionDesc, permissionHandle pgtype.Varchar
+		var warehouseLat pgtype.Float8
+		var warehouseLng pgtype.Float8
+		err := rows.Scan(
+			&user.Id, &user.Email, &user.FirstName, &user.LastName, &hash,
+			&permissionHandle, &permissionName, &permissionDesc,
+			&warehouseId, &warehouseName, &warehouseLat, &warehouseLng,
+		)
+		if err != nil {
+			log.Printf("failed to scan user: %s", err.Error())
+			return User{}, common.NewInternalServerError()
+		}
+		if permissionHandle.Status != pgtype.Null {
+			permission := PermissionClaim{
+				Handle:      permissionHandle.String,
+				Name:        permissionName.String,
+				Description: permissionDesc.String,
+			}
+			permissionsMap[permission.Handle] = permission
+		}
+
+		if warehouseId.Status != pgtype.Null {
+			id := int(warehouseId.Int)
+			warehouse := warehouse.Warehouse{
+				Id:   &id,
+				Name: warehouseName.String,
+				Lat:  &warehouseLat.Float,
+				Lng:  &warehouseLng.Float,
+			}
+			warehousesSlice = append(warehousesSlice, warehouse)
+		}
+	}
+	user.Warehouses = warehousesSlice
+	user.Permissions = permissionsMap
+	user.Hash = hash
+	return user, nil
 }

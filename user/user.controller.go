@@ -44,3 +44,14 @@ func (c UserController) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		Error:  err,
 	})
 }
+
+func (c UserController) LoginUser(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[UserLoginInput](w, r.Body, func(data UserLoginInput) {
+		token, err := c.service.LoginUser(r.Context(), data)
+		common.WriteResponse(common.Result[common.Token]{
+			Writer: w,
+			Data:   token,
+			Error:  err,
+		})
+	})
+}

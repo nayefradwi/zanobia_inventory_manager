@@ -10,6 +10,12 @@ type Permission struct {
 	IsSecret    bool   `json:"isSecret"`
 }
 
+type PermissionClaim struct {
+	Handle      string `json:"handle"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 func generateInitialPermissions() []Permission {
 	return []Permission{
 		{Name: "system admin", IsSecret: true, Handle: sysAdminPermissionHandle},

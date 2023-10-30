@@ -1,5 +1,7 @@
 package user
 
+import "github.com/nayefradwi/zanobia_inventory_manager/warehouse"
+
 type UserInput struct {
 	Email             string   `json:"email"`
 	Password          string   `json:"password"`
@@ -9,9 +11,17 @@ type UserInput struct {
 }
 
 type User struct {
-	Id        *int   `json:"id"`
-	Email     string `json:"email"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	IsActive  bool   `json:"isActive"`
+	Id          int                        `json:"id"`
+	Email       *string                    `json:"email,omitempty"`
+	FirstName   string                     `json:"firstName"`
+	LastName    string                     `json:"lastName"`
+	IsActive    bool                       `json:"isActive"`
+	Hash        *string                    `json:"hash,omitempty"`
+	Warehouses  []warehouse.Warehouse      `json:"warehouses"`
+	Permissions map[string]PermissionClaim `json:"permissions"`
+}
+
+type UserLoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }

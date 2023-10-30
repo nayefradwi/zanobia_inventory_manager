@@ -1,6 +1,9 @@
 package common
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 func HasAllValues[T any, P string | int](values []T, allValues []T, getKey func(value T) P) bool {
 	mapValues := make(map[P]bool)
@@ -33,4 +36,17 @@ func GetValues[K comparable, V any](input map[K]V) []V {
 		values = append(values, value)
 	}
 	return values
+}
+
+func StructToMap(input interface{}) (map[string]interface{}, error) {
+	encoded, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	err = json.Unmarshal(encoded, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

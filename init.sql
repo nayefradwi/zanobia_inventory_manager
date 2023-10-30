@@ -107,6 +107,7 @@ CREATE UNIQUE INDEX idx_unit_translations ON unit_translations(unit_id, language
 
 -- WAREHOUSE TABLES --
 DROP TABLE IF EXISTS warehouses CASCADE;
+DROP TABLE IF EXISTS user_warehouses CASCADE;
 
 CREATE TABLE warehouses (
     id SERIAL PRIMARY KEY,
@@ -117,9 +118,17 @@ CREATE TABLE warehouses (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE user_warehouses (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    warehouse_id INTEGER NOT NULL REFERENCES warehouses(id)
+);
+
 DROP INDEX IF EXISTS idx_warehouse_name CASCADE;
+DROP INDEX IF EXISTS idx_user_warehouse CASCADE;
 
 CREATE UNIQUE INDEX idx_warehouse_name ON warehouses(name);
+CREATE UNIQUE INDEX idx_user_warehouse ON user_warehouses(user_id, warehouse_id);
 -- END WAREHOUSE TABLES --
 
 -- INGREDIENT AND INVENTORY TABLES --

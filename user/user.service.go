@@ -11,6 +11,7 @@ type IUserService interface {
 	Create(ctx context.Context, user UserInput) error
 	InitiateSystemAdmin(ctx context.Context) error
 	GetAllUsers(ctx context.Context) ([]User, error)
+	LoginUser(ctx context.Context, input UserLoginInput) (common.Token, error)
 }
 
 type UserServiceInput struct {
@@ -60,4 +61,24 @@ func (s *UserService) InitiateSystemAdmin(ctx context.Context) error {
 
 func (s *UserService) GetAllUsers(ctx context.Context) ([]User, error) {
 	return s.Repository.GetAllUsers(ctx)
+}
+
+func (s *UserService) LoginUser(ctx context.Context, input UserLoginInput) (common.Token, error) {
+	user, _ := s.Repository.GetUserByEmail(ctx, input.Email)
+	hash := user.Hash
+	if hash == nil || *hash == "" {
+		return common.Token{}, common.NewBadRequestError("User with this email is not found", "user_not_found")
+	}
+	match := common.CompareHash(input.Password, *hash)
+	if !match {
+		return common.Token{}, common.NewBadRequestError("Password is incorrect", "password_incorrect")
+	}
+	user.Hash = nil
+	user.Email = nil
+	userClaim, err := common.StructToMap(user)
+	if err != nil {
+		log.Printf("failed to convert user to map: %s", err.Error())
+		return common.Token{}, common.NewInternalServerError()
+	}
+	return common.GenerateAccessToken(userClaim)
 }
