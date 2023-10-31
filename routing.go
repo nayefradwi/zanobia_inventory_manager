@@ -42,7 +42,9 @@ func registerUserRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 		middleware := user.NewUserMiddleware(provider.services.userService)
 		r.Use(common.AuthenticationHeaderMiddleware)
 		r.Use(middleware.SetUserFromHeader)
-		r.Post("/", userController.CreateUser)
+		r.With(middleware.HasPermissions(
+			user.SysAdminPermissionHandle,
+		)).Post("/", userController.CreateUser)
 		r.Get("/", userController.GetAllUsers)
 		r.Get("/me", userController.GetUserByContext)
 		r.Post("/ban", userController.BanUser)

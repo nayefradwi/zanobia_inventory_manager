@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	sysAdminPermissionHandle = "sys_admin"
+	SysAdminPermissionHandle = "sys_admin"
 )
 
 type IPermissionRepository interface {

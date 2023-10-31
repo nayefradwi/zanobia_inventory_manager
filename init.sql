@@ -1,12 +1,3 @@
-
-
-
-
-
-
-DROP INDEX IF EXISTS idx_recipe CASCADE;
-DROP INDEX IF EXISTS idx_batch CASCADE;
-
 -- AUTHENTICATION TABLES --
 DROP TABLE IF EXISTS user_permissions CASCADE;
 DROP TABLE IF EXISTS role_permissions CASCADE;
@@ -16,7 +7,7 @@ DROP TABLE IF EXISTS roles CASCADE;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -27,7 +18,7 @@ CREATE TABLE users (
 
 CREATE TABLE permissions (
     id SERIAL PRIMARY KEY,
-    handle VARCHAR(50) NOT NULL,
+    handle VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(50) NOT NULL,
     description VARCHAR(255) NOT NULL,
     is_secret BOOLEAN NOT NULL DEFAULT FALSE,
@@ -45,7 +36,7 @@ CREATE TABLE user_permissions (
 
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -58,16 +49,10 @@ CREATE TABLE role_permissions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP INDEX IF EXISTS idx_email CASCADE;
-DROP INDEX IF EXISTS idx_handle CASCADE;
-DROP INDEX IF EXISTS idx_role_name CASCADE;
 DROP INDEX IF EXISTS idx_user_permission CASCADE;
 DROP INDEX IF EXISTS idx_role_permission CASCADE;
 
-CREATE UNIQUE INDEX idx_email ON users(email);
-CREATE UNIQUE INDEX idx_handle ON permissions(handle);
 CREATE UNIQUE INDEX idx_user_permission ON user_permissions(user_id, permission_handle);
-CREATE UNIQUE INDEX idx_role_name ON roles(name);
 CREATE UNIQUE INDEX idx_role_permission ON role_permissions(role_id, permission_handle);
 -- END AUTHENTICATION TABLES --
 

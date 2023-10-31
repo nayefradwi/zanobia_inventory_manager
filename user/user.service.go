@@ -57,7 +57,7 @@ func (s *UserService) InitiateSystemAdmin(ctx context.Context) error {
 		Password:          s.SysAdminPassword,
 		FirstName:         "System",
 		LastName:          "Admin",
-		PermissionHandles: []string{sysAdminPermissionHandle},
+		PermissionHandles: []string{SysAdminPermissionHandle},
 	}
 	return s.Create(ctx, userInput)
 }

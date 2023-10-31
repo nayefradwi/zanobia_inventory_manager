@@ -18,7 +18,7 @@ type PermissionClaim struct {
 
 func generateInitialPermissions() []Permission {
 	return []Permission{
-		{Name: "system admin", IsSecret: true, Handle: sysAdminPermissionHandle},
+		{Name: "system admin", IsSecret: true, Handle: SysAdminPermissionHandle},
 	}
 }
 
