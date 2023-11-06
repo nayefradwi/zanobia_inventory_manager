@@ -56,6 +56,10 @@ func (m *UserMiddleware) HasPermissions(permissions ...string) func(next http.Ha
 				common.WriteResponseFromError(w, err)
 				return
 			}
+			if user.HasPermission(SysAdminPermissionHandle) {
+				next.ServeHTTP(w, r)
+				return
+			}
 			for _, permission := range permissions {
 				if !user.HasPermission(permission) {
 					err := common.NewForbiddenError("User does not have permission", permission)
