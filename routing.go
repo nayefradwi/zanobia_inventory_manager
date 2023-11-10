@@ -36,6 +36,7 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	authorizedRouter := chi.NewRouter()
 	authorizedRouter.Use(common.AuthenticationHeaderMiddleware)
 	authorizedRouter.Use(userMiddleWare.SetUserFromHeader)
+	// TODO: validate user warehouse
 	registerRoleRoutes(authorizedRouter, provider)
 	registerProductRoutes(authorizedRouter, provider)
 	registerWarehouseRoutes(authorizedRouter, provider)
