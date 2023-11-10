@@ -5,6 +5,7 @@ import "context"
 type IWarehouseService interface {
 	CreateWarehouse(ctx context.Context, warehouse Warehouse) error
 	GetWarehouses(ctx context.Context) ([]Warehouse, error)
+	AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error
 }
 
 type WarehouseService struct {
@@ -27,4 +28,8 @@ func (s *WarehouseService) CreateWarehouse(ctx context.Context, warehouse Wareho
 
 func (s *WarehouseService) GetWarehouses(ctx context.Context) ([]Warehouse, error) {
 	return s.repo.GetWarehouses(ctx)
+}
+
+func (s *WarehouseService) AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error {
+	return s.repo.AddUserToWarehouse(ctx, input)
 }

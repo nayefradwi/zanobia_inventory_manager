@@ -171,9 +171,13 @@ func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	middleware := user.NewUserMiddleware(provider.services.userService)
 	warehouseRouter, _ := createSecureRouter(provider)
 	warehouseController := warehouse.NewWarehouseController(provider.services.warehouseService)
 	warehouseRouter.Post("/", warehouseController.CreateWarehouse)
+	warehouseRouter.With(middleware.HasPermissions(
+		user.SysAdminPermissionHandle,
+	)).Post("/user", warehouseController.AddUserToWarehouse)
 	warehouseRouter.Get("/", warehouseController.GetWarehouses)
 	mainRouter.Mount("/warehouses", warehouseRouter)
 }

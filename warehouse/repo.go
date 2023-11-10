@@ -11,6 +11,7 @@ import (
 type IWarehouseRepository interface {
 	CreateWarehouse(ctx context.Context, warehouse Warehouse) error
 	GetWarehouses(ctx context.Context) ([]Warehouse, error)
+	AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error
 }
 
 type WarehouseRepository struct {
@@ -49,4 +50,14 @@ func (r *WarehouseRepository) GetWarehouses(ctx context.Context) ([]Warehouse, e
 		warehouses = append(warehouses, warehouse)
 	}
 	return warehouses, nil
+}
+
+func (r *WarehouseRepository) AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error {
+	sql := `INSERT INTO user_warehouses (warehouse_id, user_id) VALUES ($1, $2)`
+	_, err := r.Exec(ctx, sql, input.WarehouseId, input.UserId)
+	if err != nil {
+		log.Printf("Failed to add user to warehouse: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to add user to warehouse")
+	}
+	return nil
 }

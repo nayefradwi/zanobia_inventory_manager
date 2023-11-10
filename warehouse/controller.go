@@ -35,3 +35,14 @@ func (c WarehouseController) GetWarehouses(w http.ResponseWriter, r *http.Reques
 		Data:   warehouses,
 	})
 }
+
+func (c WarehouseController) AddUserToWarehouse(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[WarehouseUserInput](w, r.Body, func(input WarehouseUserInput) {
+		err := c.service.AddUserToWarehouse(r.Context(), input)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Message: "user added to warehouse successfully",
+			Writer:  w,
+		})
+	})
+}
