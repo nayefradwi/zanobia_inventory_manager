@@ -7,7 +7,6 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
-type UserKey struct{}
 type UserMiddleware struct {
 	userService IUserService
 	// TODO: add cache service
@@ -40,7 +39,7 @@ func (m *UserMiddleware) SetUserFromHeader(next http.Handler) http.Handler {
 			common.WriteResponseFromError(w, err)
 			return
 		}
-		ctx = context.WithValue(ctx, UserKey{}, user)
+		ctx = context.WithValue(ctx, common.UserKey{}, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 	return handler
@@ -75,7 +74,7 @@ func (m *UserMiddleware) HasPermissions(permissions ...string) func(next http.Ha
 }
 
 func GetUserFromContext(ctx context.Context) User {
-	user := ctx.Value(UserKey{})
+	user := ctx.Value(common.UserKey{})
 	if user != nil {
 		return user.(User)
 	}

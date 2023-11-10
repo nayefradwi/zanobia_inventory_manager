@@ -11,6 +11,8 @@ import (
 
 type ClaimsKey struct{}
 
+type UserKey struct{}
+
 var secret string = ""
 var AccessTokenDuration = time.Hour * 24 * 7
 var RefreshTokenDuration = time.Hour * 24 * 30
@@ -104,4 +106,18 @@ func GetClaimsFromContext(ctx context.Context) map[string]interface{} {
 		return claims.(map[string]interface{})
 	}
 	return nil
+}
+
+type UserIdExtractor func(ctx context.Context) int
+
+var defaultUserIdExtractor UserIdExtractor = func(ctx context.Context) int {
+	return 0
+}
+
+func SetUserIdExtractor(extractor UserIdExtractor) {
+	defaultUserIdExtractor = extractor
+}
+
+func GetUserIdFromContext(ctx context.Context) int {
+	return defaultUserIdExtractor(ctx)
 }

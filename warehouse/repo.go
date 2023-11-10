@@ -10,7 +10,7 @@ import (
 
 type IWarehouseRepository interface {
 	CreateWarehouse(ctx context.Context, warehouse Warehouse) error
-	GetWarehouses(ctx context.Context) ([]Warehouse, error)
+	GetWarehouses(ctx context.Context, userId int) ([]Warehouse, error)
 	AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error
 }
 
@@ -31,9 +31,13 @@ func (r *WarehouseRepository) CreateWarehouse(ctx context.Context, warehouse War
 	return nil
 }
 
-func (r *WarehouseRepository) GetWarehouses(ctx context.Context) ([]Warehouse, error) {
-	sql := `SELECT id, name, lat, lng FROM warehouses`
-	rows, err := r.Query(ctx, sql)
+func (r *WarehouseRepository) GetWarehouses(ctx context.Context, userId int) ([]Warehouse, error) {
+	sql := `
+	SELECT w.id, name, lat, lng FROM warehouses w
+	join user_warehouses uw on uw.warehouse_id = w.id
+	where uw.user_id = $1;
+	`
+	rows, err := r.Query(ctx, sql, userId)
 	if err != nil {
 		log.Printf("Failed to get warehouses: %s", err.Error())
 		return nil, common.NewBadRequestFromMessage("Failed to get warehouses")

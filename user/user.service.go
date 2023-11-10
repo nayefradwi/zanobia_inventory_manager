@@ -97,7 +97,7 @@ func (s *UserService) GetUserById(ctx context.Context, id int) (User, error) {
 }
 
 func (s *UserService) GetUserByContext(ctx context.Context) (User, error) {
-	userVal := ctx.Value(UserKey{})
+	userVal := ctx.Value(common.UserKey{})
 	if userVal != nil {
 		user := userVal.(User)
 		user.Hash = nil
@@ -107,7 +107,7 @@ func (s *UserService) GetUserByContext(ctx context.Context) (User, error) {
 }
 
 func (s *UserService) BanUser(ctx context.Context, id int) error {
-	currentUser := ctx.Value(UserKey{}).(User)
+	currentUser := ctx.Value(common.UserKey{}).(User)
 	if currentUser.Id == id {
 		return common.NewBadRequestError("You can't ban yourself", "ban_self")
 	}

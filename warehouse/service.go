@@ -1,6 +1,10 @@
 package warehouse
 
-import "context"
+import (
+	"context"
+
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+)
 
 type IWarehouseService interface {
 	CreateWarehouse(ctx context.Context, warehouse Warehouse) error
@@ -27,7 +31,8 @@ func (s *WarehouseService) CreateWarehouse(ctx context.Context, warehouse Wareho
 }
 
 func (s *WarehouseService) GetWarehouses(ctx context.Context) ([]Warehouse, error) {
-	return s.repo.GetWarehouses(ctx)
+	userId := common.GetUserIdFromContext(ctx)
+	return s.repo.GetWarehouses(ctx, userId)
 }
 
 func (s *WarehouseService) AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error {
