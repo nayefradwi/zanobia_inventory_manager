@@ -10,6 +10,8 @@ type IWarehouseService interface {
 	CreateWarehouse(ctx context.Context, warehouse Warehouse) error
 	GetWarehouses(ctx context.Context) ([]Warehouse, error)
 	AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error
+	GetMyCurrentWarehouse(ctx context.Context) (Warehouse, error)
+	GetWarehouseById(ctx context.Context, warehouseId, userId int) (Warehouse, error)
 }
 
 type WarehouseService struct {
@@ -37,4 +39,12 @@ func (s *WarehouseService) GetWarehouses(ctx context.Context) ([]Warehouse, erro
 
 func (s *WarehouseService) AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error {
 	return s.repo.AddUserToWarehouse(ctx, input)
+}
+
+func (s *WarehouseService) GetMyCurrentWarehouse(ctx context.Context) (Warehouse, error) {
+	userId, warehouseId := common.GetUserIdFromContext(ctx), GetWarehouseId(ctx)
+	return s.GetWarehouseById(ctx, warehouseId, userId)
+}
+func (s *WarehouseService) GetWarehouseById(ctx context.Context, warehouseId, userId int) (Warehouse, error) {
+	return s.repo.GetWarehouseById(ctx, warehouseId, userId)
 }

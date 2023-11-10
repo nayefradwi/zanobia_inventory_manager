@@ -12,6 +12,7 @@ type IWarehouseRepository interface {
 	CreateWarehouse(ctx context.Context, warehouse Warehouse) error
 	GetWarehouses(ctx context.Context, userId int) ([]Warehouse, error)
 	AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error
+	GetWarehouseById(ctx context.Context, warehouseId, userId int) (Warehouse, error)
 }
 
 type WarehouseRepository struct {
@@ -64,4 +65,24 @@ func (r *WarehouseRepository) AddUserToWarehouse(ctx context.Context, input Ware
 		return common.NewBadRequestFromMessage("Failed to add user to warehouse")
 	}
 	return nil
+}
+
+func (r *WarehouseRepository) GetWarehouseById(ctx context.Context, warehouseId, userId int) (Warehouse, error) {
+	sql := `
+	SELECT w.id, name, lat, lng FROM warehouses w
+	join user_warehouses uw on uw.warehouse_id = w.id
+	where uw.user_id = $1 and w.id = $2;
+	`
+	var warehouse Warehouse
+	err := r.QueryRow(ctx, sql, userId, warehouseId).Scan(
+		&warehouse.Id,
+		&warehouse.Name,
+		&warehouse.Lat,
+		&warehouse.Lng,
+	)
+	if err != nil {
+		log.Printf("Failed to get warehouse: %s", err.Error())
+		return warehouse, common.NewBadRequestFromMessage("Failed to get warehouse")
+	}
+	return warehouse, nil
 }

@@ -46,3 +46,12 @@ func (c WarehouseController) AddUserToWarehouse(w http.ResponseWriter, r *http.R
 		})
 	})
 }
+
+func (c WarehouseController) GetCurrentWarehouse(w http.ResponseWriter, r *http.Request) {
+	warehouse, err := c.service.GetMyCurrentWarehouse(r.Context())
+	common.WriteResponse[Warehouse](common.Result[Warehouse]{
+		Data:   warehouse,
+		Error:  err,
+		Writer: w,
+	})
+}
