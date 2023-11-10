@@ -21,7 +21,13 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 		// TODO change when in production
 		AllowedOrigins: []string{"https://*", "http://*"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowedHeaders: []string{
+			"Accept",
+			"Authorization",
+			"Content-Type",
+			"X-CSRF-Token",
+			"X-Warehouse-Id",
+		},
 		ExposedHeaders: []string{"Link"},
 	}))
 	r.Use(common.Recover)
