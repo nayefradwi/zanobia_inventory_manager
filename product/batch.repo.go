@@ -68,12 +68,12 @@ func (r *BatchRepository) GetBatchBase(ctx context.Context, sku string, expirati
 func (r *BatchRepository) GetBatches(ctx context.Context, cursor string, pageSize int) ([]Batch, error) {
 	sql := `
 	select b.id, b.sku, b.quantity, b.expires_at, utx.unit_id, utx.name, utx.symbol,
-	pvartx.name from batches b
+	pvartx.name, pvar.id, pvar.price from batches b
 	join unit_translations utx on utx.unit_id = b.unit_id
 	join product_variants pvar on pvar.sku = b.sku
 	join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
 	where utx.language_code = $1 and (b.expires_at < $2 or $2 = $2) and b.warehouse_id = $3 order by b.expires_at desc
-	limit $4;	
+	limit $4;
 	`
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
@@ -89,12 +89,12 @@ func (r *BatchRepository) GetBatches(ctx context.Context, cursor string, pageSiz
 func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, cursor string, pageSize int) ([]Batch, error) {
 	sql := `
 	select b.id, b.sku, b.quantity, b.expires_at, utx.unit_id, utx.name, utx.symbol,
-	pvartx.name from batches b
+	pvartx.name, pvar.id, pvar.price from batches b
 	join unit_translations utx on utx.unit_id = b.unit_id
 	join product_variants pvar on pvar.sku = b.sku
 	join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
 	where utx.language_code = $1 and (b.expires_at < $2 or $2 = $2) and b.warehouse_id = $3 and b.sku = $4 order by b.expires_at desc
-	limit $5;	
+	limit $5;
 	`
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
@@ -115,7 +115,7 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 		var unit Unit
 		err := rows.Scan(
 			&batch.Id, &batch.Sku, &batch.Quantity, &batch.ExpiresAt,
-			&unit.Id, &unit.Name, &unit.Symbol, &productVariantBase.Name,
+			&unit.Id, &unit.Name, &unit.Symbol, &productVariantBase.Name, &productVariantBase.Id, &productVariantBase.Price,
 		)
 		if err != nil {
 			log.Printf("Failed to scan batches: %s", err.Error())
