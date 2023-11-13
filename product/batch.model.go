@@ -16,7 +16,7 @@ type BatchInput struct {
 type BatchBase struct {
 	Id          *int      `json:"id,omitempty"`
 	WarehouseId *int      `json:"warehouseId,omitempty"`
-	Sku         string    `json:"Sku"`
+	Sku         string    `json:"sku"`
 	Quantity    float64   `json:"quantity"`
 	UnitId      int       `json:"unitId"`
 	ExpiresAt   time.Time `json:"expiresAt"`
