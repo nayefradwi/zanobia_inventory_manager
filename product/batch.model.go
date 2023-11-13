@@ -7,10 +7,10 @@ import (
 )
 
 type BatchInput struct {
-	Sku       string  `json:"Sku,omitempty"`
-	Quantity  float64 `json:"quantity"`
-	UnitId    int     `json:"unitId"`
-	ExpiresAt string  `json:"expiresAt"`
+	Id       *int    `json:"id,omitempty"`
+	Sku      string  `json:"Sku,omitempty"`
+	Quantity float64 `json:"quantity"`
+	UnitId   int     `json:"unitId"`
 }
 
 type BatchBase struct {
@@ -42,7 +42,6 @@ func (b BatchBase) SetExpiresAt(expiresAt time.Time) BatchBase {
 func ValidateBatchInput(input BatchInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
-		common.ValidateStringLength(input.ExpiresAt, "expiresAt", 20, 27),
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),

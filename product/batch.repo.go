@@ -14,6 +14,7 @@ import (
 type IBatchRepository interface {
 	CreateBatch(ctx context.Context, input BatchInput, expiresAt string) error
 	UpdateBatch(ctx context.Context, base BatchBase) error
+	GetBatchBaseById(ctx context.Context, id *int) (BatchBase, error)
 	GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error)
 	GetBatches(ctx context.Context, cursor string, pageSize int) ([]Batch, error)
 	SearchBatchesBySku(ctx context.Context, sku string, cursor string, pageSize int) ([]Batch, error)
@@ -56,6 +57,23 @@ func (r *BatchRepository) GetBatchBase(ctx context.Context, sku string, expirati
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	row := op.QueryRow(ctx, sql, sku, expirationDate, warehouseId)
+	var batchBase BatchBase
+	err := row.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
+	if err != nil {
+		log.Printf("Failed to get batch base: %s", err.Error())
+		return BatchBase{}, common.NewBadRequestFromMessage("Failed to get batch base")
+	}
+	return batchBase, nil
+}
+
+func (r *BatchRepository) GetBatchBaseById(ctx context.Context, id *int) (BatchBase, error) {
+	if id == nil {
+		return BatchBase{}, common.NewBadRequestFromMessage("Failed to get batch base")
+	}
+	sql := `SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches WHERE id = $1 and warehouse_id = $2`
+	op := common.GetOperator(ctx, r.Pool)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	row := op.QueryRow(ctx, sql, id, warehouseId)
 	var batchBase BatchBase
 	err := row.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
 	if err != nil {
