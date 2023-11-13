@@ -24,7 +24,7 @@ type BatchBase struct {
 
 type Batch struct {
 	BatchBase
-	ProductVariantBase *ProductVariantBase `json:"productVariantBase,omitempty"`
+	ProductVariantBase *ProductVariantBase `json:"productVariant,omitempty"`
 	Unit               Unit                `json:"unit"`
 }
 
