@@ -15,7 +15,7 @@ type IProductRepo interface {
 	CreateProduct(ctx context.Context, product ProductInput) error
 	AddProductVariant(ctx context.Context, input ProductVariantInput) error
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
-	GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]ProductBase, error)
+	GetProducts(ctx context.Context, paginationParams common.PaginationParams, isArchive bool) ([]ProductBase, error)
 	GetProduct(ctx context.Context, id int) (Product, error)
 	GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error)
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
@@ -70,7 +70,7 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 }
 
 func (r *ProductRepo) addProduct(ctx context.Context, product ProductInput) (int, error) {
-	sql := `INSERT INTO products (image, category_id, is_archived) 
+	sql := `INSERT INTO products (image, category_id, is_archived)
 			VALUES ($1, $2, $3) RETURNING id`
 	var id int
 	op := common.GetOperator(ctx, r.Pool)
@@ -120,9 +120,9 @@ func (r *ProductRepo) addProductVariant(ctx context.Context, productId *int, pro
 
 func (r *ProductRepo) insertProductVariant(ctx context.Context, productId *int, productVariant ProductVariant) (int, error) {
 	op := common.GetOperator(ctx, r.Pool)
-	sql := `INSERT INTO product_variants 
+	sql := `INSERT INTO product_variants
 	(
-		product_id, price, sku, is_archived, is_default, image, 
+		product_id, price, sku, is_archived, is_default, image,
 		standard_unit_id, expires_in_days
 	) values (
 		$1, $2, $3, $4, $5, $6, $7, $8
@@ -232,17 +232,32 @@ func (r *ProductRepo) addProductOptionValue(ctx context.Context, optionId int, p
 	return id, nil
 }
 
-func (r *ProductRepo) GetProducts(ctx context.Context, pageSize int, endCursor string, isArchive bool) ([]ProductBase, error) {
-	sql := `select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id
-	from products p join product_translations ptx on p.id = ptx.product_id
-	where is_archived = $2 and ptx.language_code = $3
-	and (
-		p.id < $1 or $1 = 0
+func (r *ProductRepo) GetProducts(
+	ctx context.Context,
+	paginationParams common.PaginationParams,
+	isArchive bool,
+) ([]ProductBase, error) {
+	sqlBuilder := common.NewPaginationQueryBuilder(
+		`
+		select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id
+		from products p join product_translations ptx on p.id = ptx.product_id
+		`,
+		"created_at",
 	)
-	order by created_at desc limit $4;`
+	sql := sqlBuilder.
+		WithConditions([]string{
+			"is_archived = $1",
+			"and",
+			"ptx.language_code = $2",
+		}).
+		WithCursor(paginationParams.EndCursor, paginationParams.PreviousCursor).
+		WithCursorKey("created_at").
+		WithDirection(paginationParams.Direction).
+		WithPageSize(paginationParams.PageSize).
+		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, endCursor, isArchive, languageCode, pageSize)
+	rows, err := op.Query(ctx, sql, isArchive, languageCode, sqlBuilder.GetCurrentCursor())
 	if err != nil {
 		log.Printf("failed to get products: %s", err.Error())
 		return nil, common.NewBadRequestError("Failed to get products", zimutils.GetErrorCodeFromError(err))
@@ -267,7 +282,7 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	sql := `
 	select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id, popt.id,
 	popt.name, pvl.id, pvl.value from products p
-	join product_options popt on popt.product_id = p.id 
+	join product_options popt on popt.product_id = p.id
 	join product_option_values pvl on pvl.product_option_id = popt.id
 	join product_translations ptx on ptx.product_id = p.id
 	where p.id = $1 and ptx.language_code = $2;

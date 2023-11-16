@@ -210,28 +210,33 @@ func (s *BatchService) bulkDecrementBatch(ctx context.Context, inputs []BatchInp
 }
 
 func (s *BatchService) GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error) {
-	pageSize, cursor, _ := common.GetPaginationParams(ctx, common.GetUtcDateOnlyString())
-	batches, err := s.batchRepo.GetBatches(ctx, cursor, pageSize)
+	paginationParam := common.GetPaginationParams(ctx)
+	batches, err := s.batchRepo.GetBatches(ctx, paginationParam)
 	if err != nil {
 		return common.PaginatedResponse[Batch]{}, err
 	}
-	return s.createBatchesPage(batches, pageSize), nil
+	return s.createBatchesPage(batches, paginationParam.PageSize), nil
 }
 
 func (s *BatchService) SearchBatchesBySku(ctx context.Context, sku string) (common.PaginatedResponse[Batch], error) {
-	pageSize, cursor, _ := common.GetPaginationParams(ctx, common.GetUtcDateOnlyString())
-	batches, err := s.batchRepo.SearchBatchesBySku(ctx, sku, cursor, pageSize)
+	paginationParam := common.GetPaginationParams(ctx)
+	batches, err := s.batchRepo.SearchBatchesBySku(ctx, sku, paginationParam)
 	if err != nil {
 		return common.PaginatedResponse[Batch]{}, err
 	}
-	return s.createBatchesPage(batches, pageSize), nil
+	return s.createBatchesPage(batches, paginationParam.PageSize), nil
 }
 
 func (s *BatchService) createBatchesPage(batches []Batch, pageSize int) common.PaginatedResponse[Batch] {
 	if len(batches) == 0 {
 		return common.CreateEmptyPaginatedResponse[Batch](pageSize)
 	}
-	last := batches[len(batches)-1]
-	res := common.CreatePaginatedResponse[Batch](pageSize, common.GetUtcDateOnlyStringFromTime(last.ExpiresAt), batches)
+	first, last := batches[0], batches[len(batches)-1]
+	res := common.CreatePaginatedResponse[Batch](
+		pageSize,
+		common.GetUtcDateOnlyStringFromTime(last.ExpiresAt),
+		common.GetUtcDateOnlyStringFromTime(first.ExpiresAt),
+		batches,
+	)
 	return res
 }

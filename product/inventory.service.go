@@ -3,7 +3,6 @@ package product
 import (
 	"context"
 	"strconv"
-	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -199,16 +198,21 @@ func (s *InventoryService) bulkDecrementInventory(ctx context.Context, inventory
 }
 
 func (s *InventoryService) GetInventories(ctx context.Context) (common.PaginatedResponse[Inventory], error) {
-	size, cursor, sorting := common.GetPaginationParams(ctx, time.Now().Format(time.RFC3339))
-	inventories, err := s.inventoryRepo.GetInventories(ctx, size, sorting, cursor)
+	paginationParams := common.GetPaginationParams(ctx)
+	inventories, err := s.inventoryRepo.GetInventories(ctx, paginationParams)
 	if err != nil {
 		return common.PaginatedResponse[Inventory]{}, err
 	}
 	if len(inventories) == 0 {
-		return common.CreateEmptyPaginatedResponse[Inventory](size), nil
+		return common.CreateEmptyPaginatedResponse[Inventory](paginationParams.PageSize), nil
 	}
-	last := inventories[len(inventories)-1]
-	res := common.CreatePaginatedResponse[Inventory](size, last.UpdatedAt.Format(time.RFC3339), inventories)
+	first, last := inventories[0], inventories[len(inventories)-1]
+	res := common.CreatePaginatedResponse[Inventory](
+		paginationParams.PageSize,
+		common.GetUtcDateOnlyStringFromTime(last.UpdatedAt),
+		common.GetUtcDateOnlyStringFromTime(first.UpdatedAt),
+		inventories,
+	)
 	return res, nil
 }
 

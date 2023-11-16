@@ -2,7 +2,6 @@ package product
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -16,7 +15,7 @@ type IInventoryRepository interface {
 	GetInventoryBaseByIngredientId(ctx context.Context, ingredientId int) InventoryBase
 	CreateInventory(ctx context.Context, input InventoryInput) error
 	UpdateInventory(ctx context.Context, base InventoryBase) error
-	GetInventories(ctx context.Context, pageSize, sorting int, endCursor string) ([]Inventory, error)
+	GetInventories(ctx context.Context, params common.PaginationParams) ([]Inventory, error)
 }
 
 type InventoryRepository struct {
@@ -66,8 +65,8 @@ func (r *InventoryRepository) GetInventoryBaseByIngredientId(ctx context.Context
 	return inventoryBase
 }
 
-func (r *InventoryRepository) GetInventories(ctx context.Context, pageSize, sorting int, endCursor string) ([]Inventory, error) {
-	rows, err := r.getInventoriesRowsDescending(ctx, pageSize, endCursor)
+func (r *InventoryRepository) GetInventories(ctx context.Context, params common.PaginationParams) ([]Inventory, error) {
+	rows, err := r.getInventoriesRowsDescending(ctx, params)
 	if err != nil {
 		log.Printf("Failed to get inventories: %s", err.Error())
 		return nil, common.NewBadRequestFromMessage("Failed to get inventories")
@@ -93,19 +92,35 @@ func (r *InventoryRepository) GetInventories(ctx context.Context, pageSize, sort
 	return inventories, nil
 }
 
-func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, pageSize int, endCursor string) (pgx.Rows, error) {
-	preFormat := `select inv.id, ing.id ingredient_id, utx.unit_id, quantity, utx.name, utx.symbol, ing.price, expires_in_days, ingtx.name, ingtx.brand, inv.updated_at
-	from inventories inv 
-	join ingredients ing on ing.id = inv.ingredient_id
-	join ingredient_translations ingtx on ingtx.ingredient_id = inv.ingredient_id
-	join unit_translations utx on utx.unit_id = inv.unit_id
-	%s;`
+func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, params common.PaginationParams) (pgx.Rows, error) {
+	sqlBuilder := common.NewPaginationQueryBuilder(
+		`
+		select inv.id, ing.id ingredient_id,
+		utx.unit_id, quantity, utx.name,
+		utx.symbol, ing.price, expires_in_days,
+		ingtx.name, ingtx.brand, inv.updated_at
+		from inventories inv
+		join ingredients ing on ing.id = inv.ingredient_id
+		join ingredient_translations ingtx on ingtx.ingredient_id = inv.ingredient_id
+		join unit_translations utx on utx.unit_id = inv.unit_id
+		`,
+		"inv.updated_at DESC",
+	)
+	sql := sqlBuilder.
+		WithConditions(
+			[]string{
+				"utx.language_code = $1",
+				"and",
+				"warehouse_id = $2",
+			},
+		).
+		WithCursor(params.EndCursor, params.PreviousCursor).
+		WithCursorKey("inv.updated_at").
+		WithDirection(params.Direction).
+		WithPageSize(params.PageSize).
+		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
 	warehouseId := warehouse.GetWarehouseId(ctx)
-	sql := fmt.Sprintf(
-		preFormat,
-		`where utx.language_code = $1 AND inv.updated_at < $2 and warehouse_id = $3 order by inv.updated_at DESC limit $4;`,
-	)
-	return op.Query(ctx, sql, languageCode, endCursor, warehouseId, pageSize)
+	return op.Query(ctx, sql, languageCode, warehouseId, sqlBuilder.GetCurrentCursor())
 }

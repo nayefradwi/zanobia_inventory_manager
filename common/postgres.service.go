@@ -2,9 +2,11 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -29,21 +31,20 @@ func RunWithTransaction(ctx context.Context, pool *pgxpool.Pool, transaction Tra
 
 func SetPaginatedDataMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pageSize, endCursor, sort := getPaginationParams(r)
+		paginationParam := getPaginationParams(r)
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, pageSizeKey{}, pageSize)
-		ctx = context.WithValue(ctx, endCursorKey{}, endCursor)
-		ctx = context.WithValue(ctx, sortKey{}, sort)
+		ctx = context.WithValue(ctx, paginationParamsKey{}, paginationParam)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func getPaginationParams(r *http.Request) (pageSize int, endCursor string, sort int) {
+func getPaginationParams(r *http.Request) PaginationParams {
 	pageSizeQuery := r.URL.Query().Get("pageSize")
-	endCursor = r.URL.Query().Get("endCursor")
+	endCursor := r.URL.Query().Get("endCursor")
+	previousCursor := r.URL.Query().Get("previousCursor")
 	sortQuery := r.URL.Query().Get("sort")
-	pageSize, _ = strconv.Atoi(pageSizeQuery)
-	sort, _ = strconv.Atoi(sortQuery)
+	pageSize, _ := strconv.Atoi(pageSizeQuery)
+	sort, _ := strconv.Atoi(sortQuery)
 	if pageSize == 0 {
 		pageSize = 10
 	}
@@ -52,43 +53,24 @@ func getPaginationParams(r *http.Request) (pageSize int, endCursor string, sort 
 	} else {
 		sort = -1
 	}
-	return pageSize, endCursor, sort
+	return PaginationParams{
+		PageSize:       pageSize,
+		Direction:      sort,
+		EndCursor:      endCursor,
+		PreviousCursor: previousCursor,
+	}
 }
 
-func GetPageSize(ctx context.Context) int {
-	pageSize := ctx.Value(pageSizeKey{})
-	if pageSize == nil {
-		return 10
+func GetPaginationParams(ctx context.Context) PaginationParams {
+	if params, ok := ctx.Value(paginationParamsKey{}).(PaginationParams); ok {
+		return params
 	}
-	return pageSize.(int)
-}
-
-func GetEndCursor(ctx context.Context, defaultVal string) string {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("recovered from panic: %s", r)
-		}
-	}()
-	endCursor := ctx.Value(endCursorKey{})
-	if endCursor == nil {
-		return defaultVal
+	return PaginationParams{
+		PageSize:       10,
+		Direction:      1,
+		EndCursor:      "",
+		PreviousCursor: "",
 	}
-	if endCursor == "" {
-		return defaultVal
-	}
-	return endCursor.(string)
-}
-
-func GetSort(ctx context.Context) int {
-	sort := ctx.Value(sortKey{})
-	if sort == nil {
-		return 1
-	}
-	return sort.(int)
-}
-
-func GetPaginationParams(ctx context.Context, defaultCursor string) (pageSize int, cursor string, sort int) {
-	return GetPageSize(ctx), GetEndCursor(ctx, defaultCursor), GetSort(ctx)
 }
 
 func SetOperator(ctx context.Context, op DbOperator) context.Context {
@@ -103,4 +85,54 @@ func GetOperator(ctx context.Context, defaultOp DbOperator) DbOperator {
 	}
 	log.Printf("operator is of type %T", op)
 	return op.(DbOperator)
+}
+
+func CreatePaginationQuery(sql PaginationQuery) string {
+	unformattedSql := sql.BaseSql + " " + "WHERE %s %s ORDER BY %s LIMIT %s;"
+	finalArgIndex, joinedConditions := getFinalArgAndJoinedConditions(sql.Conditions)
+	unformattedPaginationConditon := "AND (%s %s $%d or $%d = $%d)"
+	directionString := getDirectionString(sql.Direction)
+	formattedPaginationCondition := fmt.Sprintf(unformattedPaginationConditon,
+		*sql.CursorKey,
+		directionString,
+		finalArgIndex,
+		finalArgIndex,
+		finalArgIndex,
+	)
+	formattedSql := fmt.Sprintf(
+		unformattedSql,
+		joinedConditions,
+		formattedPaginationCondition,
+		sql.OrderByQuery,
+		strconv.Itoa(sql.PageSize),
+	)
+	trimmedSql := strings.ReplaceAll(formattedSql, "\n", " ")
+	trimmedSql = strings.ReplaceAll(trimmedSql, "\t", "")
+	return trimmedSql
+}
+
+func getFinalArgAndJoinedConditions(conditions []string) (int, string) {
+	finalArgIndex := 1
+	for _, condition := range conditions {
+		if condition != "" &&
+			condition != " " &&
+			condition != "AND" &&
+			condition != "OR" &&
+			condition != "and" &&
+			condition != "or" {
+			finalArgIndex++
+		}
+	}
+	var joinedConditions string
+	if finalArgIndex != 1 {
+		joinedConditions = strings.Join(conditions, " ")
+	}
+	return finalArgIndex, joinedConditions
+}
+
+func getDirectionString(direction int) string {
+	if direction < 0 {
+		return "<"
+	}
+	return ">"
 }

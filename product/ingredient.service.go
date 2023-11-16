@@ -41,15 +41,20 @@ func (s *IngredientService) TranslateIngredient(ctx context.Context, ingredient 
 }
 
 func (s *IngredientService) GetIngredients(ctx context.Context) (common.PaginatedResponse[Ingredient], error) {
-	pageSize, endCursor, _ := common.GetPaginationParams(ctx, "0")
-	ingredients, err := s.repo.GetIngredients(ctx, pageSize, endCursor)
+	paginationParams := common.GetPaginationParams(ctx)
+	ingredients, err := s.repo.GetIngredients(ctx, paginationParams)
 	if err != nil {
 		return common.PaginatedResponse[Ingredient]{}, err
 	}
 	if len(ingredients) == 0 {
-		return common.CreateEmptyPaginatedResponse[Ingredient](pageSize), nil
+		return common.CreateEmptyPaginatedResponse[Ingredient](paginationParams.PageSize), nil
 	}
-	last := ingredients[len(ingredients)-1]
-	res := common.CreatePaginatedResponse[Ingredient](pageSize, strconv.Itoa(*last.Id), ingredients)
+	first, last := ingredients[0], ingredients[len(ingredients)-1]
+	res := common.CreatePaginatedResponse[Ingredient](
+		paginationParams.PageSize,
+		strconv.Itoa(*last.Id),
+		strconv.Itoa(*first.Id),
+		ingredients,
+	)
 	return res, nil
 }

@@ -49,16 +49,21 @@ func (s *ProductService) TranslateProduct(ctx context.Context, product ProductIn
 }
 
 func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error) {
-	size, cursor, _ := common.GetPaginationParams(ctx, "0")
-	products, err := s.repo.GetProducts(ctx, size, cursor, isArchive)
+	paginationParams := common.GetPaginationParams(ctx)
+	products, err := s.repo.GetProducts(ctx, paginationParams, isArchive)
 	if err != nil {
-		return common.CreateEmptyPaginatedResponse[ProductBase](size), err
+		return common.CreateEmptyPaginatedResponse[ProductBase](paginationParams.PageSize), err
 	}
 	if len(products) == 0 {
-		return common.CreateEmptyPaginatedResponse[ProductBase](size), nil
+		return common.CreateEmptyPaginatedResponse[ProductBase](paginationParams.PageSize), nil
 	}
-	lastId := products[len(products)-1].Id
-	return common.CreatePaginatedResponse[ProductBase](size, strconv.Itoa(*lastId), products), nil
+	firstId, lastId := products[0].Id, products[len(products)-1].Id
+	return common.CreatePaginatedResponse[ProductBase](
+		paginationParams.PageSize,
+		strconv.Itoa(*lastId),
+		strconv.Itoa(*firstId),
+		products,
+	), nil
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, id int) (Product, error) {

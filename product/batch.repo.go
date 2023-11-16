@@ -16,9 +16,18 @@ type IBatchRepository interface {
 	UpdateBatch(ctx context.Context, base BatchBase) error
 	GetBatchBaseById(ctx context.Context, id *int) (BatchBase, error)
 	GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error)
-	GetBatches(ctx context.Context, cursor string, pageSize int) ([]Batch, error)
-	SearchBatchesBySku(ctx context.Context, sku string, cursor string, pageSize int) ([]Batch, error)
+	GetBatches(ctx context.Context, params common.PaginationParams) ([]Batch, error)
+	SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]Batch, error)
 }
+
+const baseBatchListingSql = `
+select b.id, b.sku, b.quantity, b.expires_at, utx.unit_id, utx.name, utx.symbol,
+pvartx.name, pvar.id, pvar.price, pvar.product_id, ptx.name from batches b
+join unit_translations utx on utx.unit_id = b.unit_id
+join product_variants pvar on pvar.sku = b.sku
+join product_translations ptx on ptx.product_id = pvar.product_id
+join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
+`
 
 type BatchRepository struct {
 	*pgxpool.Pool
@@ -83,21 +92,26 @@ func (r *BatchRepository) GetBatchBaseById(ctx context.Context, id *int) (BatchB
 	return batchBase, nil
 }
 
-func (r *BatchRepository) GetBatches(ctx context.Context, cursor string, pageSize int) ([]Batch, error) {
-	sql := `
-	select b.id, b.sku, b.quantity, b.expires_at, utx.unit_id, utx.name, utx.symbol,
-	pvartx.name, pvar.id, pvar.price, pvar.product_id, ptx.name from batches b
-	join unit_translations utx on utx.unit_id = b.unit_id
-	join product_variants pvar on pvar.sku = b.sku
-	join product_translations ptx on ptx.product_id = pvar.product_id
-	join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
-	where utx.language_code = $1 and (b.expires_at < $2 or $2 = $2) and b.warehouse_id = $3 order by b.expires_at desc
-	limit $4;
-	`
+func (r *BatchRepository) GetBatches(ctx context.Context, params common.PaginationParams) ([]Batch, error) {
+	sqlBuilder := common.NewPaginationQueryBuilder(
+		baseBatchListingSql,
+		"b.expires_at DESC",
+	)
+	sql := sqlBuilder.
+		WithConditions([]string{
+			"utx.language_code = $1",
+			"AND",
+			"b.warehouse_id = $2",
+		}).
+		WithCursor(params.EndCursor, params.PreviousCursor).
+		WithCursorKey("b.expires_at").
+		WithPageSize(params.PageSize).
+		WithDirection(params.Direction).
+		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	lang := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, lang, cursor, warehouseId, pageSize)
+	rows, err := op.Query(ctx, sql, lang, warehouseId, sqlBuilder.GetCurrentCursor())
 	if err != nil {
 		log.Printf("Failed to get batches: %s", err.Error())
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to get batches")
@@ -105,21 +119,28 @@ func (r *BatchRepository) GetBatches(ctx context.Context, cursor string, pageSiz
 	return r.parseBatchRows(rows)
 }
 
-func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, cursor string, pageSize int) ([]Batch, error) {
-	sql := `
-	select b.id, b.sku, b.quantity, b.expires_at, utx.unit_id, utx.name, utx.symbol,
-	pvartx.name, pvar.id, pvar.price, pvar.product_id, ptx.name from batches b
-	join unit_translations utx on utx.unit_id = b.unit_id
-	join product_variants pvar on pvar.sku = b.sku
-	join product_translations ptx on ptx.product_id = pvar.product_id
-	join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
-	where utx.language_code = $1 and (b.expires_at < $2 or $2 = $2) and b.warehouse_id = $3 and b.sku = $4 order by b.expires_at desc
-	limit $5;
-	`
+func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]Batch, error) {
+	sqlBuilder := common.NewPaginationQueryBuilder(
+		baseBatchListingSql,
+		"b.expires_at DESC",
+	)
+	sql := sqlBuilder.
+		WithConditions([]string{
+			"utx.language_code = $1",
+			"AND",
+			"b.warehouse_id = $2",
+			"AND",
+			"b.sku = $3",
+		}).
+		WithCursor(params.EndCursor, params.PreviousCursor).
+		WithCursorKey("b.expires_at").
+		WithPageSize(params.PageSize).
+		WithDirection(params.Direction).
+		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	lang := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, lang, cursor, warehouseId, sku, pageSize)
+	rows, err := op.Query(ctx, sql, lang, warehouseId, sku, sqlBuilder.GetCurrentCursor())
 	if err != nil {
 		log.Printf("Failed to get batches: %s", err.Error())
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to search batches")
