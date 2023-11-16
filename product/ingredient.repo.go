@@ -99,14 +99,6 @@ func (r *IngredientRepository) GetIngredients(ctx context.Context, paginationPar
 		WithPageSize(paginationParams.PageSize).
 		Build()
 	languageCode := common.GetLanguageParam(ctx)
-	/*
-
-		" SELECT i.id, it.name,
-		it.brand, i.price, i.expires_in_days, i.standard_quantity, ut.unit_id, ut.name, ut.symbol from ingredients i
-		JOIN unit_translations ut on i.standard_unit_id = ut.unit_id JOIN ingredient_translations it ON
-		it.ingredient_id = i.id AND it.language_code = ut.language_code  WHERE it.language_code = $1
-		AND (i.id > $2 or $2 = $2) ORDER BY i.id ASC LIMIT 10;"
-	*/
 	rows, err := r.Query(ctx, sql, languageCode, sqlBuilder.GetCurrentCursor())
 	if err != nil {
 		log.Printf("failed to get ingredients: %s", err.Error())

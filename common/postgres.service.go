@@ -90,15 +90,24 @@ func GetOperator(ctx context.Context, defaultOp DbOperator) DbOperator {
 func CreatePaginationQuery(sql PaginationQuery) string {
 	unformattedSql := sql.BaseSql + " " + "WHERE %s %s ORDER BY %s LIMIT %s;"
 	finalArgIndex, joinedConditions := getFinalArgAndJoinedConditions(sql.Conditions)
-	unformattedPaginationConditon := "AND (%s %s $%d or $%d = $%d)"
+	unformattedPaginationConditonWithCursor := "AND %s %s $%d"
+	unformattedPaginationConditionWithoutCursor := "AND $%d = $%d"
 	directionString := getDirectionString(sql.Direction)
-	formattedPaginationCondition := fmt.Sprintf(unformattedPaginationConditon,
-		*sql.CursorKey,
-		directionString,
-		finalArgIndex,
-		finalArgIndex,
-		finalArgIndex,
-	)
+	var formattedPaginationCondition string
+	if sql.EndCursor == "" && sql.PreviousCursor == "" {
+		formattedPaginationCondition = fmt.Sprintf(
+			unformattedPaginationConditionWithoutCursor,
+			finalArgIndex,
+			finalArgIndex,
+		)
+	} else {
+		formattedPaginationCondition = fmt.Sprintf(
+			unformattedPaginationConditonWithCursor,
+			*sql.CursorKey,
+			directionString,
+			finalArgIndex,
+		)
+	}
 	formattedSql := fmt.Sprintf(
 		unformattedSql,
 		joinedConditions,
