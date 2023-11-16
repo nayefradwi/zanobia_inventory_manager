@@ -242,7 +242,7 @@ func (r *ProductRepo) GetProducts(
 		select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id
 		from products p join product_translations ptx on p.id = ptx.product_id
 		`,
-		"created_at",
+		"p.id",
 	)
 	sql := sqlBuilder.
 		WithConditions([]string{
@@ -251,7 +251,7 @@ func (r *ProductRepo) GetProducts(
 			"ptx.language_code = $2",
 		}).
 		WithCursor(paginationParams.EndCursor, paginationParams.PreviousCursor).
-		WithCursorKey("created_at").
+		WithCursorKey("p.id").
 		WithDirection(paginationParams.Direction).
 		WithPageSize(paginationParams.PageSize).
 		Build()
