@@ -210,6 +210,9 @@ func (q *PaginationQuery) getArgsForCursors(finalArgIndex int) []string {
 
 func (q PaginationQuery) Query(ctx context.Context, op DbOperator, sql string, arguments ...interface{}) (pgx.Rows, error) {
 	cursors := q.GetCurrentCursor()
+	if q.EndCursor == "" && q.PreviousCursor == "" {
+		return op.Query(ctx, sql, arguments...)
+	}
 	if len(cursors) == 0 || cursors[0] == "" {
 		return op.Query(ctx, sql, arguments...)
 	}
