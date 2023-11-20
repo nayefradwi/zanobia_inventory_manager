@@ -242,22 +242,22 @@ func (r *ProductRepo) GetProducts(
 		select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id
 		from products p join product_translations ptx on p.id = ptx.product_id
 		`,
-		"p.id",
+		[]string{"p.id ASC"},
 	)
-	sql := sqlBuilder.
+	q, sql := sqlBuilder.
 		WithConditions([]string{
 			"is_archived = $1",
 			"and",
 			"ptx.language_code = $2",
 		}).
 		WithCursor(paginationParams.EndCursor, paginationParams.PreviousCursor).
-		WithCursorKey("p.id").
+		WithCursorKeys([]string{"p.id"}).
 		WithDirection(paginationParams.Direction).
 		WithPageSize(paginationParams.PageSize).
 		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, isArchive, languageCode, sqlBuilder.GetCurrentCursor())
+	rows, err := op.Query(ctx, sql, isArchive, languageCode, q.GetCurrentCursor())
 	if err != nil {
 		log.Printf("failed to get products: %s", err.Error())
 		return nil, common.NewBadRequestError("Failed to get products", zimutils.GetErrorCodeFromError(err))

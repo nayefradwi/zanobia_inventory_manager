@@ -85,21 +85,21 @@ func (r *IngredientRepository) GetIngredients(ctx context.Context, paginationPar
 		JOIN unit_translations ut on i.standard_unit_id = ut.unit_id
 		JOIN ingredient_translations it ON it.ingredient_id = i.id AND it.language_code = ut.language_code
 		`,
-		"i.id ASC",
+		[]string{"i.id ASC"},
 	)
-	sql := sqlBuilder.
+	q, sql := sqlBuilder.
 		WithConditions([]string{
 			"it.language_code = $1",
 		}).
 		WithCursor(paginationParams.EndCursor, paginationParams.PreviousCursor).
-		WithCursorKey(
-			"i.id",
+		WithCursorKeys(
+			[]string{"i.id"},
 		).
 		WithDirection(paginationParams.Direction).
 		WithPageSize(paginationParams.PageSize).
 		Build()
 	languageCode := common.GetLanguageParam(ctx)
-	rows, err := r.Query(ctx, sql, languageCode, sqlBuilder.GetCurrentCursor())
+	rows, err := r.Query(ctx, sql, languageCode, q.GetCurrentCursor())
 	if err != nil {
 		log.Printf("failed to get ingredients: %s", err.Error())
 		return nil, common.NewInternalServerError()

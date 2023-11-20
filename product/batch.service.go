@@ -234,8 +234,8 @@ func (s *BatchService) createBatchesPage(batches []Batch, pageSize int) common.P
 	first, last := batches[0], batches[len(batches)-1]
 	res := common.CreatePaginatedResponse[Batch](
 		pageSize,
-		common.GetUtcDateOnlyStringFromTime(last.ExpiresAt),
-		common.GetUtcDateOnlyStringFromTime(first.ExpiresAt),
+		last.getCursorValue(),
+		first.getCursorValue(),
 		batches,
 	)
 	return res
