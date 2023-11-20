@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/jackc/pgconn"
@@ -204,6 +205,8 @@ func (q *PaginationQuery) getArgsForCursors(finalArgIndex int) []string {
 }
 
 func (q PaginationQuery) Query(ctx context.Context, op DbOperator, sql string, arguments ...interface{}) (pgx.Rows, error) {
+	// TODO: remove this or use logger
+	log.Print(sql)
 	if q.EndCursor == "" && q.PreviousCursor == "" {
 		return op.Query(ctx, sql, arguments...)
 	}

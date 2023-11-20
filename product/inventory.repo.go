@@ -115,7 +115,7 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 			},
 		).
 		WithCursor(params.EndCursor, params.PreviousCursor).
-		WithCursorKeys([]string{"inv.updated_at", "inv.id"}).
+		WithCursorKeys([]string{"inv.id", "inv.updated_at"}).
 		WithDirection(params.Direction).
 		WithPageSize(params.PageSize).
 		Build()
