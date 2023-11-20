@@ -111,7 +111,7 @@ func (r *BatchRepository) GetBatches(ctx context.Context, params common.Paginati
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	lang := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, lang, warehouseId, q.GetCurrentCursor())
+	rows, err := q.Query(ctx, op, sql, lang, warehouseId)
 	if err != nil {
 		log.Printf("Failed to get batches: %s", err.Error())
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to get batches")
@@ -140,7 +140,7 @@ func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, pa
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	lang := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, lang, warehouseId, sku, q.GetCurrentCursor())
+	rows, err := q.Query(ctx, op, sql, lang, warehouseId, sku)
 	if err != nil {
 		log.Printf("Failed to get batches: %s", err.Error())
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to search batches")

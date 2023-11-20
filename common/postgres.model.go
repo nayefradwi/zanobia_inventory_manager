@@ -202,3 +202,16 @@ func (q *PaginationQuery) getArgsForCursors(finalArgIndex int) []string {
 	}
 	return args
 }
+
+func (q PaginationQuery) Query(ctx context.Context, op DbOperator, sql string, arguments ...interface{}) (pgx.Rows, error) {
+	cursors := q.GetCurrentCursor()
+	if len(cursors) != len(q.CursorKeys) {
+		return op.Query(ctx, sql, arguments...)
+	}
+	args := make([]interface{}, 0)
+	args = append(args, arguments...)
+	for _, cursor := range cursors {
+		args = append(args, cursor)
+	}
+	return op.Query(ctx, sql, args...)
+}
