@@ -142,7 +142,7 @@ func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, pa
 	lang := common.GetLanguageParam(ctx)
 	rows, err := q.Query(ctx, op, sql, lang, warehouseId, sku)
 	if err != nil {
-		log.Printf("Failed to get batches: %s", err.Error())
+		log.Printf("Failed to search batches: %s", err.Error())
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to search batches")
 	}
 	return r.parseBatchRows(rows)

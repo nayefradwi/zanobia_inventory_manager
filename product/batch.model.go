@@ -59,6 +59,6 @@ func ValidateBatchInput(input BatchInput) error {
 	return nil
 }
 
-func (b Batch) getCursorValue() string {
+func (b Batch) GetCursorValue() string {
 	return strconv.Itoa(*b.Id) + "," + common.GetUtcDateOnlyStringFromTime(b.ExpiresAt)
 }

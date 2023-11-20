@@ -2,7 +2,6 @@ package product
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
@@ -52,8 +51,8 @@ func (s *IngredientService) GetIngredients(ctx context.Context) (common.Paginate
 	first, last := ingredients[0], ingredients[len(ingredients)-1]
 	res := common.CreatePaginatedResponse[Ingredient](
 		paginationParams.PageSize,
-		strconv.Itoa(*last.Id),
-		strconv.Itoa(*first.Id),
+		last,
+		first,
 		ingredients,
 	)
 	return res, nil

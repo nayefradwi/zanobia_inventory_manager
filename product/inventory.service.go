@@ -209,8 +209,8 @@ func (s *InventoryService) GetInventories(ctx context.Context) (common.Paginated
 	first, last := inventories[0], inventories[len(inventories)-1]
 	res := common.CreatePaginatedResponse[Inventory](
 		paginationParams.PageSize,
-		common.GetUtcDateOnlyStringFromTime(last.UpdatedAt),
-		common.GetUtcDateOnlyStringFromTime(first.UpdatedAt),
+		last,
+		first,
 		inventories,
 	)
 	return res, nil

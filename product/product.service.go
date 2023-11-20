@@ -3,7 +3,6 @@ package product
 import (
 	"context"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -57,11 +56,11 @@ func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (commo
 	if len(products) == 0 {
 		return common.CreateEmptyPaginatedResponse[ProductBase](paginationParams.PageSize), nil
 	}
-	firstId, lastId := products[0].Id, products[len(products)-1].Id
+	first, last := products[0], products[len(products)-1]
 	return common.CreatePaginatedResponse[ProductBase](
 		paginationParams.PageSize,
-		strconv.Itoa(*lastId),
-		strconv.Itoa(*firstId),
+		last,
+		first,
 		products,
 	), nil
 }

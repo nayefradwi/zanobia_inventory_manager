@@ -257,7 +257,7 @@ func (r *ProductRepo) GetProducts(
 		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, isArchive, languageCode, q.GetCurrentCursor())
+	rows, err := q.Query(ctx, op, sql, isArchive, languageCode)
 	if err != nil {
 		log.Printf("failed to get products: %s", err.Error())
 		return nil, common.NewBadRequestError("Failed to get products", zimutils.GetErrorCodeFromError(err))

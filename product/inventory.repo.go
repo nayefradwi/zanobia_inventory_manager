@@ -122,5 +122,5 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
 	warehouseId := warehouse.GetWarehouseId(ctx)
-	return op.Query(ctx, sql, languageCode, warehouseId, q.GetCurrentCursor())
+	return q.Query(ctx, op, sql, languageCode, warehouseId)
 }

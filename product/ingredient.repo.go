@@ -99,7 +99,7 @@ func (r *IngredientRepository) GetIngredients(ctx context.Context, paginationPar
 		WithPageSize(paginationParams.PageSize).
 		Build()
 	languageCode := common.GetLanguageParam(ctx)
-	rows, err := r.Query(ctx, sql, languageCode, q.GetCurrentCursor())
+	rows, err := q.Query(ctx, r.Pool, sql, languageCode)
 	if err != nil {
 		log.Printf("failed to get ingredients: %s", err.Error())
 		return nil, common.NewInternalServerError()

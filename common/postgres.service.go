@@ -101,9 +101,5 @@ func CreatePaginationQuery(sql PaginationQuery) string {
 	)
 	trimmedSql := strings.ReplaceAll(formattedSql, "\n", " ")
 	trimmedSql = strings.ReplaceAll(trimmedSql, "\t", "")
-	/*
-	*
-	 */
-	log.Print(trimmedSql)
 	return trimmedSql
 }
