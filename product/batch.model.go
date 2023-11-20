@@ -1,6 +1,7 @@
 package product
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -56,4 +57,8 @@ func ValidateBatchInput(input BatchInput) error {
 		return common.NewValidationError("invalid batch input", errors...)
 	}
 	return nil
+}
+
+func (b Batch) GetCursorValue() string {
+	return strconv.Itoa(*b.Id) + "," + common.GetUtcDateOnlyStringFromTime(b.ExpiresAt)
 }

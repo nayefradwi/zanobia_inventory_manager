@@ -89,59 +89,17 @@ func GetOperator(ctx context.Context, defaultOp DbOperator) DbOperator {
 
 func CreatePaginationQuery(sql PaginationQuery) string {
 	unformattedSql := sql.BaseSql + " " + "WHERE %s %s ORDER BY %s LIMIT %s;"
-	finalArgIndex, joinedConditions := getFinalArgAndJoinedConditions(sql.Conditions)
-	unformattedPaginationConditonWithCursor := "AND %s %s $%d"
-	unformattedPaginationConditionWithoutCursor := "AND $%d = $%d"
-	directionString := getDirectionString(sql.Direction)
-	var formattedPaginationCondition string
-	if sql.EndCursor == "" && sql.PreviousCursor == "" {
-		formattedPaginationCondition = fmt.Sprintf(
-			unformattedPaginationConditionWithoutCursor,
-			finalArgIndex,
-			finalArgIndex,
-		)
-	} else {
-		formattedPaginationCondition = fmt.Sprintf(
-			unformattedPaginationConditonWithCursor,
-			*sql.CursorKey,
-			directionString,
-			finalArgIndex,
-		)
-	}
+	finalArgIndex, joinedConditions := sql.getFinalArgAndJoinedConditions()
+	formattedPaginationCondition := sql.getFormatedPaginationConditionQuery(finalArgIndex)
+	formattedOrderByQuery := sql.getFormattedOrderByQuery()
 	formattedSql := fmt.Sprintf(
 		unformattedSql,
 		joinedConditions,
 		formattedPaginationCondition,
-		sql.OrderByQuery,
+		formattedOrderByQuery,
 		strconv.Itoa(sql.PageSize),
 	)
 	trimmedSql := strings.ReplaceAll(formattedSql, "\n", " ")
 	trimmedSql = strings.ReplaceAll(trimmedSql, "\t", "")
 	return trimmedSql
-}
-
-func getFinalArgAndJoinedConditions(conditions []string) (int, string) {
-	finalArgIndex := 1
-	for _, condition := range conditions {
-		if condition != "" &&
-			condition != " " &&
-			condition != "AND" &&
-			condition != "OR" &&
-			condition != "and" &&
-			condition != "or" {
-			finalArgIndex++
-		}
-	}
-	var joinedConditions string
-	if finalArgIndex != 1 {
-		joinedConditions = strings.Join(conditions, " ")
-	}
-	return finalArgIndex, joinedConditions
-}
-
-func getDirectionString(direction int) string {
-	if direction < 0 {
-		return "<"
-	}
-	return ">"
 }

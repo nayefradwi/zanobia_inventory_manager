@@ -1,5 +1,7 @@
 package product
 
+import "strconv"
+
 type IngredientBase struct {
 	Id             *int    `json:"id,omitempty"`
 	Name           string  `json:"name"`
@@ -13,4 +15,8 @@ type IngredientBase struct {
 type Ingredient struct {
 	IngredientBase
 	StandardUnit *Unit `json:"standardUnit,omitempty"`
+}
+
+func (b Ingredient) GetCursorValue() string {
+	return strconv.Itoa(*b.Id)
 }

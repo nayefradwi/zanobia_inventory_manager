@@ -95,23 +95,23 @@ func (r *BatchRepository) GetBatchBaseById(ctx context.Context, id *int) (BatchB
 func (r *BatchRepository) GetBatches(ctx context.Context, params common.PaginationParams) ([]Batch, error) {
 	sqlBuilder := common.NewPaginationQueryBuilder(
 		baseBatchListingSql,
-		"b.expires_at DESC",
+		[]string{"b.expires_at DESC", "b.id ASC"},
 	)
-	sql := sqlBuilder.
+	q, sql := sqlBuilder.
 		WithConditions([]string{
 			"utx.language_code = $1",
 			"AND",
 			"b.warehouse_id = $2",
 		}).
 		WithCursor(params.EndCursor, params.PreviousCursor).
-		WithCursorKey("b.expires_at").
+		WithCursorKeys([]string{"b.id", "b.expires_at"}).
 		WithPageSize(params.PageSize).
 		WithDirection(params.Direction).
 		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	lang := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, lang, warehouseId, sqlBuilder.GetCurrentCursor())
+	rows, err := q.Query(ctx, op, sql, lang, warehouseId)
 	if err != nil {
 		log.Printf("Failed to get batches: %s", err.Error())
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to get batches")
@@ -122,9 +122,9 @@ func (r *BatchRepository) GetBatches(ctx context.Context, params common.Paginati
 func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]Batch, error) {
 	sqlBuilder := common.NewPaginationQueryBuilder(
 		baseBatchListingSql,
-		"b.expires_at DESC",
+		[]string{"b.expires_at DESC", "b.id ASC"},
 	)
-	sql := sqlBuilder.
+	q, sql := sqlBuilder.
 		WithConditions([]string{
 			"utx.language_code = $1",
 			"AND",
@@ -133,16 +133,16 @@ func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, pa
 			"b.sku = $3",
 		}).
 		WithCursor(params.EndCursor, params.PreviousCursor).
-		WithCursorKey("b.expires_at").
+		WithCursorKeys([]string{"b.id", "b.expires_at"}).
 		WithPageSize(params.PageSize).
 		WithDirection(params.Direction).
 		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	lang := common.GetLanguageParam(ctx)
-	rows, err := op.Query(ctx, sql, lang, warehouseId, sku, sqlBuilder.GetCurrentCursor())
+	rows, err := q.Query(ctx, op, sql, lang, warehouseId, sku)
 	if err != nil {
-		log.Printf("Failed to get batches: %s", err.Error())
+		log.Printf("Failed to search batches: %s", err.Error())
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to search batches")
 	}
 	return r.parseBatchRows(rows)

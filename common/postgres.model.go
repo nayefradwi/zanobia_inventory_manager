@@ -2,6 +2,8 @@ package common
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
@@ -27,19 +29,24 @@ type PaginatedResponse[T any] struct {
 	ItemsLength    int    `json:"itemsLength"`
 	Items          []T    `json:"items"`
 }
+type Cursorable interface {
+	GetCursorValue() string
+}
 
 func CreatePaginatedResponse[T any](
 	pageSize int,
 	endCursor,
-	previousCursor string,
+	previousCursor Cursorable,
 	items []T,
 ) PaginatedResponse[T] {
+	endCursorValue := endCursor.GetCursorValue()
+	previousCursorValue := previousCursor.GetCursorValue()
 	return PaginatedResponse[T]{
 		PageSize:       pageSize,
-		EndCursor:      endCursor,
-		PreviousCursor: previousCursor,
+		EndCursor:      endCursorValue,
+		PreviousCursor: previousCursorValue,
 		HasNext:        len(items) >= pageSize,
-		HasPrevious:    len(items) >= pageSize && previousCursor != "",
+		HasPrevious:    len(items) >= pageSize && previousCursorValue != "",
 		ItemsLength:    len(items),
 		Items:          items,
 	}
@@ -70,8 +77,8 @@ type PaginationQuery struct {
 	Direction      int
 	EndCursor      string
 	PreviousCursor string
-	CursorKey      *string
-	OrderByQuery   string
+	CursorKeys     []string
+	OrderByQuery   []string
 	PageSize       int
 }
 
@@ -82,7 +89,7 @@ type PaginationParams struct {
 	Direction      int
 }
 
-func NewPaginationQueryBuilder(baseSql string, orderByQuery string) *paginationQueryBuilder {
+func NewPaginationQueryBuilder(baseSql string, orderByQuery []string) *paginationQueryBuilder {
 	return &paginationQueryBuilder{
 		query: &PaginationQuery{
 			BaseSql:      baseSql,
@@ -104,8 +111,8 @@ func (b *paginationQueryBuilder) WithCursor(endCursor string, previousCursor str
 	return b
 }
 
-func (b *paginationQueryBuilder) WithCursorKey(cursorKey string) *paginationQueryBuilder {
-	b.query.CursorKey = &cursorKey
+func (b *paginationQueryBuilder) WithCursorKeys(cursorKeys []string) *paginationQueryBuilder {
+	b.query.CursorKeys = cursorKeys
 	return b
 }
 
@@ -119,20 +126,97 @@ func (b *paginationQueryBuilder) WithPageSize(pageSize int) *paginationQueryBuil
 	return b
 }
 
-func (b *paginationQueryBuilder) GetCurrentCursor() string {
-	if b.query.Direction < 0 {
-		return b.query.PreviousCursor
-	}
-	return b.query.EndCursor
-}
-
-func (b *paginationQueryBuilder) Build() string {
+func (b *paginationQueryBuilder) Build() (PaginationQuery, string) {
 	if b.query == nil {
 		panic("invalid pagination query")
 	}
 	if b.query.BaseSql == "" || b.query.PageSize <= 0 ||
-		b.query.CursorKey == nil {
+		b.query.CursorKeys == nil || b.query.OrderByQuery == nil ||
+		len(b.query.CursorKeys) != len(b.query.OrderByQuery) ||
+		len(b.query.OrderByQuery) == 0 || len(b.query.CursorKeys) == 0 {
 		panic("invalid pagination query")
 	}
-	return CreatePaginationQuery(*b.query)
+	return *b.query, CreatePaginationQuery(*b.query)
+}
+
+func (q PaginationQuery) GetCurrentCursor() []string {
+	if q.Direction < 0 {
+		return strings.Split(q.PreviousCursor, ",")
+	}
+	return strings.Split(q.EndCursor, ",")
+}
+
+func (q *PaginationQuery) getFinalArgAndJoinedConditions() (int, string) {
+	finalArgIndex := 1
+	for _, condition := range q.Conditions {
+		if condition != "" &&
+			condition != " " &&
+			condition != "AND" &&
+			condition != "OR" &&
+			condition != "and" &&
+			condition != "or" {
+			finalArgIndex++
+		}
+	}
+	var joinedConditions string
+	if finalArgIndex != 1 {
+		joinedConditions = strings.Join(q.Conditions, " ")
+	}
+	return finalArgIndex, joinedConditions
+}
+
+func (q *PaginationQuery) getFormatedPaginationConditionQuery(finalArgIndex int) string {
+	// this will be like so AND (cursorKey1, cursorKey2, cursorKey3) > ($finalArgIndex1, $finalArgIndex2, $finalArgIndex3)
+	unformattedPaginationConditonWithCursor := "AND %s %s %s"
+	if q.EndCursor == "" && q.PreviousCursor == "" {
+		return ""
+	}
+	cursorKeys := q.getCursorKeysJoined()
+	argsForCursors := q.getArgsForCursorsJoined(finalArgIndex)
+	return fmt.Sprintf(
+		unformattedPaginationConditonWithCursor,
+		cursorKeys,
+		q.getDirectionString(),
+		argsForCursors,
+	)
+}
+
+func (q *PaginationQuery) getDirectionString() string {
+	if q.Direction < 0 {
+		return "<"
+	}
+	return ">"
+}
+
+func (q *PaginationQuery) getFormattedOrderByQuery() string {
+	return strings.Join(q.OrderByQuery, ", ")
+}
+
+func (q *PaginationQuery) getCursorKeysJoined() string {
+	return "(" + strings.Join(q.CursorKeys, ", ") + " )"
+}
+
+func (q *PaginationQuery) getArgsForCursorsJoined(finalArgIndex int) string {
+	return "(" + strings.Join(q.getArgsForCursors(finalArgIndex), ", ") + " )"
+}
+
+func (q *PaginationQuery) getArgsForCursors(finalArgIndex int) []string {
+	args := make([]string, 0)
+	for i := 0; i < len(q.CursorKeys); i++ {
+		args = append(args, fmt.Sprintf("$%d", finalArgIndex+i))
+	}
+	return args
+}
+
+func (q PaginationQuery) Query(ctx context.Context, op DbOperator, sql string, arguments ...interface{}) (pgx.Rows, error) {
+	cursors := q.GetCurrentCursor()
+	if len(cursors) == 0 || cursors[0] == "" {
+		return op.Query(ctx, sql, arguments...)
+	}
+	args := make([]interface{}, 0)
+	args = append(args, arguments...)
+	for _, cursor := range cursors {
+		args = append(args, cursor)
+	}
+	return op.Query(ctx, sql, args...)
 }

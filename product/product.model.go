@@ -1,6 +1,8 @@
 package product
 
 import (
+	"strconv"
+
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -22,6 +24,10 @@ type ProductBase struct {
 	Image       string  `json:"image,omitempty"`
 	IsArchived  bool    `json:"isArchived"`
 	CategoryId  *int    `json:"categoryId,omitempty"`
+}
+
+func (p ProductBase) GetCursorValue() string {
+	return strconv.Itoa(*p.Id)
 }
 
 type Product struct {
