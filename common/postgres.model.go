@@ -176,7 +176,7 @@ func (q *PaginationQuery) getFormatedPaginationConditionQuery(finalArgIndex int)
 }
 
 func (q *PaginationQuery) getDirectionString() string {
-	if q.Direction <= 0 {
+	if q.Direction == 0 {
 		return ">="
 	} else if q.Direction > 0 {
 		return ">"
