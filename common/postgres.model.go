@@ -66,14 +66,17 @@ type paginationQueryBuilder struct {
 	query *PaginationQuery
 }
 type PaginationQuery struct {
-	BaseSql        string
-	Conditions     []string
-	Direction      int
-	EndCursor      string
-	PreviousCursor string
-	CursorKeys     []string
-	OrderByQuery   []string
-	PageSize       int
+	BaseSql               string
+	Conditions            []string
+	Direction             int
+	EndCursor             string
+	PreviousCursor        string
+	CursorKeys            []string
+	OrderByQuery          []string
+	PageSize              int
+	RefreshCompareSymbol  string
+	ForwardCompareSymbol  string
+	BackwardCompareSymbol string
 }
 
 type PaginationParams struct {
@@ -86,10 +89,13 @@ type PaginationParams struct {
 func NewPaginationQueryBuilder(baseSql string, orderByQuery []string) *paginationQueryBuilder {
 	return &paginationQueryBuilder{
 		query: &PaginationQuery{
-			BaseSql:      baseSql,
-			OrderByQuery: orderByQuery,
-			PageSize:     10,
-			Direction:    1,
+			BaseSql:               baseSql,
+			OrderByQuery:          orderByQuery,
+			PageSize:              10,
+			Direction:             1,
+			ForwardCompareSymbol:  ">",
+			BackwardCompareSymbol: "<",
+			RefreshCompareSymbol:  ">=",
 		},
 	}
 }
@@ -117,6 +123,13 @@ func (b *paginationQueryBuilder) WithConditions(conditions []string) *pagination
 
 func (b *paginationQueryBuilder) WithPageSize(pageSize int) *paginationQueryBuilder {
 	b.query.PageSize = pageSize
+	return b
+}
+
+func (b *paginationQueryBuilder) WithCompareSymbols(forward, refresh, backward string) *paginationQueryBuilder {
+	b.query.ForwardCompareSymbol = forward
+	b.query.RefreshCompareSymbol = refresh
+	b.query.BackwardCompareSymbol = backward
 	return b
 }
 
@@ -177,11 +190,11 @@ func (q *PaginationQuery) getFormatedPaginationConditionQuery(finalArgIndex int)
 
 func (q *PaginationQuery) getDirectionString() string {
 	if q.Direction == 0 {
-		return ">="
+		return q.RefreshCompareSymbol
 	} else if q.Direction > 0 {
-		return ">"
+		return q.ForwardCompareSymbol
 	}
-	return "<"
+	return q.BackwardCompareSymbol
 }
 
 func (q *PaginationQuery) getFormattedOrderByQuery() string {

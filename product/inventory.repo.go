@@ -104,7 +104,7 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 		join ingredient_translations ingtx on ingtx.ingredient_id = inv.ingredient_id
 		join unit_translations utx on utx.unit_id = inv.unit_id
 		`,
-		[]string{"inv.updated_at DESC", "inv.id ASC"},
+		[]string{"inv.updated_at DESC"},
 	)
 	q, sql := sqlBuilder.
 		WithConditions(
@@ -115,9 +115,10 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 			},
 		).
 		WithCursor(params.EndCursor, params.PreviousCursor).
-		WithCursorKeys([]string{"inv.id", "inv.updated_at"}).
+		WithCursorKeys([]string{"inv.updated_at"}).
 		WithDirection(params.Direction).
 		WithPageSize(params.PageSize).
+		WithCompareSymbols("<", ">=", ">").
 		Build()
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)

@@ -1,10 +1,7 @@
 package product
 
 import (
-	"strconv"
 	"time"
-
-	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
 type InventoryBase struct {
@@ -36,5 +33,5 @@ func (b InventoryBase) SetQuantity(quantity float64) InventoryBase {
 }
 
 func (b Inventory) GetCursorValue() string {
-	return strconv.Itoa(*b.Id) + "," + common.GetUtcDateOnlyStringFromTime(b.UpdatedAt)
+	return b.UpdatedAt.Format(time.RFC3339)
 }
