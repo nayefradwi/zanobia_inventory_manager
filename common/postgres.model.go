@@ -61,13 +61,6 @@ func CreateEmptyPaginatedResponse[T any](pageSize int) PaginatedResponse[T] {
 	}
 }
 
-func GetSortingQuery(sort int) string {
-	if sort < 0 {
-		return "DESC"
-	}
-	return "ASC"
-}
-
 type paginationQueryBuilder struct {
 	query *PaginationQuery
 }
@@ -182,10 +175,12 @@ func (q *PaginationQuery) getFormatedPaginationConditionQuery(finalArgIndex int)
 }
 
 func (q *PaginationQuery) getDirectionString() string {
-	if q.Direction < 0 {
-		return "<"
+	if q.Direction <= 0 {
+		return ">="
+	} else if q.Direction > 0 {
+		return ">"
 	}
-	return ">"
+	return "<"
 }
 
 func (q *PaginationQuery) getFormattedOrderByQuery() string {

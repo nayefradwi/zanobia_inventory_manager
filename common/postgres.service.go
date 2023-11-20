@@ -48,9 +48,9 @@ func getPaginationParams(r *http.Request) PaginationParams {
 	if pageSize == 0 {
 		pageSize = 10
 	}
-	if sort >= 0 {
+	if sort > 0 {
 		sort = 1
-	} else {
+	} else if sort < 0 {
 		sort = -1
 	}
 	return PaginationParams{
