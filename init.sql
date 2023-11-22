@@ -283,3 +283,51 @@ CREATE UNIQUE INDEX idx_recipe ON recipes(result_variant_id, recipe_variant_id);
 CREATE UNIQUE INDEX idx_batch ON batches(sku, warehouse_id, expires_at);
 
 -- END RECIPE AND BATCHES TABLES --
+
+-- RETAILER TABLES --
+DROP TABLE IF EXISTS retailers CASCADE;
+DROP TABLE IF EXISTS retailer_translations CASCADE;
+DROP TABLE IF EXISTS retailer_contact_info CASCADE;
+DROP TABLE IF EXISTS retailer_contact_info_translations CASCADE;
+
+CREATE TABLE retailers (
+    id SERIAL PRIMARY KEY,
+    lat  DOUBLE PRECISION NOT NULL,
+    lng  DOUBLE PRECISION NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE retailer_translations (
+    id SERIAL PRIMARY KEY,
+    retailer_id INTEGER NOT NULL REFERENCES retailers(id),
+    language_code VARCHAR(2) NOT NULL DEFAULT 'en',
+    name VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE retailer_contact_info (
+    id SERIAL PRIMARY KEY,
+    retailer_id INTEGER NOT NULL REFERENCES retailers(id),
+    email VARCHAR(255),
+    phone VARCHAR(50) NOT NULL,
+    website VARCHAR(255),
+    image VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE retailer_contact_info_translations (
+    id SERIAL PRIMARY KEY,
+    retailer_contact_info_id INTEGER NOT NULL REFERENCES retailer_contact_info(id),
+    language_code VARCHAR(2) NOT NULL DEFAULT 'en',
+    name VARCHAR(50) NOT NULL
+);
+
+DROP INDEX IF EXISTS idx_retailer_translation CASCADE;
+DROP INDEX IF EXISTS idx_retailer_contact_info_translation CASCADE;
+DROP INDEX IF EXISTS idx_retailer_contact_info CASCADE;
+
+CREATE INDEX idx_retailer_translation ON retailer_translations(name, language_code);
+CREATE INDEX idx_retailer_contact_info_translation ON retailer_contact_info_translations(name, language_code);
+CREATE UNIQUE INDEX idx_retailer_contact_info ON retailer_contact_info(retailer_id, phone);
+-- END RETAILER TABLES --

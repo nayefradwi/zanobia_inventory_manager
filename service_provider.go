@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
+	"github.com/nayefradwi/zanobia_inventory_manager/retailer"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 	"github.com/redis/go-redis/v9"
@@ -26,6 +27,7 @@ type systemRepositories struct {
 	productRepository    product.IProductRepo
 	recipeRepository     product.IRecipeRepository
 	batchRepository      product.IBatchRepository
+	retailerRepository   retailer.IRetailerRepository
 }
 
 type systemServices struct {
@@ -38,6 +40,7 @@ type systemServices struct {
 	productService    product.IProductService
 	recipeService     product.IRecipeService
 	batchService      product.IBatchService
+	retailerService   retailer.IRetailerService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -68,6 +71,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	productRepo := product.NewProductRepository(connections.dbPool)
 	recipeRepo := product.NewRecipeRepository(connections.dbPool)
 	batchRepo := product.NewBatchRepository(connections.dbPool)
+	retailerRepo := retailer.NewRetailerRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:       userRepo,
 		permissionRepository: permssionRepo,
@@ -77,6 +81,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 		productRepository:    productRepo,
 		recipeRepository:     recipeRepo,
 		batchRepository:      batchRepo,
+		retailerRepository:   retailerRepo,
 	}
 }
 
@@ -92,7 +97,6 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	roleService := user.NewRoleService(repositories.roleRepository)
 	unitService := product.NewUnitService(repositories.unitRepository)
 	warehouseService := warehouse.NewWarehouseService(repositories.warehouseRepository)
-
 	recipeService := product.NewRecipeService(repositories.recipeRepository)
 	productService := product.NewProductService(repositories.productRepository, recipeService)
 	batchService := product.NewBatchService(
@@ -101,6 +105,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		lockingService,
 		unitService,
 	)
+	retailerService := retailer.NewRetailerService(repositories.retailerRepository)
 	s.services = systemServices{
 		userService:       userService,
 		permissionService: permissionService,
@@ -111,6 +116,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		productService:    productService,
 		recipeService:     recipeService,
 		batchService:      batchService,
+		retailerService:   retailerService,
 	}
 }
 
