@@ -32,47 +32,6 @@ func ValidateUnit(unitInput Unit) error {
 	return nil
 }
 
-func ValidateIngredient(ingredient IngredientBase) error {
-	validationResults := make([]common.ErrorDetails, 0)
-	validationResults = append(validationResults,
-		common.ValidateAlphanuemericName(ingredient.Name, "name"),
-		common.ValidateAlphanuemericName(ingredient.Brand, "brand name"),
-		common.ValidateNotZero(ingredient.Price, "price"),
-		common.ValidateNotZero(ingredient.ExpiresInDays, "expiresInDays"),
-		common.ValidateIdPtr(ingredient.StandardUnitId, "standardUnitId"),
-		common.ValidateNotZero(ingredient.StandardQty, "standardQty"),
-	)
-	errors := make([]common.ErrorDetails, 0)
-	for _, result := range validationResults {
-		if len(result.Message) > 0 {
-			errors = append(errors, result)
-		}
-	}
-	if len(errors) > 0 {
-		return common.NewValidationError("invalid ingredient input", errors...)
-	}
-	return nil
-}
-
-func ValidateInventoryInput(inventoryInput InventoryInput) error {
-	validationResults := make([]common.ErrorDetails, 0)
-	validationResults = append(validationResults,
-		common.ValidateId(inventoryInput.IngredientId, "ingredientId"),
-		common.ValidateIdPtr(&inventoryInput.UnitId, "unitId"),
-		common.ValidateNotZero(inventoryInput.Quantity, "quantity"),
-	)
-	errors := make([]common.ErrorDetails, 0)
-	for _, result := range validationResults {
-		if len(result.Message) > 0 {
-			errors = append(errors, result)
-		}
-	}
-	if len(errors) > 0 {
-		return common.NewValidationError("invalid inventory input", errors...)
-	}
-	return nil
-}
-
 func ValidateProduct(product ProductInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,

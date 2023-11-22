@@ -41,7 +41,7 @@ func (r *RecipeRepository) CreateRecipes(ctx context.Context, recipes []RecipeBa
 func (r *RecipeRepository) AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error {
 	sql := `INSERT INTO recipes (product_variant_id, ingredient_id, quantity, unit_id) VALUES ($1, $2, $3, $4)`
 	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, recipe.ProductVariantId, recipe.IngredientId, recipe.Quantity, recipe.UnitId)
+	_, err := op.Exec(ctx, sql, recipe.ProductVariantId, recipe.RecipeVariantId, recipe.Quantity, recipe.UnitId)
 	if err != nil {
 		log.Printf("failed to add ingredient to recipe: %s", err.Error())
 		return common.NewBadRequestFromMessage("failed to add ingredient to recipe")

@@ -102,7 +102,6 @@ func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productRouter.Get("/{id}", productController.GetProduct)
 	productRouter.Post("/translation", productController.TranslateProduct)
 	registerUnitRoutes(productRouter, provider)
-	registerIngredientRoutes(productRouter, provider)
 	registerProductVariantRoutes(productRouter, provider)
 	mainRouter.Mount("/products", productRouter)
 }
@@ -125,26 +124,6 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitConversionRouter.Post("/from-name", unitConversionController.CreateConversionFromName)
 	unitConversionRouter.Post("/convert", unitConversionController.ConvertUnit)
 	mainRouter.Mount("/unit-conversions", unitConversionRouter)
-}
-
-func registerIngredientRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	ingredientRouter, _ := createSecureRouter(provider)
-	ingredientController := product.NewIngredientController(provider.services.ingredientService)
-	ingredientRouter.Post("/", ingredientController.CreateIngredient)
-	ingredientRouter.Get("/", ingredientController.GetIngredients)
-	registerInventoryRoutes(ingredientRouter, provider)
-	mainRouter.Mount("/ingredients", ingredientRouter)
-}
-
-func registerInventoryRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	inventoryRouter, _ := createSecureRouter(provider)
-	inventoryController := product.NewInventoryController(provider.services.inventoryService)
-	inventoryRouter.Post("/inventory/stock", inventoryController.IncrementInventory)
-	inventoryRouter.Delete("/inventory/stock", inventoryController.DecrementInventory)
-	inventoryRouter.Post("/stock", inventoryController.BulkIncrementInventory)
-	inventoryRouter.Delete("/stock", inventoryController.BulkDecrementInventory)
-	inventoryRouter.Get("/", inventoryController.GetInventories)
-	mainRouter.Mount("/inventories", inventoryRouter)
 }
 
 func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {

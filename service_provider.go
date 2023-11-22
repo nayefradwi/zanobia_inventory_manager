@@ -23,8 +23,6 @@ type systemRepositories struct {
 	roleRepository       user.IRoleRepository
 	unitRepository       product.IUnitRepository
 	warehouseRepository  warehouse.IWarehouseRepository
-	ingredientRepository product.IIngredientRepository
-	inventoryRepository  product.IInventoryRepository
 	productRepository    product.IProductRepo
 	recipeRepository     product.IRecipeRepository
 	batchRepository      product.IBatchRepository
@@ -36,9 +34,7 @@ type systemServices struct {
 	roleService       user.IRoleService
 	unitService       product.IUnitService
 	warehouseService  warehouse.IWarehouseService
-	ingredientService product.IIngredientService
 	lockingService    common.IDistributedLockingService
-	inventoryService  product.IInventoryService
 	productService    product.IProductService
 	recipeService     product.IRecipeService
 	batchService      product.IBatchService
@@ -69,8 +65,6 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	roleRepo := user.NewRoleRepository(connections.dbPool)
 	unitRepo := product.NewUnitRepository(connections.dbPool)
 	warehouseRepo := warehouse.NewWarehouseRepository(connections.dbPool)
-	ingredientRepo := product.NewIngredientRepository(connections.dbPool)
-	inventoryRepo := product.NewInventoryRepository(connections.dbPool)
 	productRepo := product.NewProductRepository(connections.dbPool)
 	recipeRepo := product.NewRecipeRepository(connections.dbPool)
 	batchRepo := product.NewBatchRepository(connections.dbPool)
@@ -80,8 +74,6 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 		roleRepository:       roleRepo,
 		unitRepository:       unitRepo,
 		warehouseRepository:  warehouseRepo,
-		ingredientRepository: ingredientRepo,
-		inventoryRepository:  inventoryRepo,
 		productRepository:    productRepo,
 		recipeRepository:     recipeRepo,
 		batchRepository:      batchRepo,
@@ -100,19 +92,11 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	roleService := user.NewRoleService(repositories.roleRepository)
 	unitService := product.NewUnitService(repositories.unitRepository)
 	warehouseService := warehouse.NewWarehouseService(repositories.warehouseRepository)
-	ingredientService := product.NewIngredientService(repositories.ingredientRepository, lockingService)
-	inventoryServiceWorkUnit := product.InventoryServiceWorkUnit{
-		InventoryRepo:  repositories.inventoryRepository,
-		IngredientRepo: repositories.ingredientRepository,
-		LockingService: lockingService,
-		UnitService:    unitService,
-	}
-	inventoryService := product.NewInventoryService(inventoryServiceWorkUnit)
+
 	recipeService := product.NewRecipeService(repositories.recipeRepository)
 	productService := product.NewProductService(repositories.productRepository, recipeService)
 	batchService := product.NewBatchService(
 		repositories.batchRepository,
-		inventoryService,
 		productService,
 		lockingService,
 		unitService,
@@ -123,9 +107,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		roleService:       roleService,
 		unitService:       unitService,
 		warehouseService:  warehouseService,
-		ingredientService: ingredientService,
 		lockingService:    lockingService,
-		inventoryService:  inventoryService,
 		productService:    productService,
 		recipeService:     recipeService,
 		batchService:      batchService,

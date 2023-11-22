@@ -17,23 +17,20 @@ type IBatchService interface {
 }
 
 type BatchService struct {
-	batchRepo        IBatchRepository
-	inventoryService IInventoryService
-	productService   IProductService
-	lockingService   common.IDistributedLockingService
-	unitService      IUnitService
+	batchRepo      IBatchRepository
+	productService IProductService
+	lockingService common.IDistributedLockingService
+	unitService    IUnitService
 }
 
 func NewBatchService(
 	batchRepo IBatchRepository,
-	inventoryService IInventoryService,
 	productService IProductService,
 	lockingService common.IDistributedLockingService,
 	unitService IUnitService,
 ) *BatchService {
 	return &BatchService{
 		batchRepo,
-		inventoryService,
 		productService,
 		lockingService,
 		unitService,
