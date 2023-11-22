@@ -26,8 +26,8 @@ type ProductBase struct {
 	CategoryId  *int    `json:"categoryId,omitempty"`
 }
 
-func (p ProductBase) GetCursorValue() string {
-	return strconv.Itoa(*p.Id)
+func (p ProductBase) GetCursorValue() []string {
+	return []string{strconv.Itoa(*p.Id)}
 }
 
 type Product struct {

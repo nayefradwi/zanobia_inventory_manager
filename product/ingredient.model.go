@@ -17,6 +17,6 @@ type Ingredient struct {
 	StandardUnit *Unit `json:"standardUnit,omitempty"`
 }
 
-func (b Ingredient) GetCursorValue() string {
-	return strconv.Itoa(*b.Id)
+func (b Ingredient) GetCursorValue() []string {
+	return []string{strconv.Itoa(*b.Id)}
 }
