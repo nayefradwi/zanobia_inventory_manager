@@ -15,7 +15,7 @@ type IProductRepo interface {
 	CreateProduct(ctx context.Context, product ProductInput) error
 	AddProductVariant(ctx context.Context, input ProductVariantInput) error
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
-	GetProducts(ctx context.Context, paginationParams common.PaginationParams, isArchive bool) ([]ProductBase, error)
+	GetProducts(ctx context.Context, paginationParams common.PaginationParams, isArchive, isIngredient bool) ([]ProductBase, error)
 	GetProduct(ctx context.Context, id int) (Product, error)
 	GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error)
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
@@ -236,6 +236,7 @@ func (r *ProductRepo) GetProducts(
 	ctx context.Context,
 	paginationParams common.PaginationParams,
 	isArchive bool,
+	isIngredient bool,
 ) ([]ProductBase, error) {
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
@@ -252,11 +253,13 @@ func (r *ProductRepo) GetProducts(
 			"is_archived = $1",
 			"and",
 			"ptx.language_code = $2",
+			"and",
+			"is_ingredient = $3",
 		}).
 		WithCursorKeys([]string{"p.id"}).
 		WithParams(paginationParams).
 		Build().
-		Query(ctx, isArchive, languageCode)
+		Query(ctx, isArchive, languageCode, isIngredient)
 
 	if err != nil {
 		log.Printf("failed to get products: %s", err.Error())
