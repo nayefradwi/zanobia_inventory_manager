@@ -162,12 +162,18 @@ func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	warehouseRouter, _ := createSecureRouter(provider)
 	warehouseController := warehouse.NewWarehouseController(provider.services.warehouseService)
 	warehouseRouter.Post("/", warehouseController.CreateWarehouse)
-	warehouseRouter.With(middleware.HasPermissions(
-		user.SysAdminPermissionHandle,
-	)).Post("/user", warehouseController.AddUserToWarehouse)
+	warehouseRouter.
+		With(middleware.HasPermissions(
+			user.SysAdminPermissionHandle,
+		)).
+		Post("/user", warehouseController.AddUserToWarehouse)
 	warehouseRouter.Get("/current", warehouseController.GetCurrentWarehouse)
 	warehouseRouter.Get("/", warehouseController.GetWarehouses)
-	warehouseRouter.Put("/", warehouseController.UpdateWarehouse)
+	warehouseRouter.
+		With(middleware.HasPermissions(
+			user.SysAdminPermissionHandle,
+		)).
+		Put("/", warehouseController.UpdateWarehouse)
 	mainRouter.Mount("/warehouses", warehouseRouter)
 }
 
