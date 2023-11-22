@@ -70,11 +70,11 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 }
 
 func (r *ProductRepo) addProduct(ctx context.Context, product ProductInput) (int, error) {
-	sql := `INSERT INTO products (image, category_id, is_archived)
-			VALUES ($1, $2, $3) RETURNING id`
+	sql := `INSERT INTO products (image, category_id, is_archived, is_ingredient)
+			VALUES ($1, $2, $3, $4) RETURNING id`
 	var id int
 	op := common.GetOperator(ctx, r.Pool)
-	err := op.QueryRow(ctx, sql, product.Image, product.CategoryId, product.IsArchived).Scan(&id)
+	err := op.QueryRow(ctx, sql, product.Image, product.CategoryId, product.IsArchived, product.IsIngredient).Scan(&id)
 	if err != nil {
 		log.Printf("failed to create ingredient: %s", err.Error())
 		return 0, common.NewBadRequestError("Failed to create ingredient", zimutils.GetErrorCodeFromError(err))
