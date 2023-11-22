@@ -320,7 +320,8 @@ CREATE TABLE retailer_contact_info_translations (
     id SERIAL PRIMARY KEY,
     retailer_contact_info_id INTEGER NOT NULL REFERENCES retailer_contact_info(id),
     language_code VARCHAR(2) NOT NULL DEFAULT 'en',
-    name VARCHAR(50) NOT NULL
+    name VARCHAR(50) NOT NULL,
+    position VARCHAR(50) NOT NULL
 );
 
 DROP INDEX IF EXISTS idx_retailer_translation CASCADE;
