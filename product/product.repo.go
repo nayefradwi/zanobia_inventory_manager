@@ -15,7 +15,7 @@ type IProductRepo interface {
 	CreateProduct(ctx context.Context, product ProductInput) error
 	AddProductVariant(ctx context.Context, input ProductVariantInput) error
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
-	GetProducts(ctx context.Context, paginationParams common.PaginationParams, isArchive bool) ([]ProductBase, error)
+	GetProducts(ctx context.Context, paginationParams common.PaginationParams, isArchive, isIngredient bool) ([]ProductBase, error)
 	GetProduct(ctx context.Context, id int) (Product, error)
 	GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error)
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
@@ -70,11 +70,11 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 }
 
 func (r *ProductRepo) addProduct(ctx context.Context, product ProductInput) (int, error) {
-	sql := `INSERT INTO products (image, category_id, is_archived)
-			VALUES ($1, $2, $3) RETURNING id`
+	sql := `INSERT INTO products (image, category_id, is_archived, is_ingredient)
+			VALUES ($1, $2, $3, $4) RETURNING id`
 	var id int
 	op := common.GetOperator(ctx, r.Pool)
-	err := op.QueryRow(ctx, sql, product.Image, product.CategoryId, product.IsArchived).Scan(&id)
+	err := op.QueryRow(ctx, sql, product.Image, product.CategoryId, product.IsArchived, product.IsIngredient).Scan(&id)
 	if err != nil {
 		log.Printf("failed to create ingredient: %s", err.Error())
 		return 0, common.NewBadRequestError("Failed to create ingredient", zimutils.GetErrorCodeFromError(err))
@@ -236,6 +236,7 @@ func (r *ProductRepo) GetProducts(
 	ctx context.Context,
 	paginationParams common.PaginationParams,
 	isArchive bool,
+	isIngredient bool,
 ) ([]ProductBase, error) {
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
@@ -252,11 +253,13 @@ func (r *ProductRepo) GetProducts(
 			"is_archived = $1",
 			"and",
 			"ptx.language_code = $2",
+			"and",
+			"is_ingredient = $3",
 		}).
 		WithCursorKeys([]string{"p.id"}).
 		WithParams(paginationParams).
 		Build().
-		Query(ctx, isArchive, languageCode)
+		Query(ctx, isArchive, languageCode, isIngredient)
 
 	if err != nil {
 		log.Printf("failed to get products: %s", err.Error())

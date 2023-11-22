@@ -11,7 +11,7 @@ import (
 type IProductService interface {
 	CreateProduct(ctx context.Context, product ProductInput) error
 	TranslateProduct(ctx context.Context, product ProductInput, languageCode string) error
-	GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error)
+	GetProducts(ctx context.Context, isArchive bool, isIngredient bool) (common.PaginatedResponse[ProductBase], error)
 	GetProduct(ctx context.Context, id int) (Product, error)
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
 	AddProductVariant(ctx context.Context, input ProductVariantInput) error
@@ -47,9 +47,9 @@ func (s *ProductService) TranslateProduct(ctx context.Context, product ProductIn
 	return s.repo.TranslateProduct(ctx, product, languageCode)
 }
 
-func (s *ProductService) GetProducts(ctx context.Context, isArchive bool) (common.PaginatedResponse[ProductBase], error) {
+func (s *ProductService) GetProducts(ctx context.Context, isArchive bool, isIngredient bool) (common.PaginatedResponse[ProductBase], error) {
 	paginationParams := common.GetPaginationParams(ctx)
-	products, err := s.repo.GetProducts(ctx, paginationParams, isArchive)
+	products, err := s.repo.GetProducts(ctx, paginationParams, isArchive, isIngredient)
 	if err != nil {
 		return common.CreateEmptyPaginatedResponse[ProductBase](paginationParams.PageSize), err
 	}
@@ -94,6 +94,7 @@ func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId
 		log.Printf("failed to get recipe of product variant: %s", recipeErr.Error())
 	} else if len(recipes) > 0 {
 		productVariant.Recipes = recipes
+		productVariant.TotalCost = GetTotalCost(recipes)
 	}
 	return productVariant, nil
 }

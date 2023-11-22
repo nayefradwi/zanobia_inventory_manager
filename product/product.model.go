@@ -18,12 +18,13 @@ type ProductOptionValue struct {
 }
 
 type ProductBase struct {
-	Id          *int    `json:"id"`
-	Name        *string `json:"name"`
-	Description string  `json:"description"`
-	Image       string  `json:"image,omitempty"`
-	IsArchived  bool    `json:"isArchived"`
-	CategoryId  *int    `json:"categoryId,omitempty"`
+	Id           *int    `json:"id"`
+	Name         *string `json:"name"`
+	Description  string  `json:"description"`
+	Image        string  `json:"image,omitempty"`
+	IsArchived   bool    `json:"isArchived"`
+	CategoryId   *int    `json:"categoryId,omitempty"`
+	IsIngredient bool    `json:"isIngredient"`
 }
 
 func (p ProductBase) GetCursorValue() []string {
@@ -68,6 +69,7 @@ type ProductVariantBase struct {
 type ProductVariant struct {
 	ProductVariantBase
 	ProductName  string   `json:"productName"`
+	TotalCost    float64  `json:"totalCost,omitempty"`
 	Recipes      []Recipe `json:"recipes,omitempty"`
 	StandardUnit *Unit    `json:"standardUnit,omitempty"`
 }

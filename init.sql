@@ -116,52 +116,6 @@ CREATE UNIQUE INDEX idx_warehouse_name ON warehouses(name);
 CREATE UNIQUE INDEX idx_user_warehouse ON user_warehouses(user_id, warehouse_id);
 -- END WAREHOUSE TABLES --
 
--- INGREDIENT AND INVENTORY TABLES --
-
-DROP TABLE IF EXISTS ingredients CASCADE;
-DROP TABLE IF EXISTS ingredient_translations CASCADE;
-DROP TABLE IF EXISTS inventories CASCADE;
-
-CREATE TABLE ingredients (
-    id SERIAL PRIMARY KEY,
-    price DECIMAL(12,2) NOT NULL,
-    standard_quantity NUMERIC(10, 3) NOT NULL,
-    standard_unit_id INTEGER NOT NULL REFERENCES units(id),
-    expires_in_days INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE ingredient_translations(
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    brand VARCHAR(50),
-    language_code VARCHAR(2) NOT NULL DEFAULT 'en',
-    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id)
-);
-
-CREATE TABLE inventories (
-    id SERIAL PRIMARY KEY,
-    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
-    warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
-    quantity NUMERIC(12, 4) NOT NULL,
-    unit_id INTEGER NOT NULL REFERENCES units(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-DROP INDEX IF EXISTS idx_ingredient_translation_name_and_brand CASCADE;
-DROP INDEX IF EXISTS idx_ingredient_translation CASCADE;
-DROP INDEX IF EXISTS ingredients_unit_quantity_idx CASCADE;
-DROP INDEX IF EXISTS inventory_warehouse_ingredient_idx CASCADE;
-DROP INDEX IF EXISTS idx_inventory_updated_at CASCADE;
-
-CREATE UNIQUE INDEX idx_ingredient_translation_name_and_brand ON ingredient_translations(name, brand);
-CREATE UNIQUE INDEX idx_ingredient_translation ON ingredient_translations(ingredient_id, language_code);
-CREATE INDEX ingredients_unit_quantity_idx ON ingredients (standard_unit_id, standard_quantity);
-CREATE UNIQUE INDEX inventory_warehouse_ingredient_idx ON inventories (warehouse_id, ingredient_id);
-CREATE INDEX idx_inventory_updated_at ON inventories (updated_at);
--- END INGREDIENT AND INVENTORY TABLES --
 
 -- PRODUCT TABLES --
 DROP TABLE IF EXISTS categories CASCADE;
@@ -187,6 +141,7 @@ CREATE TABLE products (
     image VARCHAR(255),
     category_id INTEGER REFERENCES categories(id),
     is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+    is_ingredient BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -205,12 +160,14 @@ DROP INDEX IF EXISTS idx_product_translation CASCADE;
 DROP INDEX IF EXISTS idx_product_is_archived CASCADE;
 DROP INDEX IF EXISTS idx_product_category CASCADE;
 DROP INDEX IF EXISTS idx_product_created_at CASCADE;
+DROP INDEX IF EXISTS idx_product_is_ingredient CASCADE;
 
 CREATE UNIQUE INDEX idx_category_translation ON category_translations(category_id, language_code);
 CREATE UNIQUE INDEX idx_product_translation ON product_translations(product_id, language_code);
 CREATE INDEX idx_product_is_archived ON products(is_archived);
 CREATE INDEX idx_product_category ON products(category_id);
 CREATE INDEX idx_product_created_at ON products(created_at);
+CREATE INDEX idx_product_is_ingredient ON products(is_ingredient);
 
 -- END PRODUCT TABLES --
 
@@ -300,8 +257,8 @@ DROP TABLE IF EXISTS batches CASCADE;
 
 CREATE TABLE recipes (
     id SERIAL PRIMARY KEY,
-    product_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
-    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
+    result_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
+    recipe_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
     unit_id INTEGER NOT NULL REFERENCES units(id),
     quantity NUMERIC(12, 4) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -322,7 +279,7 @@ CREATE TABLE batches (
 DROP INDEX IF EXISTS idx_recipe CASCADE;
 DROP INDEX IF EXISTS idx_batch CASCADE;
 
-CREATE UNIQUE INDEX idx_recipe ON recipes(product_variant_id, ingredient_id);
+CREATE UNIQUE INDEX idx_recipe ON recipes(result_variant_id, recipe_variant_id);
 CREATE UNIQUE INDEX idx_batch ON batches(sku, warehouse_id, expires_at);
 
 -- END RECIPE AND BATCHES TABLES --
