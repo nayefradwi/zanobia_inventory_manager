@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -80,4 +81,16 @@ func GetOperator(ctx context.Context, defaultOp DbOperator) DbOperator {
 	}
 	log.Printf("operator is of type %T", op)
 	return op.(DbOperator)
+}
+
+func createCursorValue(c Cursorable) string {
+	cursorColumns := c.GetCursorValue()
+	if len(cursorColumns) == 0 {
+		return ""
+	}
+	if len(cursorColumns) == 1 {
+		return cursorColumns[0]
+	}
+	cursorValue := strings.Join(cursorColumns, ",")
+	return Base64Encode(cursorValue)
 }

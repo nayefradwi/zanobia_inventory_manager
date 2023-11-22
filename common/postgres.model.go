@@ -34,7 +34,7 @@ type PaginatedResponse[T any] struct {
 }
 
 type Cursorable interface {
-	GetCursorValue() string
+	GetCursorValue() []string
 }
 
 func CreatePaginatedResponse[T any](
@@ -43,8 +43,8 @@ func CreatePaginatedResponse[T any](
 	previousCursor Cursorable,
 	items []T,
 ) PaginatedResponse[T] {
-	endCursorValue := endCursor.GetCursorValue()
-	previousCursorValue := previousCursor.GetCursorValue()
+	endCursorValue := createCursorValue(endCursor)
+	previousCursorValue := createCursorValue(previousCursor)
 	return PaginatedResponse[T]{
 		PageSize:       pageSize,
 		EndCursor:      Base64Encode(endCursorValue),

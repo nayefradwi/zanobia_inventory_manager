@@ -33,6 +33,6 @@ func (b InventoryBase) SetQuantity(quantity float64) InventoryBase {
 	return b
 }
 
-func (b Inventory) GetCursorValue() string {
-	return strconv.Itoa(*b.Id) + "," + b.UpdatedAt.Format(time.RFC3339)
+func (b Inventory) GetCursorValue() []string {
+	return []string{b.UpdatedAt.Format(time.RFC3339), strconv.Itoa(*b.Id)}
 }
