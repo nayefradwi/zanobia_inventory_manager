@@ -2,11 +2,9 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -40,24 +38,22 @@ func SetPaginatedDataMiddleware(next http.Handler) http.Handler {
 
 func getPaginationParams(r *http.Request) PaginationParams {
 	pageSizeQuery := r.URL.Query().Get("pageSize")
-	endCursor := r.URL.Query().Get("endCursor")
-	previousCursor := r.URL.Query().Get("previousCursor")
-	sortQuery := r.URL.Query().Get("sort")
+	cursor := r.URL.Query().Get("cursor")
+	directionQuery := r.URL.Query().Get("direction")
 	pageSize, _ := strconv.Atoi(pageSizeQuery)
-	sort, _ := strconv.Atoi(sortQuery)
+	direction, _ := strconv.Atoi(directionQuery)
 	if pageSize == 0 {
 		pageSize = 10
 	}
-	if sort > 0 {
-		sort = 1
-	} else if sort < 0 {
-		sort = -1
+	if direction > 0 {
+		direction = 1
+	} else if direction < 0 {
+		direction = -1
 	}
 	return PaginationParams{
-		PageSize:       pageSize,
-		Direction:      sort,
-		EndCursor:      endCursor,
-		PreviousCursor: previousCursor,
+		PageSize:  pageSize,
+		Direction: direction,
+		Cursor:    cursor,
 	}
 }
 
@@ -66,10 +62,9 @@ func GetPaginationParams(ctx context.Context) PaginationParams {
 		return params
 	}
 	return PaginationParams{
-		PageSize:       10,
-		Direction:      1,
-		EndCursor:      "",
-		PreviousCursor: "",
+		PageSize:  10,
+		Direction: 1,
+		Cursor:    "",
 	}
 }
 
@@ -85,21 +80,4 @@ func GetOperator(ctx context.Context, defaultOp DbOperator) DbOperator {
 	}
 	log.Printf("operator is of type %T", op)
 	return op.(DbOperator)
-}
-
-func CreatePaginationQuery(sql PaginationQuery) string {
-	unformattedSql := sql.BaseSql + " " + "WHERE %s %s ORDER BY %s LIMIT %s;"
-	finalArgIndex, joinedConditions := sql.getFinalArgAndJoinedConditions()
-	formattedPaginationCondition := sql.getFormatedPaginationConditionQuery(finalArgIndex)
-	formattedOrderByQuery := sql.getFormattedOrderByQuery()
-	formattedSql := fmt.Sprintf(
-		unformattedSql,
-		joinedConditions,
-		formattedPaginationCondition,
-		formattedOrderByQuery,
-		strconv.Itoa(sql.PageSize),
-	)
-	trimmedSql := strings.ReplaceAll(formattedSql, "\n", " ")
-	trimmedSql = strings.ReplaceAll(trimmedSql, "\t", "")
-	return trimmedSql
 }
