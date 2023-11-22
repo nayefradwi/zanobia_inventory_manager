@@ -87,19 +87,19 @@ func (r *IngredientRepository) GetIngredients(ctx context.Context, paginationPar
 		`,
 		[]string{"i.id ASC"},
 	)
-	q, sql := sqlBuilder.
+	languageCode := common.GetLanguageParam(ctx)
+	rows, err := sqlBuilder.
+		WithOperator(r.Pool).
 		WithConditions([]string{
 			"it.language_code = $1",
 		}).
-		WithCursor(paginationParams.EndCursor, paginationParams.PreviousCursor).
+		WithParams(paginationParams).
 		WithCursorKeys(
 			[]string{"i.id"},
 		).
-		WithDirection(paginationParams.Direction).
-		WithPageSize(paginationParams.PageSize).
-		Build()
-	languageCode := common.GetLanguageParam(ctx)
-	rows, err := q.Query(ctx, r.Pool, sql, languageCode)
+		Build().
+		Query(ctx, languageCode)
+
 	if err != nil {
 		log.Printf("failed to get ingredients: %s", err.Error())
 		return nil, common.NewInternalServerError()

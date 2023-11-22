@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/jackc/pgconn"
@@ -21,6 +22,7 @@ type paginationParamsKey struct{}
 type DbOperatorKey struct{}
 
 type TransactionFunc func(ctx context.Context, tx pgx.Tx) error
+
 type PaginatedResponse[T any] struct {
 	PageSize       int    `json:"pageSize"`
 	EndCursor      string `json:"endCursor"`
@@ -30,6 +32,7 @@ type PaginatedResponse[T any] struct {
 	ItemsLength    int    `json:"itemsLength"`
 	Items          []T    `json:"items"`
 }
+
 type Cursorable interface {
 	GetCursorValue() string
 }
@@ -44,8 +47,8 @@ func CreatePaginatedResponse[T any](
 	previousCursorValue := previousCursor.GetCursorValue()
 	return PaginatedResponse[T]{
 		PageSize:       pageSize,
-		EndCursor:      endCursorValue,
-		PreviousCursor: previousCursorValue,
+		EndCursor:      Base64Encode(endCursorValue),
+		PreviousCursor: Base64Encode(previousCursorValue),
 		HasNext:        len(items) >= pageSize,
 		HasPrevious:    len(items) >= pageSize && previousCursorValue != "",
 		ItemsLength:    len(items),
@@ -65,25 +68,25 @@ func CreateEmptyPaginatedResponse[T any](pageSize int) PaginatedResponse[T] {
 type paginationQueryBuilder struct {
 	query *PaginationQuery
 }
+
 type PaginationQuery struct {
 	BaseSql               string
 	Conditions            []string
 	Direction             int
-	EndCursor             string
-	PreviousCursor        string
+	CursorValue           string
 	CursorKeys            []string
 	OrderByQuery          []string
 	PageSize              int
 	RefreshCompareSymbol  string
 	ForwardCompareSymbol  string
 	BackwardCompareSymbol string
+	Op                    DbOperator
 }
 
 type PaginationParams struct {
-	PageSize       int
-	EndCursor      string
-	PreviousCursor string
-	Direction      int
+	PageSize  int
+	Cursor    string
+	Direction int
 }
 
 func NewPaginationQueryBuilder(baseSql string, orderByQuery []string) *paginationQueryBuilder {
@@ -100,14 +103,22 @@ func NewPaginationQueryBuilder(baseSql string, orderByQuery []string) *paginatio
 	}
 }
 
+func (b *paginationQueryBuilder) WithOperator(op DbOperator) *paginationQueryBuilder {
+	b.query.Op = op
+	return b
+}
+
+func (b *paginationQueryBuilder) WithParams(params PaginationParams) *paginationQueryBuilder {
+	return b.WithCursor(params.Cursor).WithDirection(params.Direction).WithPageSize(params.PageSize)
+}
+
 func (b *paginationQueryBuilder) WithDirection(direction int) *paginationQueryBuilder {
 	b.query.Direction = direction
 	return b
 }
 
-func (b *paginationQueryBuilder) WithCursor(endCursor string, previousCursor string) *paginationQueryBuilder {
-	b.query.EndCursor = endCursor
-	b.query.PreviousCursor = previousCursor
+func (b *paginationQueryBuilder) WithCursor(cursor string) *paginationQueryBuilder {
+	b.query.CursorValue = cursor
 	return b
 }
 
@@ -133,7 +144,7 @@ func (b *paginationQueryBuilder) WithCompareSymbols(forward, refresh, backward s
 	return b
 }
 
-func (b *paginationQueryBuilder) Build() (PaginationQuery, string) {
+func (b *paginationQueryBuilder) Build() PaginationQuery {
 	if b.query == nil {
 		panic("invalid pagination query")
 	}
@@ -143,14 +154,12 @@ func (b *paginationQueryBuilder) Build() (PaginationQuery, string) {
 		len(b.query.OrderByQuery) == 0 || len(b.query.CursorKeys) == 0 {
 		panic("invalid pagination query")
 	}
-	return *b.query, CreatePaginationQuery(*b.query)
+	return *b.query
 }
 
 func (q PaginationQuery) GetCurrentCursor() []string {
-	if q.Direction < 0 {
-		return strings.Split(q.PreviousCursor, ",")
-	}
-	return strings.Split(q.EndCursor, ",")
+	decoded, _ := Base64Decode(q.CursorValue)
+	return strings.Split(decoded, ",")
 }
 
 func (q *PaginationQuery) getFinalArgAndJoinedConditions() (int, string) {
@@ -173,9 +182,8 @@ func (q *PaginationQuery) getFinalArgAndJoinedConditions() (int, string) {
 }
 
 func (q *PaginationQuery) getFormatedPaginationConditionQuery(finalArgIndex int) string {
-	// this will be like so AND (cursorKey1, cursorKey2, cursorKey3) > ($finalArgIndex1, $finalArgIndex2, $finalArgIndex3)
 	unformattedPaginationConditonWithCursor := "AND %s %s %s"
-	if q.EndCursor == "" && q.PreviousCursor == "" {
+	if q.CursorValue == "" {
 		return ""
 	}
 	cursorKeys := q.getCursorKeysJoined()
@@ -217,20 +225,36 @@ func (q *PaginationQuery) getArgsForCursors(finalArgIndex int) []string {
 	return args
 }
 
-func (q PaginationQuery) Query(ctx context.Context, op DbOperator, sql string, arguments ...interface{}) (pgx.Rows, error) {
+func (sql PaginationQuery) CreatePaginationQuery() string {
+	unformattedSql := sql.BaseSql + " " + "WHERE %s %s ORDER BY %s LIMIT %s;"
+	finalArgIndex, joinedConditions := sql.getFinalArgAndJoinedConditions()
+	formattedPaginationCondition := sql.getFormatedPaginationConditionQuery(finalArgIndex)
+	formattedOrderByQuery := sql.getFormattedOrderByQuery()
+	formattedSql := fmt.Sprintf(
+		unformattedSql,
+		joinedConditions,
+		formattedPaginationCondition,
+		formattedOrderByQuery,
+		strconv.Itoa(sql.PageSize),
+	)
+	trimmedSql := strings.ReplaceAll(formattedSql, "\n", " ")
+	trimmedSql = strings.ReplaceAll(trimmedSql, "\t", "")
+	trimmedSql = strings.ReplaceAll(trimmedSql, "  ", " ")
+	return trimmedSql
+}
+
+func (q PaginationQuery) Query(ctx context.Context, arguments ...interface{}) (pgx.Rows, error) {
+	sql := q.CreatePaginationQuery()
 	// TODO: remove this or use logger
 	log.Print(sql)
-	if q.EndCursor == "" && q.PreviousCursor == "" {
-		return op.Query(ctx, sql, arguments...)
+	if q.CursorValue == "" {
+		return q.Op.Query(ctx, sql, arguments...)
 	}
 	cursors := q.GetCurrentCursor()
-	if len(cursors) == 0 || cursors[0] == "" {
-		return op.Query(ctx, sql, arguments...)
-	}
 	args := make([]interface{}, 0)
 	args = append(args, arguments...)
 	for _, cursor := range cursors {
 		args = append(args, cursor)
 	}
-	return op.Query(ctx, sql, args...)
+	return q.Op.Query(ctx, sql, args...)
 }

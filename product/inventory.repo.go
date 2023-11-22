@@ -93,6 +93,9 @@ func (r *InventoryRepository) GetInventories(ctx context.Context, params common.
 }
 
 func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, params common.PaginationParams) (pgx.Rows, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	languageCode := common.GetLanguageParam(ctx)
+	warehouseId := warehouse.GetWarehouseId(ctx)
 	sqlBuilder := common.NewPaginationQueryBuilder(
 		`
 		select inv.id, ing.id ingredient_id,
@@ -106,7 +109,8 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 		`,
 		[]string{"inv.updated_at DESC"},
 	)
-	q, sql := sqlBuilder.
+	return sqlBuilder.
+		WithOperator(op).
 		WithConditions(
 			[]string{
 				"utx.language_code = $1",
@@ -114,14 +118,9 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 				"warehouse_id = $2",
 			},
 		).
-		WithCursor(params.EndCursor, params.PreviousCursor).
+		WithParams(params).
 		WithCursorKeys([]string{"inv.updated_at"}).
-		WithDirection(params.Direction).
-		WithPageSize(params.PageSize).
 		WithCompareSymbols("<", ">=", ">").
-		Build()
-	op := common.GetOperator(ctx, r.Pool)
-	languageCode := common.GetLanguageParam(ctx)
-	warehouseId := warehouse.GetWarehouseId(ctx)
-	return q.Query(ctx, op, sql, languageCode, warehouseId)
+		Build().
+		Query(ctx, languageCode, warehouseId)
 }
