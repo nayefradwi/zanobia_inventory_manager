@@ -107,7 +107,7 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 		join ingredient_translations ingtx on ingtx.ingredient_id = inv.ingredient_id
 		join unit_translations utx on utx.unit_id = inv.unit_id
 		`,
-		[]string{"inv.updated_at DESC", "inv.id DESC"},
+		[]string{"inv.updated_at DESC"},
 	)
 	return sqlBuilder.
 		WithOperator(op).
@@ -119,7 +119,7 @@ func (r *InventoryRepository) getInventoriesRowsDescending(ctx context.Context, 
 			},
 		).
 		WithParams(params).
-		WithCursorKeys([]string{"inv.updated_at", "inv.id"}).
+		WithCursorKeys([]string{"inv.updated_at"}).
 		WithCompareSymbols("<", "<=", ">").
 		Build().
 		Query(ctx, languageCode, warehouseId)

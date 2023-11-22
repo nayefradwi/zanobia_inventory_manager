@@ -47,8 +47,8 @@ func CreatePaginatedResponse[T any](
 	previousCursorValue := createCursorValue(previousCursor)
 	return PaginatedResponse[T]{
 		PageSize:       pageSize,
-		EndCursor:      Base64Encode(endCursorValue),
-		PreviousCursor: Base64Encode(previousCursorValue),
+		EndCursor:      endCursorValue,
+		PreviousCursor: previousCursorValue,
 		HasNext:        len(items) >= pageSize,
 		HasPrevious:    len(items) >= pageSize && previousCursorValue != "",
 		ItemsLength:    len(items),

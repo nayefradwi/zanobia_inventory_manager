@@ -88,9 +88,6 @@ func createCursorValue(c Cursorable) string {
 	if len(cursorColumns) == 0 {
 		return ""
 	}
-	if len(cursorColumns) == 1 {
-		return cursorColumns[0]
-	}
 	cursorValue := strings.Join(cursorColumns, ",")
 	return Base64Encode(cursorValue)
 }

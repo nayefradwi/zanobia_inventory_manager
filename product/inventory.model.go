@@ -1,7 +1,6 @@
 package product
 
 import (
-	"strconv"
 	"time"
 )
 
@@ -34,5 +33,5 @@ func (b InventoryBase) SetQuantity(quantity float64) InventoryBase {
 }
 
 func (b Inventory) GetCursorValue() []string {
-	return []string{b.UpdatedAt.Format(time.RFC3339), strconv.Itoa(*b.Id)}
+	return []string{b.UpdatedAt.Format(time.RFC3339Nano)}
 }
