@@ -12,6 +12,7 @@ type IWarehouseService interface {
 	AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error
 	GetMyCurrentWarehouse(ctx context.Context) (Warehouse, error)
 	GetWarehouseById(ctx context.Context, warehouseId, userId int) (Warehouse, error)
+	UpdateWarehouse(ctx context.Context, warehouse Warehouse) error
 }
 
 type WarehouseService struct {
@@ -47,4 +48,12 @@ func (s *WarehouseService) GetMyCurrentWarehouse(ctx context.Context) (Warehouse
 }
 func (s *WarehouseService) GetWarehouseById(ctx context.Context, warehouseId, userId int) (Warehouse, error) {
 	return s.repo.GetWarehouseById(ctx, warehouseId, userId)
+}
+
+func (s *WarehouseService) UpdateWarehouse(ctx context.Context, warehouse Warehouse) error {
+	validationErr := ValidateWarehouse(warehouse)
+	if validationErr != nil {
+		return validationErr
+	}
+	return s.repo.UpdateWarehouse(ctx, warehouse)
 }

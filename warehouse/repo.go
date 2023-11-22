@@ -13,6 +13,7 @@ type IWarehouseRepository interface {
 	GetWarehouses(ctx context.Context, userId int) ([]Warehouse, error)
 	AddUserToWarehouse(ctx context.Context, input WarehouseUserInput) error
 	GetWarehouseById(ctx context.Context, warehouseId, userId int) (Warehouse, error)
+	UpdateWarehouse(ctx context.Context, warehouse Warehouse) error
 }
 
 type WarehouseRepository struct {
@@ -85,4 +86,14 @@ func (r *WarehouseRepository) GetWarehouseById(ctx context.Context, warehouseId,
 		return warehouse, common.NewBadRequestFromMessage("Failed to get warehouse")
 	}
 	return warehouse, nil
+}
+
+func (r *WarehouseRepository) UpdateWarehouse(ctx context.Context, warehouse Warehouse) error {
+	sql := `UPDATE warehouses SET name = $1, lat = $2, lng = $3 WHERE id = $4`
+	_, err := r.Exec(ctx, sql, warehouse.Name, warehouse.Lat, warehouse.Lng, warehouse.Id)
+	if err != nil {
+		log.Printf("Failed to update warehouse: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to update warehouse")
+	}
+	return nil
 }

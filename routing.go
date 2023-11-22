@@ -167,6 +167,7 @@ func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	)).Post("/user", warehouseController.AddUserToWarehouse)
 	warehouseRouter.Get("/current", warehouseController.GetCurrentWarehouse)
 	warehouseRouter.Get("/", warehouseController.GetWarehouses)
+	warehouseRouter.Put("/", warehouseController.UpdateWarehouse)
 	mainRouter.Mount("/warehouses", warehouseRouter)
 }
 

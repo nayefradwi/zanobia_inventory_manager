@@ -55,3 +55,14 @@ func (c WarehouseController) GetCurrentWarehouse(w http.ResponseWriter, r *http.
 		Writer: w,
 	})
 }
+
+func (c WarehouseController) UpdateWarehouse(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[Warehouse](w, r.Body, func(warehouse Warehouse) {
+		err := c.service.UpdateWarehouse(r.Context(), warehouse)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Message: "warehouse updated successfully",
+			Writer:  w,
+		})
+	})
+}
