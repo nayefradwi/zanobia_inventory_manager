@@ -47,8 +47,8 @@ func CreatePaginatedResponse[T any](
 	previousCursorValue := previousCursor.GetCursorValue()
 	return PaginatedResponse[T]{
 		PageSize:       pageSize,
-		EndCursor:      endCursorValue,
-		PreviousCursor: previousCursorValue,
+		EndCursor:      Base64Encode(endCursorValue),
+		PreviousCursor: Base64Encode(previousCursorValue),
 		HasNext:        len(items) >= pageSize,
 		HasPrevious:    len(items) >= pageSize && previousCursorValue != "",
 		ItemsLength:    len(items),
@@ -158,7 +158,8 @@ func (b *paginationQueryBuilder) Build() PaginationQuery {
 }
 
 func (q PaginationQuery) GetCurrentCursor() []string {
-	return strings.Split(q.CursorValue, ",")
+	decoded, _ := Base64Decode(q.CursorValue)
+	return strings.Split(decoded, ",")
 }
 
 func (q *PaginationQuery) getFinalArgAndJoinedConditions() (int, string) {
