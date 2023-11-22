@@ -17,6 +17,7 @@ type IProductService interface {
 	AddProductVariant(ctx context.Context, input ProductVariantInput) error
 	GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error)
 	GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error)
+	AddVariantOptionValue(ctx context.Context, input AddVariantValueInput) error
 }
 
 type ProductService struct {
@@ -144,4 +145,15 @@ func (s *ProductService) GetUnitIdOfProductVariantBySku(ctx context.Context, sku
 
 func (s *ProductService) GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error) {
 	return s.repo.GetProductVariantExpirationDate(ctx, sku)
+}
+
+func (s *ProductService) AddVariantOptionValue(ctx context.Context, input AddVariantValueInput) error {
+	if len(input.Value) < 1 || len(input.Value) > 50 {
+		return common.NewValidationError("invalid product option value", common.ErrorDetails{
+			Message: "option value must be between 1 and 50 characters",
+			Field:   "options",
+		})
+	}
+	_, err := s.repo.InsertProductOptionValue(ctx, input.ProductOptionId, input.ToProductOptionValue())
+	return err
 }

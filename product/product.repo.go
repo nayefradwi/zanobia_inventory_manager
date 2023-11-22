@@ -23,6 +23,7 @@ type IProductRepo interface {
 	GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error)
 	GetProductOptions(ctx context.Context, productId int) ([]ProductOption, error)
 	GetProductSelectedValues(ctx context.Context, productId int, optionValueIds []int) (map[string]ProductOptionValue, error)
+	InsertProductOptionValue(ctx context.Context, optionId int, optionValue ProductOptionValue) (int, error)
 }
 
 type ProductRepo struct {

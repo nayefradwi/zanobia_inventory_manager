@@ -17,6 +17,17 @@ type ProductOptionValue struct {
 	Value string `json:"value"`
 }
 
+type AddVariantValueInput struct {
+	ProductOptionId int    `json:"productOptionId"`
+	Value           string `json:"value"`
+}
+
+func (a AddVariantValueInput) ToProductOptionValue() ProductOptionValue {
+	return ProductOptionValue{
+		Value: a.Value,
+	}
+}
+
 type ProductBase struct {
 	Id           *int    `json:"id"`
 	Name         *string `json:"name"`

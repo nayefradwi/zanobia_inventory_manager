@@ -58,16 +58,16 @@ func validateProductOptions(options []ProductOption) common.ErrorDetails {
 		return common.ErrorDetails{}
 	}
 	for _, option := range options {
-		if len(option.Name) == 0 {
+		if len(option.Name) < 1 || len(option.Name) > 50 {
 			return common.ErrorDetails{
-				Message: "option name cannot be empty",
+				Message: "option name must be between 1 and 50 characters",
 				Field:   "options",
 			}
 		}
 		for _, value := range option.Values {
-			if len(value.Value) == 0 {
+			if len(value.Value) < 1 || len(value.Value) > 50 {
 				return common.ErrorDetails{
-					Message: "option value cannot be empty",
+					Message: "option value must be between 1 and 50 characters",
 					Field:   "options",
 				}
 			}

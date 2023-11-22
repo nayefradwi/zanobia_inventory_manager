@@ -83,3 +83,14 @@ func (c ProductController) CreateProductVariant(w http.ResponseWriter, r *http.R
 		})
 	})
 }
+
+func (c ProductController) AddOptionValue(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[AddVariantValueInput](w, r.Body, func(avvi AddVariantValueInput) {
+		err := c.service.AddVariantOptionValue(r.Context(), avvi)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product option value added successfully",
+		})
+	})
+}
