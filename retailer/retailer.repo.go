@@ -141,7 +141,7 @@ func (r *RetailerRepo) GetRetailers(ctx context.Context, params common.Paginatio
 
 func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retailer, error) {
 	sql := `
-	SELECT r.id, r.lat, r.lng, rtx.name, rcti.name, rcti.position, rcti.email, rcti.phone, rcti.website
+	SELECT r.id, r.lat, r.lng, rtx.name, rcti.email, rcti.phone, rcti.website,
 	rctitx.name, rctitx.position
 	FROM retailers r
 	JOIN retailer_translations rtx ON rtx.retailer_id = r.id
@@ -160,17 +160,24 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 	var retailer Retailer
 	for rows.Next() {
 		var contact RetailerContact
+		var contactEmail, contactWebsite *string
 		err := rows.Scan(
 			&retailer.Id, &retailer.Lat, &retailer.Lng,
-			&retailer.Name, &contact.Name,
-			&contact.Position, &contact.Email,
-			&contact.Phone, &contact.Website,
+			&retailer.Name, &contactEmail,
+			&contact.Phone, &contactWebsite,
+			&contact.Name,
+			&contact.Position,
 		)
 		if err != nil {
 			log.Printf("Failed to get retailer: %s", err.Error())
 			return Retailer{}, common.NewBadRequestFromMessage("Failed to get retailer")
 		}
-
+		if contactEmail != nil {
+			contact.Email = *contactEmail
+		}
+		if contactWebsite != nil {
+			contact.Website = *contactWebsite
+		}
 		retailer.Contacts = append(retailer.Contacts, contact)
 	}
 	return retailer, nil
