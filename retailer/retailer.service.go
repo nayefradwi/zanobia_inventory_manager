@@ -5,12 +5,14 @@ import "github.com/nayefradwi/zanobia_inventory_manager/common"
 type IRetailerService interface{}
 
 type RetailerService struct {
-	repo IRetailerRepository
+	repo         IRetailerRepository
+	batchService IRetailerBatchService
 }
 
-func NewRetailerService(repo IRetailerRepository) *RetailerService {
+func NewRetailerService(repo IRetailerRepository, batchService IRetailerBatchService) *RetailerService {
 	return &RetailerService{
 		repo,
+		batchService,
 	}
 }
 

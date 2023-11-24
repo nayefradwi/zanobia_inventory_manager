@@ -19,28 +19,30 @@ type systemConnections struct {
 	redisClient *redis.Client
 }
 type systemRepositories struct {
-	userRepository       user.IUserRepository
-	permissionRepository user.IPermissionRepository
-	roleRepository       user.IRoleRepository
-	unitRepository       product.IUnitRepository
-	warehouseRepository  warehouse.IWarehouseRepository
-	productRepository    product.IProductRepo
-	recipeRepository     product.IRecipeRepository
-	batchRepository      product.IBatchRepository
-	retailerRepository   retailer.IRetailerRepository
+	userRepository          user.IUserRepository
+	permissionRepository    user.IPermissionRepository
+	roleRepository          user.IRoleRepository
+	unitRepository          product.IUnitRepository
+	warehouseRepository     warehouse.IWarehouseRepository
+	productRepository       product.IProductRepo
+	recipeRepository        product.IRecipeRepository
+	batchRepository         product.IBatchRepository
+	retailerRepository      retailer.IRetailerRepository
+	retailerBatchRepository retailer.IRetailerBatchRepository
 }
 
 type systemServices struct {
-	userService       user.IUserService
-	permissionService user.IPermissionService
-	roleService       user.IRoleService
-	unitService       product.IUnitService
-	warehouseService  warehouse.IWarehouseService
-	lockingService    common.IDistributedLockingService
-	productService    product.IProductService
-	recipeService     product.IRecipeService
-	batchService      product.IBatchService
-	retailerService   retailer.IRetailerService
+	userService          user.IUserService
+	permissionService    user.IPermissionService
+	roleService          user.IRoleService
+	unitService          product.IUnitService
+	warehouseService     warehouse.IWarehouseService
+	lockingService       common.IDistributedLockingService
+	productService       product.IProductService
+	recipeService        product.IRecipeService
+	batchService         product.IBatchService
+	retailerService      retailer.IRetailerService
+	retailerBatchService retailer.IRetailerBatchService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -72,16 +74,18 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	recipeRepo := product.NewRecipeRepository(connections.dbPool)
 	batchRepo := product.NewBatchRepository(connections.dbPool)
 	retailerRepo := retailer.NewRetailerRepository(connections.dbPool)
+	retailerBatchRepo := retailer.NewRetailerBatchRepository(connections.dbPool)
 	return systemRepositories{
-		userRepository:       userRepo,
-		permissionRepository: permssionRepo,
-		roleRepository:       roleRepo,
-		unitRepository:       unitRepo,
-		warehouseRepository:  warehouseRepo,
-		productRepository:    productRepo,
-		recipeRepository:     recipeRepo,
-		batchRepository:      batchRepo,
-		retailerRepository:   retailerRepo,
+		userRepository:          userRepo,
+		permissionRepository:    permssionRepo,
+		roleRepository:          roleRepo,
+		unitRepository:          unitRepo,
+		warehouseRepository:     warehouseRepo,
+		productRepository:       productRepo,
+		recipeRepository:        recipeRepo,
+		batchRepository:         batchRepo,
+		retailerRepository:      retailerRepo,
+		retailerBatchRepository: retailerBatchRepo,
 	}
 }
 
@@ -105,18 +109,20 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		lockingService,
 		unitService,
 	)
-	retailerService := retailer.NewRetailerService(repositories.retailerRepository)
+	retailerBatchService := retailer.NewRetailerBatchService(repositories.retailerBatchRepository)
+	retailerService := retailer.NewRetailerService(repositories.retailerRepository, retailerBatchService)
 	s.services = systemServices{
-		userService:       userService,
-		permissionService: permissionService,
-		roleService:       roleService,
-		unitService:       unitService,
-		warehouseService:  warehouseService,
-		lockingService:    lockingService,
-		productService:    productService,
-		recipeService:     recipeService,
-		batchService:      batchService,
-		retailerService:   retailerService,
+		userService:          userService,
+		permissionService:    permissionService,
+		roleService:          roleService,
+		unitService:          unitService,
+		warehouseService:     warehouseService,
+		lockingService:       lockingService,
+		productService:       productService,
+		recipeService:        recipeService,
+		batchService:         batchService,
+		retailerService:      retailerService,
+		retailerBatchService: retailerBatchService,
 	}
 }
 
