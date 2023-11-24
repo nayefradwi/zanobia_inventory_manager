@@ -58,9 +58,13 @@ func registerUserRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 		r.With(middleware.HasPermissions(
 			user.SysAdminPermissionHandle,
 		)).Post("/", userController.CreateUser)
-		r.Get("/", userController.GetAllUsers)
+		r.With(middleware.HasPermissions(
+			user.SysAdminPermissionHandle,
+		)).Get("/", userController.GetAllUsers)
 		r.Get("/me", userController.GetUserByContext)
-		r.Post("/ban", userController.BanUser)
+		r.With(middleware.HasPermissions(
+			user.SysAdminPermissionHandle,
+		)).Post("/ban", userController.BanUser)
 	})
 	userRouter.Post("/initial-sys-admin", userController.InitiateSysAdminUser)
 	userRouter.Post("/login", userController.LoginUser)
