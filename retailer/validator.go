@@ -37,9 +37,8 @@ func ValidateRetailerContact(contact RetailerContact) error {
 	validationResults = append(
 		validationResults,
 		common.ValidateStringLength(contact.Email, "Email", 0, 255),
-		common.ValidateStringLength(contact.Name, "Name", 1, 50),
 		common.ValidateAlphanuemericName(contact.Name, "Name"),
-		common.ValidateStringLength(contact.Phone, "Phone", 1, 50),
+		common.ValidateStringLength(contact.Phone, "Phone", 8, 50),
 		common.ValidateAlphanuemericName(contact.Position, "Position"),
 		common.ValidateStringLength(contact.Position, "Position", 1, 50),
 	)
