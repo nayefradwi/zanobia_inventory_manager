@@ -113,7 +113,7 @@ func (r *RetailerRepo) addRetailerContactInfo(ctx context.Context, retailerId in
 func (r *RetailerRepo) insertRetailerContactInfo(ctx context.Context, retailerId int, contact RetailerContact) (int, error) {
 	sql := `INSERT INTO retailer_contact_info (retailer_id, email, phone, website) VALUES ($1, $2, $3, $4) RETURNING id`
 	op := common.GetOperator(ctx, r.Pool)
-	row := op.QueryRow(ctx, sql, retailerId, contact.Name, contact.Position, contact.Email, contact.Phone, contact.Website)
+	row := op.QueryRow(ctx, sql, retailerId, contact.Email, contact.Phone, contact.Website)
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
@@ -160,7 +160,12 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 	var retailer Retailer
 	for rows.Next() {
 		var contact RetailerContact
-		err := rows.Scan(&retailer.Id, &retailer.Lat, &retailer.Lng, &retailer.Name, &contact.Name, &contact.Position, &contact.Email, &contact.Phone, &contact.Website)
+		err := rows.Scan(
+			&retailer.Id, &retailer.Lat, &retailer.Lng,
+			&retailer.Name, &contact.Name,
+			&contact.Position, &contact.Email,
+			&contact.Phone, &contact.Website,
+		)
 		if err != nil {
 			log.Printf("Failed to get retailer: %s", err.Error())
 			return Retailer{}, common.NewBadRequestFromMessage("Failed to get retailer")
