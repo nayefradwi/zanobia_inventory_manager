@@ -289,6 +289,7 @@ DROP TABLE IF EXISTS retailers CASCADE;
 DROP TABLE IF EXISTS retailer_translations CASCADE;
 DROP TABLE IF EXISTS retailer_contact_info CASCADE;
 DROP TABLE IF EXISTS retailer_contact_info_translations CASCADE;
+DROP TABLE IF EXISTS retailer_batches CASCADE;
 
 CREATE TABLE retailers (
     id SERIAL PRIMARY KEY,
@@ -324,11 +325,25 @@ CREATE TABLE retailer_contact_info_translations (
     position VARCHAR(50) NOT NULL
 );
 
+CREATE TABLE retailer_batches (
+    id SERIAL PRIMARY KEY,
+    sku VARCHAR(36) NOT NULL REFERENCES product_variants(sku),
+    retailer_id INTEGER NOT NULL REFERENCES retailers(id),
+    quantity NUMERIC(12, 4) NOT NULL,
+    unit_id INTEGER NOT NULL REFERENCES units(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL
+);
+
 DROP INDEX IF EXISTS idx_retailer_translation CASCADE;
 DROP INDEX IF EXISTS idx_retailer_contact_info_translation CASCADE;
 DROP INDEX IF EXISTS idx_retailer_contact_info CASCADE;
+DROP INDEX IF EXISTS idx_retailer_batch CASCADE;
 
 CREATE INDEX idx_retailer_translation ON retailer_translations(name, language_code);
 CREATE INDEX idx_retailer_contact_info_translation ON retailer_contact_info_translations(name, language_code);
 CREATE UNIQUE INDEX idx_retailer_contact_info ON retailer_contact_info(retailer_id, phone);
+CREATE UNIQUE INDEX idx_retailer_batch ON retailer_batches(sku, retailer_id, expires_at);
+
 -- END RETAILER TABLES --
