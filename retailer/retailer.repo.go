@@ -2,6 +2,7 @@ package retailer
 
 import (
 	"context"
+	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -55,6 +56,7 @@ func (r *RetailerRepo) insertRetailer(ctx context.Context, retailer Retailer) (i
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
+		log.Printf("Failed to create retailer: %s", err.Error())
 		return 0, common.NewBadRequestFromMessage("Failed to create retailer")
 	}
 	return id, nil
@@ -65,6 +67,7 @@ func (r *RetailerRepo) translateRetialer(ctx context.Context, id int, retailer R
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id, languageCode, retailer.Name)
 	if err != nil {
+		log.Printf("Failed to create retailer translation: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to create retailer translation")
 	}
 	return nil
@@ -114,6 +117,7 @@ func (r *RetailerRepo) insertRetailerContactInfo(ctx context.Context, retailerId
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
+		log.Printf("Failed to create retailer contact info: %s", err.Error())
 		return 0, common.NewBadRequestFromMessage("Failed to create retailer contact info")
 	}
 	return id, nil
@@ -124,6 +128,7 @@ func (r *RetailerRepo) translateRetailerContactInfo(ctx context.Context, id int,
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id, languageCode, contact.Name, contact.Position)
 	if err != nil {
+		log.Printf("Failed to create retailer contact info translation: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to create retailer contact info translation")
 	}
 	return nil
@@ -148,6 +153,7 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 	`
 	rows, err := op.Query(ctx, sql, retailerId, langCode)
 	if err != nil {
+		log.Printf("Failed to get retailer: %s", err.Error())
 		return Retailer{}, common.NewBadRequestFromMessage("Failed to get retailer")
 	}
 	defer rows.Close()
@@ -156,6 +162,7 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 		var contact RetailerContact
 		err := rows.Scan(&retailer.Id, &retailer.Lat, &retailer.Lng, &retailer.Name, &contact.Name, &contact.Position, &contact.Email, &contact.Phone, &contact.Website)
 		if err != nil {
+			log.Printf("Failed to get retailer: %s", err.Error())
 			return Retailer{}, common.NewBadRequestFromMessage("Failed to get retailer")
 		}
 
@@ -169,6 +176,7 @@ func (r *RetailerRepo) RemoveRetailerContactInfo(ctx context.Context, contactInf
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, contactInfoId)
 	if err != nil {
+		log.Printf("Failed to remove retailer contact info: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to remove retailer contact info")
 	}
 	return nil
@@ -179,6 +187,7 @@ func (r *RetailerRepo) RemoveRetailer(ctx context.Context, retailerId int) error
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, retailerId)
 	if err != nil {
+		log.Printf("Failed to remove retailer: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to remove retailer")
 	}
 	return nil
@@ -202,6 +211,7 @@ func (r *RetailerRepo) updateRetailerLatLng(ctx context.Context, retailerId int,
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, lat, lng, retailerId)
 	if err != nil {
+		log.Printf("Failed to update retailer: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to update retailer")
 	}
 	return nil
@@ -212,6 +222,7 @@ func (r *RetailerRepo) updateRetailerName(ctx context.Context, retailerId int, n
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, name, retailerId)
 	if err != nil {
+		log.Printf("Failed to update retailer: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to update retailer")
 	}
 	return nil
@@ -222,6 +233,7 @@ func (r *RetailerRepo) RemoveAllContactsOfRetailer(ctx context.Context, retailer
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, retailerId)
 	if err != nil {
+		log.Printf("Failed to remove retailer contact info: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to remove retailer contact info")
 	}
 	return nil
