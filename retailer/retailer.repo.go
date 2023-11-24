@@ -142,7 +142,7 @@ func (r *RetailerRepo) GetRetailers(ctx context.Context, params common.Paginatio
 func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retailer, error) {
 	sql := `
 	SELECT r.id, r.lat, r.lng, rtx.name, rcti.email, rcti.phone, rcti.website,
-	rctitx.name, rctitx.position
+	rctitx.name, rctitx.position, rcti.id
 	FROM retailers r
 	JOIN retailer_translations rtx ON rtx.retailer_id = r.id
 	RIGHT JOIN retailer_contact_info rcti ON rcti.retailer_id = r.id
@@ -167,6 +167,7 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 			&contact.Phone, &contactWebsite,
 			&contact.Name,
 			&contact.Position,
+			&contact.Id,
 		)
 		if err != nil {
 			log.Printf("Failed to get retailer: %s", err.Error())
@@ -184,12 +185,37 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 }
 
 func (r *RetailerRepo) RemoveRetailerContactInfo(ctx context.Context, contactInfoId int) error {
+	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		if err := r.removeRetailerContactInfoTranslation(ctx, contactInfoId); err != nil {
+			return err
+		}
+		if err := r.removeRetailerContactInfo(ctx, contactInfoId); err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
+}
+
+func (r *RetailerRepo) removeRetailerContactInfo(ctx context.Context, contactInfoId int) error {
 	sql := `DELETE FROM retailer_contact_info WHERE id = $1`
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, contactInfoId)
 	if err != nil {
 		log.Printf("Failed to remove retailer contact info: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to remove retailer contact info")
+	}
+	return nil
+}
+
+func (r *RetailerRepo) removeRetailerContactInfoTranslation(ctx context.Context, contactInfoId int) error {
+	sql := `DELETE FROM retailer_contact_info_translations WHERE retailer_contact_info_id = $1`
+	op := common.GetOperator(ctx, r.Pool)
+	_, err := op.Exec(ctx, sql, contactInfoId)
+	if err != nil {
+		log.Printf("Failed to remove retailer contact info translation: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to remove retailer contact info translation")
 	}
 	return nil
 }
@@ -241,12 +267,37 @@ func (r *RetailerRepo) updateRetailerName(ctx context.Context, retailerId int, n
 }
 
 func (r *RetailerRepo) RemoveAllContactsOfRetailer(ctx context.Context, retailerId int) error {
+	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		if err := r.removeAllContactInfoTranslationsOfRetailer(ctx, retailerId); err != nil {
+			return err
+		}
+		if err := r.removeAllContactsOfRetailer(ctx, retailerId); err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
+}
+
+func (r RetailerRepo) removeAllContactsOfRetailer(ctx context.Context, retailerId int) error {
 	sql := `DELETE FROM retailer_contact_info WHERE retailer_id = $1`
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, retailerId)
 	if err != nil {
 		log.Printf("Failed to remove retailer contact info: %s", err.Error())
 		return common.NewBadRequestFromMessage("Failed to remove retailer contact info")
+	}
+	return nil
+}
+
+func (r RetailerRepo) removeAllContactInfoTranslationsOfRetailer(ctx context.Context, retailerId int) error {
+	sql := `DELETE FROM retailer_contact_info_translations WHERE retailer_id = $1`
+	op := common.GetOperator(ctx, r.Pool)
+	_, err := op.Exec(ctx, sql, retailerId)
+	if err != nil {
+		log.Printf("Failed to remove retailer contact info translation: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to remove retailer contact info translation")
 	}
 	return nil
 }

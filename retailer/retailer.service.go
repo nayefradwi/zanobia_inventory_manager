@@ -81,13 +81,13 @@ func (s *RetailerService) RemoveRetailerContactInfo(ctx context.Context, id int)
 func (s *RetailerService) RemoveRetailer(ctx context.Context, id int) error {
 	return common.RunWithTransaction(ctx, s.repo.(*RetailerRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		ctx = common.SetOperator(ctx, tx)
+		if err := s.batchService.DeleteBatchesOfRetailer(ctx, id); err != nil {
+			return err
+		}
 		if err := s.repo.RemoveAllContactsOfRetailer(ctx, id); err != nil {
 			return err
 		}
 		if err := s.repo.RemoveRetailer(ctx, id); err != nil {
-			return err
-		}
-		if err := s.batchService.DeleteBatchesOfRetailer(ctx, id); err != nil {
 			return err
 		}
 		return nil
