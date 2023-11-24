@@ -1,5 +1,7 @@
 package retailer
 
+import "strconv"
+
 type Retailer struct {
 	Id       *int              `json:"id,omitempty"`
 	Name     string            `json:"name"`
@@ -15,4 +17,8 @@ type RetailerContact struct {
 	Email    string `json:"email,omitempty"`
 	Phone    string `json:"phone"`
 	Website  string `json:"website,omitempty"`
+}
+
+func (r Retailer) GetCursorValue() []string {
+	return []string{strconv.Itoa(*r.Id)}
 }

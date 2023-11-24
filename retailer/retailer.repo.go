@@ -13,10 +13,11 @@ type IRetailerRepository interface {
 	AddRetailerContacts(ctx context.Context, retailerId int, contacts []RetailerContact) error
 	AddRetailerContactInfo(ctx context.Context, retailerId int, contact RetailerContact) error
 	GetRetailers(ctx context.Context, params common.PaginationParams) ([]Retailer, error)
-	GetRetailer(ctx context.Context, id int) (Retailer, error)
-	RemoveRetailerContactInfo(ctx context.Context, id int) error
-	RemoveRetailer(ctx context.Context, id int) error
+	GetRetailer(ctx context.Context, retailerId int) (Retailer, error)
+	RemoveRetailerContactInfo(ctx context.Context, contactId int) error
+	RemoveRetailer(ctx context.Context, retailerId int) error
 	UpdateRetailer(ctx context.Context, retailer Retailer) error
+	RemoveAllContactsOfRetailer(ctx context.Context, retailerId int) error
 }
 
 type RetailerRepo struct {
@@ -109,22 +110,27 @@ func (r *RetailerRepo) GetRetailers(ctx context.Context, params common.Paginatio
 	return []Retailer{}, nil
 }
 
-func (r *RetailerRepo) GetRetailer(ctx context.Context, id int) (Retailer, error) {
+func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retailer, error) {
 	// TODO fill
 	return Retailer{}, nil
 }
 
-func (r *RetailerRepo) RemoveRetailerContactInfo(ctx context.Context, id int) error {
+func (r *RetailerRepo) RemoveRetailerContactInfo(ctx context.Context, contactInfoId int) error {
 	// TODO fill
 	return nil
 }
 
-func (r *RetailerRepo) RemoveRetailer(ctx context.Context, id int) error {
+func (r *RetailerRepo) RemoveRetailer(ctx context.Context, retailerId int) error {
 	// TODO fill
 	return nil
 }
 
 func (r *RetailerRepo) UpdateRetailer(ctx context.Context, retailer Retailer) error {
+	// TODO fill
+	return nil
+}
+
+func (r *RetailerRepo) RemoveAllContactsOfRetailer(ctx context.Context, retailerId int) error {
 	// TODO fill
 	return nil
 }
