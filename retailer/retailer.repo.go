@@ -49,12 +49,22 @@ func (r *RetailerRepo) CreateRetailer(ctx context.Context, retailer Retailer) er
 }
 
 func (r *RetailerRepo) insertRetailer(ctx context.Context, retailer Retailer) (int, error) {
-	// TODO fill
-	return 0, nil
+	sql := `INSERT INTO retailers (lat, lng) VALUES ($1, $2) RETURNING id`
+	row := r.QueryRow(ctx, sql, retailer.Lat, retailer.Lng)
+	var id int
+	err := row.Scan(&id)
+	if err != nil {
+		return 0, common.NewBadRequestFromMessage("Failed to create retailer")
+	}
+	return id, nil
 }
 
 func (r *RetailerRepo) translateRetialer(ctx context.Context, id int, retailer Retailer, languageCode string) error {
-	// TODO fill
+	sql := `INSERT INTO retailer_translations (retailer_id, language_code, name) VALUES ($1, $2, $3)`
+	_, err := r.Exec(ctx, sql, id, languageCode, retailer.Name)
+	if err != nil {
+		return common.NewBadRequestFromMessage("Failed to create retailer translation")
+	}
 	return nil
 }
 
@@ -96,12 +106,22 @@ func (r *RetailerRepo) addRetailerContactInfo(ctx context.Context, retailerId in
 }
 
 func (r *RetailerRepo) insertRetailerContactInfo(ctx context.Context, retailerId int, contact RetailerContact) (int, error) {
-	// TODO fill
-	return 0, nil
+	sql := `INSERT INTO retailer_contact_info (retailer_id, email, phone, website) VALUES ($1, $2, $3, $4) RETURNING id`
+	row := r.QueryRow(ctx, sql, retailerId, contact.Name, contact.Position, contact.Email, contact.Phone, contact.Website)
+	var id int
+	err := row.Scan(&id)
+	if err != nil {
+		return 0, common.NewBadRequestFromMessage("Failed to create retailer contact info")
+	}
+	return id, nil
 }
 
 func (r *RetailerRepo) translateRetailerContactInfo(ctx context.Context, id int, contact RetailerContact, languageCode string) error {
-	// TODO fill
+	sql := `INSERT INTO retailer_contact_info_translations (retailer_contact_info_id, language_code, name, position) VALUES ($1, $2, $3, $4)`
+	_, err := r.Exec(ctx, sql, id, languageCode, contact.Name, contact.Position)
+	if err != nil {
+		return common.NewBadRequestFromMessage("Failed to create retailer contact info translation")
+	}
 	return nil
 }
 
@@ -111,26 +131,88 @@ func (r *RetailerRepo) GetRetailers(ctx context.Context, params common.Paginatio
 }
 
 func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retailer, error) {
-	// TODO fill
-	return Retailer{}, nil
+	langCode := common.GetLanguageParam(ctx)
+	sql := `
+		SELECT r.id, r.lat, r.lng, rtx.name, rcti.name, rcti.position, rcti.email, rcti.phone, rcti.website
+		rctitx.name, rctitx.position
+		FROM retailers r
+		JOIN retailer_translations rtx ON rtx.retailer_id = r.id
+		RIGHT JOIN retailer_contact_info rcti ON rcti.retailer_id = r.id
+		JOIN retailer_contact_info_translations rctitx ON rctitx.retailer_contact_info_id = rcti.id
+		WHERE r.id = $1 AND rtx.language_code = $2 AND rctitx.language_code = $2
+	`
+	rows, err := r.Query(ctx, sql, retailerId, langCode)
+	if err != nil {
+		return Retailer{}, common.NewBadRequestFromMessage("Failed to get retailer")
+	}
+	defer rows.Close()
+	var retailer Retailer
+	for rows.Next() {
+		var contact RetailerContact
+		err := rows.Scan(&retailer.Id, &retailer.Lat, &retailer.Lng, &retailer.Name, &contact.Name, &contact.Position, &contact.Email, &contact.Phone, &contact.Website)
+		if err != nil {
+			return Retailer{}, common.NewBadRequestFromMessage("Failed to get retailer")
+		}
+
+		retailer.Contacts = append(retailer.Contacts, contact)
+	}
+	return retailer, nil
 }
 
 func (r *RetailerRepo) RemoveRetailerContactInfo(ctx context.Context, contactInfoId int) error {
-	// TODO fill
+	sql := `DELETE FROM retailer_contact_info WHERE id = $1`
+	_, err := r.Exec(ctx, sql, contactInfoId)
+	if err != nil {
+		return common.NewBadRequestFromMessage("Failed to remove retailer contact info")
+	}
 	return nil
 }
 
 func (r *RetailerRepo) RemoveRetailer(ctx context.Context, retailerId int) error {
-	// TODO fill
+	sql := `DELETE FROM retailers WHERE id = $1`
+	_, err := r.Exec(ctx, sql, retailerId)
+	if err != nil {
+		return common.NewBadRequestFromMessage("Failed to remove retailer")
+	}
 	return nil
 }
 
 func (r *RetailerRepo) UpdateRetailer(ctx context.Context, retailer Retailer) error {
-	// TODO fill
+	return common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		if err := r.updateRetailerLatLng(ctx, *retailer.Id, retailer.Lat, retailer.Lng); err != nil {
+			return err
+		}
+		if err := r.updateRetailerName(ctx, *retailer.Id, retailer.Name); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (r *RetailerRepo) updateRetailerLatLng(ctx context.Context, retailerId int, lat float64, lng float64) error {
+	sql := `UPDATE retailers SET lat = $1, lng = $2 WHERE id = $3`
+	_, err := r.Exec(ctx, sql, lat, lng, retailerId)
+	if err != nil {
+		return common.NewBadRequestFromMessage("Failed to update retailer")
+	}
+	return nil
+}
+
+func (r *RetailerRepo) updateRetailerName(ctx context.Context, retailerId int, name string) error {
+	sql := `UPDATE retailer_translations SET name = $1 WHERE retailer_id = $2`
+	_, err := r.Exec(ctx, sql, name, retailerId)
+	if err != nil {
+		return common.NewBadRequestFromMessage("Failed to update retailer")
+	}
 	return nil
 }
 
 func (r *RetailerRepo) RemoveAllContactsOfRetailer(ctx context.Context, retailerId int) error {
-	// TODO fill
+	sql := `DELETE FROM retailer_contact_info WHERE retailer_id = $1`
+	_, err := r.Exec(ctx, sql, retailerId)
+	if err != nil {
+		return common.NewBadRequestFromMessage("Failed to remove retailer contact info")
+	}
 	return nil
 }
