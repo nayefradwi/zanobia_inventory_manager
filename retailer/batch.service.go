@@ -39,7 +39,7 @@ func NewRetailerBatchService(
 	}
 }
 
-func GenerateBatchLockKey(sku string) string {
+func GenerateRetailerBatchLockKey(sku string) string {
 	return "retailer-batch:" + sku + ":lock"
 }
 
@@ -47,7 +47,7 @@ func (s *RetailerBatchService) IncrementBatch(ctx context.Context, batchInput Re
 	if err := ValidateBatchInput(batchInput); err != nil {
 		return err
 	}
-	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(batchInput.Sku), func() error {
+	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(batchInput.Sku), func() error {
 		err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 			ctx = common.SetOperator(ctx, tx)
 			return s.tryToIncrementBatch(ctx, batchInput)
@@ -121,7 +121,7 @@ func (s *RetailerBatchService) DecrementBatch(ctx context.Context, input Retaile
 	if err := ValidateBatchInput(input); err != nil {
 		return err
 	}
-	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(input.Sku), func() error {
+	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(input.Sku), func() error {
 		err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 			ctx = common.SetOperator(ctx, tx)
 			return s.tryToDecrementBatch(ctx, input)
@@ -165,7 +165,7 @@ func (s *RetailerBatchService) bulkIncrementBatch(ctx context.Context, inputs []
 		if err := ValidateBatchInput(input); err != nil {
 			return err
 		}
-		lock, lockErr := s.lockingService.Acquire(ctx, GenerateBatchLockKey(input.Sku))
+		lock, lockErr := s.lockingService.Acquire(ctx, GenerateRetailerBatchLockKey(input.Sku))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
@@ -194,7 +194,7 @@ func (s *RetailerBatchService) bulkDecrementBatch(ctx context.Context, inputs []
 		if err := ValidateBatchInput(input); err != nil {
 			return err
 		}
-		lock, lockErr := s.lockingService.Acquire(ctx, GenerateBatchLockKey(input.Sku))
+		lock, lockErr := s.lockingService.Acquire(ctx, GenerateRetailerBatchLockKey(input.Sku))
 		if lockErr != nil {
 			return common.NewBadRequestFromMessage("Failed to acquire lock")
 		}
