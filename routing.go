@@ -38,14 +38,12 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	r.Get("/health-check", healthCheck)
 	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)
-	userMiddleWare := user.NewUserMiddleware(provider.services.userService)
-	authorizedRouter := chi.NewRouter()
-	authorizedRouter.Use(common.AuthenticationHeaderMiddleware)
-	authorizedRouter.Use(userMiddleWare.SetUserFromHeader)
+	authorizedRouter, _ := createSecureRouter(provider)
 	// TODO: validate user warehouse
 	registerRoleRoutes(authorizedRouter, provider)
 	registerProductRoutes(authorizedRouter, provider)
 	registerWarehouseRoutes(authorizedRouter, provider)
+	registerRetailerRoutes(authorizedRouter, provider)
 	r.Mount("/", authorizedRouter)
 	return r
 }
@@ -86,7 +84,7 @@ func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	roleRouter, _ := createSecureRouter(provider)
+	roleRouter := chi.NewRouter()
 	roleController := user.NewRoleController(provider.services.roleService)
 	roleRouter.Use(common.AuthenticationHeaderMiddleware)
 	roleRouter.Post("/", roleController.CreateRole)
@@ -95,7 +93,7 @@ func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	productRouter, _ := createSecureRouter(provider)
+	productRouter := chi.NewRouter()
 	productController := product.NewProductController(provider.services.productService)
 	productRouter.Post("/", productController.CreateProduct)
 	productRouter.Get("/", productController.GetProducts)
@@ -107,7 +105,7 @@ func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	unitRouter, _ := createSecureRouter(provider)
+	unitRouter := chi.NewRouter()
 	unitController := product.NewUnitController(provider.services.unitService)
 	unitRouter.Post("/", unitController.CreateUnit)
 	unitRouter.Get("/{id}", unitController.GetUnitById)
@@ -118,7 +116,7 @@ func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
-	unitConversionRouter, _ := createSecureRouter(provider)
+	unitConversionRouter := chi.NewRouter()
 	unitConversionController := product.NewUnitController(provider.services.unitService)
 	unitConversionRouter.Post("/", unitConversionController.CreateConversion)
 	unitConversionRouter.Post("/from-name", unitConversionController.CreateConversionFromName)
@@ -127,7 +125,7 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	productVariantRouter, _ := createSecureRouter(provider)
+	productVariantRouter := chi.NewRouter()
 	productController := product.NewProductController(provider.services.productService)
 	productVariantRouter.Post("/", productController.CreateProductVariant)
 	productVariantRouter.Get("/{id}", productController.GetProductVariant)
@@ -137,7 +135,7 @@ func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider
 	mainRouter.Mount("/product-variants", productVariantRouter)
 }
 func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	recipeRouter, _ := createSecureRouter(provider)
+	recipeRouter := chi.NewRouter()
 	recipeController := product.NewRecipeController(provider.services.recipeService)
 	recipeRouter.Post("/", recipeController.CreateRecipe)
 	recipeRouter.Put("/recipe", recipeController.AddIngredientToRecipe)
@@ -146,7 +144,7 @@ func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	batchRouter, _ := createSecureRouter(provider)
+	batchRouter := chi.NewRouter()
 	batchController := product.NewBatchController(provider.services.batchService)
 	batchRouter.Post("/batch/stock", batchController.IncrementBatch)
 	batchRouter.Delete("/batch/stock", batchController.DecrementBatch)
@@ -158,8 +156,8 @@ func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	middleware := user.NewUserMiddleware(provider.services.userService)
-	warehouseRouter, _ := createSecureRouter(provider)
+	middleware := newUserMiddleWare(provider)
+	warehouseRouter := chi.NewRouter()
 	warehouseController := warehouse.NewWarehouseController(provider.services.warehouseService)
 	warehouseRouter.Post("/", warehouseController.CreateWarehouse)
 	warehouseRouter.
@@ -177,6 +175,9 @@ func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	mainRouter.Mount("/warehouses", warehouseRouter)
 }
 
+func registerRetailerRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+}
+
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	ok, _ := json.Marshal(map[string]interface{}{"status": "ok"})
 	w.Header().Set("Content-Type", "application/json")
@@ -185,8 +186,12 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 
 func createSecureRouter(provider *ServiceProvider) (*chi.Mux, user.UserMiddleware) {
 	r := chi.NewRouter()
-	middleware := user.NewUserMiddleware(provider.services.userService)
+	middleware := newUserMiddleWare(provider)
 	r.Use(common.AuthenticationHeaderMiddleware)
 	r.Use(middleware.SetUserFromHeader)
 	return r, middleware
+}
+
+func newUserMiddleWare(provider *ServiceProvider) user.UserMiddleware {
+	return user.NewUserMiddleware(provider.services.userService)
 }
