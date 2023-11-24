@@ -140,17 +140,17 @@ func (r *RetailerRepo) GetRetailers(ctx context.Context, params common.Paginatio
 }
 
 func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retailer, error) {
-	langCode := common.GetLanguageParam(ctx)
-	op := common.GetOperator(ctx, r.Pool)
 	sql := `
-		SELECT r.id, r.lat, r.lng, rtx.name, rcti.name, rcti.position, rcti.email, rcti.phone, rcti.website
-		rctitx.name, rctitx.position
-		FROM retailers r
-		JOIN retailer_translations rtx ON rtx.retailer_id = r.id
-		RIGHT JOIN retailer_contact_info rcti ON rcti.retailer_id = r.id
-		JOIN retailer_contact_info_translations rctitx ON rctitx.retailer_contact_info_id = rcti.id
-		WHERE r.id = $1 AND rtx.language_code = $2 AND rctitx.language_code = $2
+	SELECT r.id, r.lat, r.lng, rtx.name, rcti.name, rcti.position, rcti.email, rcti.phone, rcti.website
+	rctitx.name, rctitx.position
+	FROM retailers r
+	JOIN retailer_translations rtx ON rtx.retailer_id = r.id
+	RIGHT JOIN retailer_contact_info rcti ON rcti.retailer_id = r.id
+	JOIN retailer_contact_info_translations rctitx ON rctitx.retailer_contact_info_id = rcti.id
+	WHERE r.id = $1 AND rtx.language_code = $2 AND rctitx.language_code = $2
 	`
+	op := common.GetOperator(ctx, r.Pool)
+	langCode := common.GetLanguageParam(ctx)
 	rows, err := op.Query(ctx, sql, retailerId, langCode)
 	if err != nil {
 		log.Printf("Failed to get retailer: %s", err.Error())
