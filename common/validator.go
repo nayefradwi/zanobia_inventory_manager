@@ -89,7 +89,7 @@ func isNameValid(name string) bool {
 	return re.MatchString(name) && len(name) >= 3 && len(name) <= 50
 }
 
-func ValidateUrl(value *string, field string) ErrorDetails {
+func ValidateUrl(field string, value *string) ErrorDetails {
 	if value == nil {
 		return ErrorDetails{}
 	}
