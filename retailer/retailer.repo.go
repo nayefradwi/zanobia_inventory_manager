@@ -135,8 +135,37 @@ func (r *RetailerRepo) translateRetailerContactInfo(ctx context.Context, id int,
 }
 
 func (r *RetailerRepo) GetRetailers(ctx context.Context, params common.PaginationParams) ([]Retailer, error) {
-	// TODO fill
-	return []Retailer{}, nil
+	op := common.GetOperator(ctx, r.Pool)
+	langCode := common.GetLanguageParam(ctx)
+	rows, err := common.NewPaginationQueryBuilder(
+		`select r.id, r.lat, r.lng, rtx.name from retailers r
+		 join retailer_translations rtx on rtx.retailer_id = r.id
+		`,
+		[]string{"r.id desc"},
+	).
+		WithOperator(op).
+		WithConditions([]string{"rtx.language_code = $1"}).
+		WithParams(params).
+		WithCursorKeys([]string{"r.id"}).
+		WithCompareSymbols("<", "<=", ">").
+		Build().
+		Query(ctx, langCode)
+	if err != nil {
+		log.Printf("Failed to get retailers: %s", err.Error())
+		return []Retailer{}, common.NewBadRequestFromMessage("Failed to get retailers")
+	}
+	defer rows.Close()
+	var retailers []Retailer
+	for rows.Next() {
+		var retailer Retailer
+		err := rows.Scan(&retailer.Id, &retailer.Lat, &retailer.Lng, &retailer.Name)
+		if err != nil {
+			log.Printf("Failed to get retailers: %s", err.Error())
+			return []Retailer{}, common.NewBadRequestFromMessage("Failed to get retailers")
+		}
+		retailers = append(retailers, retailer)
+	}
+	return retailers, nil
 }
 
 func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retailer, error) {
