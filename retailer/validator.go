@@ -6,7 +6,7 @@ func ValidateRetailer(retailer Retailer) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(
 		validationResults,
-		common.ValidateAlphanuemericName(retailer.Name, "Name"),
+		common.ValidateStringLength(retailer.Name, "Name", 3, 50),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
