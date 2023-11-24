@@ -12,7 +12,7 @@ type RetailerController struct {
 	service IRetailerService
 }
 
-func NewRetailController(service IRetailerService) RetailerController {
+func NewRetailerController(service IRetailerService) RetailerController {
 	return RetailerController{
 		service,
 	}

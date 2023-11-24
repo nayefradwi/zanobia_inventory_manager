@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
+	"github.com/nayefradwi/zanobia_inventory_manager/retailer"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 )
@@ -180,6 +181,22 @@ func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerRetailerRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	middleware := newUserMiddleWare(provider)
+	retailerRouter := chi.NewRouter()
+	retailerController := retailer.NewRetailerController(provider.services.retailerService)
+	retailerRouter.Post("/", retailerController.CreateRetailer)
+	retailerRouter.Post("/{id}/contacts", retailerController.AddRetailerContacts)
+	retailerRouter.Post("/{id}/contact", retailerController.AddRetailerContactInfo)
+	retailerRouter.Get("/", retailerController.GetRetailers)
+	retailerRouter.Get("/{id}", retailerController.GetRetailer)
+	retailerRouter.Delete("/contact/{id}", retailerController.RemoveRetailerContactInfo)
+	retailerRouter.
+		With(middleware.HasPermissions(
+			user.SysAdminPermissionHandle,
+		)).
+		Delete("/{id}", retailerController.RemoveRetailer)
+	retailerRouter.Put("/", retailerController.UpdateRetailer)
+	mainRouter.Mount("/retailers", retailerRouter)
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
