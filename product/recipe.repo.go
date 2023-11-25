@@ -62,7 +62,10 @@ func (r *RecipeRepository) GetRecipeOfProductVariant(ctx context.Context, result
     	utx.unit_id,
     	utx.name,
     	utx.symbol,
-		ptx.name
+		ptx.name,
+		orig_utx.name,
+		orig_utx.symbol,
+		orig_utx.unit_id
 	FROM
     	recipes r
 	JOIN unit_translations utx ON r.unit_id = utx.unit_id
@@ -70,9 +73,11 @@ func (r *RecipeRepository) GetRecipeOfProductVariant(ctx context.Context, result
 	JOIN product_variant_translations pvartx_recipe ON pvartx_recipe.product_variant_id = r.recipe_variant_id
 	JOIN product_variants pvar ON pvar.id = r.recipe_variant_id
 	JOIN product_translations ptx ON ptx.id = pvar.product_id
+	JOIN unit_translations orig_utx ON orig_utx.unit_id = pvar.standard_unit_id AND orig_utx.language_code = utx.language_code
 	WHERE
-    r.result_variant_id = $1
-    AND utx.language_code = $2;
+    	r.result_variant_id = $1
+    AND 
+		utx.language_code = $2;
 	`
 	op := common.GetOperator(ctx, r.Pool)
 	languageCode := common.GetLanguageParam(ctx)
@@ -86,7 +91,7 @@ func (r *RecipeRepository) GetRecipeOfProductVariant(ctx context.Context, result
 	var resultVariantName string
 	for rows.Next() {
 		var recipe Recipe
-		var unit Unit
+		var unit, variantUnit Unit
 		var recipeVariantId int
 		var recipeVariantName string
 		var ingredientCost float64
@@ -95,6 +100,7 @@ func (r *RecipeRepository) GetRecipeOfProductVariant(ctx context.Context, result
 			&recipe.Id, &recipe.Quantity, &resultVariantId, &resultVariantName,
 			&recipeVariantId, &recipeVariantName, &ingredientCost,
 			&unit.Id, &unit.Name, &unit.Symbol, &productName,
+			&variantUnit.Name, &variantUnit.Symbol, &variantUnit.Id,
 		)
 		if err != nil {
 			log.Printf("failed to scan recipe: %s", err.Error())
@@ -107,6 +113,7 @@ func (r *RecipeRepository) GetRecipeOfProductVariant(ctx context.Context, result
 		recipe.RecipeVariantName = recipeVariantName
 		recipe.IngredientCost = ingredientCost
 		recipe.ProductName = productName
+		recipe.IngredientStandardUnit = &variantUnit
 		recipes = append(recipes, recipe)
 	}
 	return recipes, nil

@@ -95,7 +95,12 @@ func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId
 		log.Printf("failed to get recipe of product variant: %s", recipeErr.Error())
 	} else if len(recipes) > 0 {
 		productVariant.Recipes = recipes
-		productVariant.TotalCost = GetTotalCost(recipes)
+		TotalCost, err := s.recipeService.GetTotalCostOfRecipes(ctx, recipes)
+		if err != nil {
+			log.Printf("failed to get total cost of recipes: %s", err.Error())
+		} else {
+			productVariant.TotalCost = TotalCost
+		}
 	}
 	return productVariant, nil
 }
