@@ -8,6 +8,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
+type DecrementRecipeKey struct{}
 type IBatchService interface {
 	IncrementBatch(ctx context.Context, batchInput BatchInput) error
 	DecrementBatch(ctx context.Context, input BatchInput) error
@@ -22,6 +23,7 @@ type BatchService struct {
 	productService IProductService
 	lockingService common.IDistributedLockingService
 	unitService    IUnitService
+	recipeService  IRecipeService
 }
 
 func NewBatchService(
@@ -29,12 +31,14 @@ func NewBatchService(
 	productService IProductService,
 	lockingService common.IDistributedLockingService,
 	unitService IUnitService,
+	recipeService IRecipeService,
 ) *BatchService {
 	return &BatchService{
 		batchRepo,
 		productService,
 		lockingService,
 		unitService,
+		recipeService,
 	}
 }
 
@@ -113,9 +117,29 @@ func (s *BatchService) incrementBatch(ctx context.Context, batch BatchBase, inpu
 	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(strconv.Itoa(*input.Id)), func() error {
 		batch = batch.SetQuantity(batch.Quantity + input.Quantity)
 		err := s.batchRepo.UpdateBatch(ctx, batch)
-		// TODO check if should decrement inventory
+		shouldDecrementRecipe := ctx.Value(DecrementRecipeKey{}).(bool)
+		if shouldDecrementRecipe {
+			err = s.tryToDecrementRecipe(ctx, input)
+		}
 		return err
 	})
+}
+
+func (s *BatchService) tryToDecrementRecipe(ctx context.Context, input BatchInput) error {
+	recipes, err := s.recipeService.GetRecipeOfProductVariantSku(ctx, input.Sku)
+	if err != nil {
+		return err
+	}
+	batchInputsFromRecipes := make([]BatchInput, len(recipes))
+	for i, recipe := range recipes {
+		batchInputsFromRecipes[i] = BatchInput{
+			Id:       recipe.RecipeVariantId,
+			Sku:      recipe.RecipeVariantSku,
+			Quantity: recipe.Quantity * input.Quantity,
+			UnitId:   *recipe.Unit.Id,
+		}
+	}
+	return s.bulkDecrementBatch(ctx, batchInputsFromRecipes)
 }
 
 func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {
@@ -181,7 +205,7 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 
 func (s *BatchService) bulkDecrementBatch(ctx context.Context, inputs []BatchInput) error {
 	for _, input := range inputs {
-		if err := ValidateBatchInputIncrement(input); err != nil {
+		if err := ValidateBatchInputDecrement(input); err != nil {
 			return err
 		}
 		if err := s.tryToDecrementBatch(ctx, input); err != nil {

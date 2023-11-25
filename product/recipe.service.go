@@ -13,6 +13,7 @@ type IRecipeService interface {
 	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
 	DeleteRecipe(ctx context.Context, id int) error
 	GetTotalCostOfRecipes(ctx context.Context, recipes []Recipe) (float64, error)
+	GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error)
 }
 
 type RecipeService struct {
@@ -85,4 +86,8 @@ func (s *RecipeService) getCostOfRecipe(ctx context.Context, recipe Recipe) (flo
 		return 0, err
 	}
 	return newQty.Quantity * recipe.IngredientCost, nil
+}
+
+func (s *RecipeService) GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error) {
+	return s.repo.GetRecipeOfProductVariantSku(ctx, sku)
 }

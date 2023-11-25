@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -151,10 +152,28 @@ func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	batchRouter := chi.NewRouter()
 	batchController := product.NewBatchController(provider.services.batchService)
-	batchRouter.Post("/batch/stock", batchController.IncrementBatch)
+	batchRouter.Post("/batch/stock", func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), product.DecrementRecipeKey{}, false)
+		r = r.WithContext(ctx)
+		batchController.IncrementBatch(w, r)
+	})
 	batchRouter.Delete("/batch/stock", batchController.DecrementBatch)
-	batchRouter.Post("/stock", batchController.BulkIncrementBatch)
+	batchRouter.Post("/batch/stock/with-recipe", func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), product.DecrementRecipeKey{}, true)
+		r = r.WithContext(ctx)
+		batchController.IncrementBatch(w, r)
+	})
+	batchRouter.Post("/stock", func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), product.DecrementRecipeKey{}, false)
+		r = r.WithContext(ctx)
+		batchController.BulkIncrementBatch(w, r)
+	})
 	batchRouter.Delete("/stock", batchController.BulkDecrementBatch)
+	batchRouter.Post("/stock/with-recipe", func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), product.DecrementRecipeKey{}, true)
+		r = r.WithContext(ctx)
+		batchController.BulkIncrementBatch(w, r)
+	})
 	batchRouter.Get("/", batchController.GetBatches)
 	batchRouter.Get("/search", batchController.SearchBatchesBySku)
 	mainRouter.Mount("/batches", batchRouter)

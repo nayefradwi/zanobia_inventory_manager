@@ -14,6 +14,7 @@ type IRecipeRepository interface {
 	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
 	GetRecipeOfProductVariant(ctx context.Context, productVariantId int) ([]Recipe, error)
 	DeleteRecipe(ctx context.Context, id int) error
+	GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error)
 }
 
 type RecipeRepository struct {
@@ -128,4 +129,78 @@ func (r *RecipeRepository) DeleteRecipe(ctx context.Context, id int) error {
 		return common.NewBadRequestFromMessage("failed to delete recipe")
 	}
 	return nil
+}
+
+func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error) {
+	sql := `
+	SELECT
+    	r.id,
+    	r.quantity,
+    	pvartx_result.product_variant_id AS result_variant_id,
+    	pvartx_result.name AS result_variant_name,
+    	pvartx_recipe.product_variant_id AS recipe_variant_id,
+   		pvartx_recipe.name AS recipe_variant_name,
+    	pvar.price AS recipe_price,
+    	utx.unit_id,
+    	utx.name,
+    	utx.symbol,
+		ptx.name,
+		orig_utx.name,
+		orig_utx.symbol,
+		orig_utx.unit_id,
+		pvar_recipe.sku as recipe_variant_sku
+	FROM
+    	recipes r
+	JOIN unit_translations utx ON r.unit_id = utx.unit_id
+	JOIN product_variants pvar_result ON pvar_result.id = r.result_variant_id
+	JOIN product_variants pvar_recipe ON pvar_recipe.id = r.recipe_variant_id
+	JOIN product_variant_translations pvartx_result ON pvartx_result.product_variant_id = r.result_variant_id
+	JOIN product_variant_translations pvartx_recipe ON pvartx_recipe.product_variant_id = r.recipe_variant_id
+	JOIN product_variants pvar ON pvar.id = r.recipe_variant_id
+	JOIN product_translations ptx ON ptx.id = pvar.product_id
+	JOIN unit_translations orig_utx ON orig_utx.unit_id = pvar.standard_unit_id AND orig_utx.language_code = utx.language_code
+	WHERE
+		pvar_result.sku = $1
+    AND 
+		utx.language_code = $2;
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	languageCode := common.GetLanguageParam(ctx)
+	rows, err := op.Query(ctx, sql, sku, languageCode)
+	if err != nil {
+		log.Printf("failed to get recipe of product: %s", err.Error())
+		return nil, common.NewBadRequestFromMessage("failed to get recipe of product")
+	}
+	defer rows.Close()
+	recipes := make([]Recipe, 0)
+	var resultVariantName string
+	var resultVariantId int
+	for rows.Next() {
+		var recipe Recipe
+		var unit, variantUnit Unit
+		var recipeVariantId int
+		var recipeVariantName string
+		var ingredientCost float64
+		var productName string
+		err := rows.Scan(
+			&recipe.Id, &recipe.Quantity, &resultVariantId, &resultVariantName,
+			&recipeVariantId, &recipeVariantName, &ingredientCost,
+			&unit.Id, &unit.Name, &unit.Symbol, &productName,
+			&variantUnit.Name, &variantUnit.Symbol, &variantUnit.Id,
+		)
+		if err != nil {
+			log.Printf("failed to scan recipe: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		recipe.Unit = unit
+		recipe.ResultVariantId = &resultVariantId
+		recipe.ResultVariantName = resultVariantName
+		recipe.RecipeVariantId = &recipeVariantId
+		recipe.RecipeVariantName = recipeVariantName
+		recipe.IngredientCost = ingredientCost
+		recipe.ProductName = productName
+		recipe.IngredientStandardUnit = &variantUnit
+		recipes = append(recipes, recipe)
+	}
+	return recipes, nil
 }
