@@ -18,6 +18,7 @@ type IRetailerBatchRepository interface {
 	GetRetailerBatchBase(ctx context.Context, retailerId int, sku string, expirationDate string) (RetailerBatchBase, error)
 	GetRetailerBatches(ctx context.Context, retailerId int, params common.PaginationParams) ([]RetailerBatch, error)
 	SearchRetailerBatchesBySku(ctx context.Context, retailerId int, sku string, params common.PaginationParams) ([]RetailerBatch, error)
+	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
 }
 
 type RetailerBatchRepository struct {
@@ -183,4 +184,15 @@ func (r *RetailerBatchRepository) parseRetailerBatchRows(rows pgx.Rows) ([]Retai
 		retailerBatches = append(retailerBatches, retailerBatch)
 	}
 	return retailerBatches, nil
+}
+
+func (r *RetailerBatchRepository) DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error {
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `DELETE FROM retailer_batches WHERE retailer_id = $1`
+	_, err := op.Exec(ctx, sql, retailerId)
+	if err != nil {
+		log.Printf("Failed to delete retailer batches: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to delete retailer batches")
+	}
+	return nil
 }

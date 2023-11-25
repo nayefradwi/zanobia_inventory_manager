@@ -226,7 +226,7 @@ func (s *RetailerBatchService) createBatchesPage(batches []RetailerBatch, pageSi
 }
 
 func (s *RetailerBatchService) DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error {
-	// TODO fill
-	// TODO try to acquire lock first
-	return nil
+	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(strconv.Itoa(retailerId)), func() error {
+		return s.repo.DeleteBatchesOfRetailer(ctx, retailerId)
+	})
 }

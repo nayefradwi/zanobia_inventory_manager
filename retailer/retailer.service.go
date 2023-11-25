@@ -87,6 +87,9 @@ func (s *RetailerService) RemoveRetailer(ctx context.Context, id int) error {
 		if err := s.repo.RemoveAllContactsOfRetailer(ctx, id); err != nil {
 			return err
 		}
+		if err := s.repo.RemoveRetailerTranslations(ctx, id); err != nil {
+			return err
+		}
 		if err := s.repo.RemoveRetailer(ctx, id); err != nil {
 			return err
 		}
