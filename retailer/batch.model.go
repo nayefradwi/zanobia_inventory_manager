@@ -43,13 +43,32 @@ func (b RetailerBatchBase) SetExpiresAt(expiresAt time.Time) RetailerBatchBase {
 	return b
 }
 
-func ValidateBatchInput(input RetailerBatchInput) error {
+func ValidateBatchInputIncrement(input RetailerBatchInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
-		common.ValidateId(input.RetailerId, "retailerId"),
+	)
+	errors := make([]common.ErrorDetails, 0)
+	for _, result := range validationResults {
+		if len(result.Message) > 0 {
+			errors = append(errors, result)
+		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid retailer batch input", errors...)
+	}
+	return nil
+}
+
+func ValidateBatchInputDecrement(input RetailerBatchInput) error {
+	validationResults := make([]common.ErrorDetails, 0)
+	validationResults = append(validationResults,
+		common.ValidateIdPtr(&input.UnitId, "unitId"),
+		common.ValidateNotZero(input.Quantity, "quantity"),
+		common.ValidateStringLength(input.Sku, "sku", 10, 36),
+		common.ValidateId(input.RetailerId, "id"),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {

@@ -2,6 +2,7 @@ package retailer
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -39,40 +40,8 @@ func NewRetailerBatchService(
 	}
 }
 
-func GenerateRetailerBatchLockKey(sku string) string {
-	return "retailer-batch:" + sku + ":lock"
-}
-
-func (s *RetailerBatchService) IncrementBatch(ctx context.Context, batchInput RetailerBatchInput) error {
-	if err := ValidateBatchInput(batchInput); err != nil {
-		return err
-	}
-	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(batchInput.Sku), func() error {
-		err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-			ctx = common.SetOperator(ctx, tx)
-			return s.tryToIncrementBatch(ctx, batchInput)
-		})
-		return err
-	})
-}
-
-func (s *RetailerBatchService) tryToIncrementBatch(ctx context.Context, input RetailerBatchInput) error {
-	batchBase, err := s.getConvertedBatch(ctx, &input)
-	if err != nil {
-		return err
-	}
-	if batchBase.Id == nil {
-		return s.tryToCreateBatch(ctx, input)
-	}
-	return s.incrementBatch(ctx, batchBase, input)
-}
-
-func (s *RetailerBatchService) tryToCreateBatch(ctx context.Context, input RetailerBatchInput) error {
-	expiresAt, err := s.productService.GetProductVariantExpirationDate(ctx, input.Sku)
-	if err != nil {
-		return err
-	}
-	return s.repo.CreateRetailerBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
+func GenerateRetailerBatchLockKey(fieldValue string) string {
+	return "retailer-batch:" + fieldValue + ":lock"
 }
 
 func (s *RetailerBatchService) getConvertedBatch(ctx context.Context, input *RetailerBatchInput) (RetailerBatchBase, error) {
@@ -110,24 +79,57 @@ func (s *RetailerBatchService) convertUnit(ctx context.Context, unitId int, inpu
 	return out.Quantity, nil
 }
 
-func (s *RetailerBatchService) incrementBatch(ctx context.Context, batch RetailerBatchBase, input RetailerBatchInput) error {
-	batch = batch.SetQuantity(batch.Quantity + input.Quantity)
-	err := s.repo.UpdateRetailerBatch(ctx, batch)
-	// TODO check if should decrement warehouse
+func (s *RetailerBatchService) IncrementBatch(ctx context.Context, batchInput RetailerBatchInput) error {
+	if err := ValidateBatchInputIncrement(batchInput); err != nil {
+		return err
+	}
+	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.tryToIncrementBatch(ctx, batchInput)
+	})
 	return err
+
+}
+
+func (s *RetailerBatchService) tryToIncrementBatch(ctx context.Context, input RetailerBatchInput) error {
+	batchBase, err := s.getConvertedBatch(ctx, &input)
+	if err != nil {
+		return err
+	}
+	if batchBase.Id == nil {
+		return s.tryToCreateBatch(ctx, input)
+	}
+	return s.incrementBatch(ctx, batchBase, input)
+}
+
+func (s *RetailerBatchService) tryToCreateBatch(ctx context.Context, input RetailerBatchInput) error {
+	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(input.Sku), func() error {
+		expiresAt, err := s.productService.GetProductVariantExpirationDate(ctx, input.Sku)
+		if err != nil {
+			return err
+		}
+		return s.repo.CreateRetailerBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
+	})
+}
+
+func (s *RetailerBatchService) incrementBatch(ctx context.Context, batch RetailerBatchBase, input RetailerBatchInput) error {
+	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(strconv.Itoa(*batch.Id)), func() error {
+		batch = batch.SetQuantity(batch.Quantity + input.Quantity)
+		err := s.repo.UpdateRetailerBatch(ctx, batch)
+		// TODO check if should decrement warehouse
+		return err
+	})
 }
 
 func (s *RetailerBatchService) DecrementBatch(ctx context.Context, input RetailerBatchInput) error {
-	if err := ValidateBatchInput(input); err != nil {
+	if err := ValidateBatchInputDecrement(input); err != nil {
 		return err
 	}
-	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(input.Sku), func() error {
-		err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-			ctx = common.SetOperator(ctx, tx)
-			return s.tryToDecrementBatch(ctx, input)
-		})
-		return err
+	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.tryToDecrementBatch(ctx, input)
 	})
+	return err
 }
 
 func (s *RetailerBatchService) tryToDecrementBatch(ctx context.Context, input RetailerBatchInput) error {
@@ -142,12 +144,14 @@ func (s *RetailerBatchService) tryToDecrementBatch(ctx context.Context, input Re
 }
 
 func (s *RetailerBatchService) decrementBatch(ctx context.Context, batchBase RetailerBatchBase, input RetailerBatchInput) error {
-	newQty := batchBase.Quantity - input.Quantity
-	if newQty < 0 {
-		return common.NewBadRequestFromMessage("retailer batch not enough")
-	}
-	batchBase = batchBase.SetQuantity(newQty)
-	return s.repo.UpdateRetailerBatch(ctx, batchBase)
+	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(strconv.Itoa(*batchBase.Id)), func() error {
+		newQty := batchBase.Quantity - input.Quantity
+		if newQty < 0 {
+			return common.NewBadRequestFromMessage("retailer batch not enough")
+		}
+		batchBase = batchBase.SetQuantity(newQty)
+		return s.repo.UpdateRetailerBatch(ctx, batchBase)
+	})
 }
 
 func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
@@ -158,19 +162,10 @@ func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []
 	return err
 }
 func (s *RetailerBatchService) bulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
-	locks := make([]common.Lock, 0)
-	locksPtr := &locks
-	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inputs {
-		if err := ValidateBatchInput(input); err != nil {
+		if err := ValidateBatchInputIncrement(input); err != nil {
 			return err
 		}
-		lock, lockErr := s.lockingService.Acquire(ctx, GenerateRetailerBatchLockKey(input.Sku))
-		if lockErr != nil {
-			return common.NewBadRequestFromMessage("Failed to acquire lock")
-		}
-		locks = append(locks, lock)
-		locksPtr = &locks
 		if err := s.tryToIncrementBatch(ctx, input); err != nil {
 			return err
 		}
@@ -187,19 +182,10 @@ func (s *RetailerBatchService) BulkDecrementBatch(ctx context.Context, inputs []
 }
 
 func (s *RetailerBatchService) bulkDecrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
-	locks := make([]common.Lock, 0)
-	locksPtr := &locks
-	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inputs {
-		if err := ValidateBatchInput(input); err != nil {
+		if err := ValidateBatchInputIncrement(input); err != nil {
 			return err
 		}
-		lock, lockErr := s.lockingService.Acquire(ctx, GenerateRetailerBatchLockKey(input.Sku))
-		if lockErr != nil {
-			return common.NewBadRequestFromMessage("Failed to acquire lock")
-		}
-		locks = append(locks, lock)
-		locksPtr = &locks
 		if err := s.tryToDecrementBatch(ctx, input); err != nil {
 			return err
 		}
