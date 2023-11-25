@@ -183,7 +183,7 @@ func (s *RetailerBatchService) BulkDecrementBatch(ctx context.Context, inputs []
 
 func (s *RetailerBatchService) bulkDecrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
 	for _, input := range inputs {
-		if err := ValidateBatchInputIncrement(input); err != nil {
+		if err := ValidateBatchInputDecrement(input); err != nil {
 			return err
 		}
 		if err := s.tryToDecrementBatch(ctx, input); err != nil {
