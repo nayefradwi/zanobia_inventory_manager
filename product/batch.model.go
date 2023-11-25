@@ -40,12 +40,32 @@ func (b BatchBase) SetExpiresAt(expiresAt time.Time) BatchBase {
 	return b
 }
 
-func ValidateBatchInput(input BatchInput) error {
+func ValidateBatchInputIncrement(input BatchInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
+	)
+	errors := make([]common.ErrorDetails, 0)
+	for _, result := range validationResults {
+		if len(result.Message) > 0 {
+			errors = append(errors, result)
+		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid batch input", errors...)
+	}
+	return nil
+}
+
+func ValidateBatchInputDecrement(input BatchInput) error {
+	validationResults := make([]common.ErrorDetails, 0)
+	validationResults = append(validationResults,
+		common.ValidateIdPtr(&input.UnitId, "unitId"),
+		common.ValidateNotZero(input.Quantity, "quantity"),
+		common.ValidateStringLength(input.Sku, "sku", 10, 36),
+		common.ValidateIdPtr(input.Id, "id"),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {

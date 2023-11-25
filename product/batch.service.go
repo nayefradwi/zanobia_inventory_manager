@@ -78,7 +78,7 @@ func (s *BatchService) convertUnit(ctx context.Context, unitId int, input BatchI
 }
 
 func (s *BatchService) IncrementBatch(ctx context.Context, batchInput BatchInput) error {
-	if err := ValidateBatchInput(batchInput); err != nil {
+	if err := ValidateBatchInputIncrement(batchInput); err != nil {
 		return err
 	}
 	err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
@@ -119,7 +119,7 @@ func (s *BatchService) incrementBatch(ctx context.Context, batch BatchBase, inpu
 }
 
 func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {
-	if err := ValidateBatchInput(input); err != nil {
+	if err := ValidateBatchInputIncrement(input); err != nil {
 		return err
 	}
 	err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
@@ -161,7 +161,7 @@ func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInp
 
 func (s *BatchService) bulkIncrementBatch(ctx context.Context, inputs []BatchInput) error {
 	for _, input := range inputs {
-		if err := ValidateBatchInput(input); err != nil {
+		if err := ValidateBatchInputIncrement(input); err != nil {
 			return err
 		}
 		if err := s.tryToIncrementBatch(ctx, input); err != nil {
@@ -181,7 +181,7 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 
 func (s *BatchService) bulkDecrementBatch(ctx context.Context, inputs []BatchInput) error {
 	for _, input := range inputs {
-		if err := ValidateBatchInput(input); err != nil {
+		if err := ValidateBatchInputIncrement(input); err != nil {
 			return err
 		}
 		if err := s.tryToDecrementBatch(ctx, input); err != nil {
