@@ -13,8 +13,8 @@ type IRetailerBatchService interface {
 	DecrementBatch(ctx context.Context, input RetailerBatchInput) error
 	BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error
 	BulkDecrementBatch(ctx context.Context, inputs []RetailerBatchInput) error
-	GetBatches(ctx context.Context) (common.PaginatedResponse[RetailerBatch], error)
-	SearchBatchesBySku(ctx context.Context, sku string) (common.PaginatedResponse[RetailerBatch], error)
+	GetBatches(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error)
+	SearchBatchesBySku(ctx context.Context, retailerId int, sku string) (common.PaginatedResponse[RetailerBatch], error)
 	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
 }
 
@@ -72,13 +72,13 @@ func (s *RetailerBatchService) tryToCreateBatch(ctx context.Context, input Retai
 	if err != nil {
 		return err
 	}
-	return s.repo.CreateBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
+	return s.repo.CreateRetailerBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
 }
 
 func (s *RetailerBatchService) getConvertedBatch(ctx context.Context, input *RetailerBatchInput) (RetailerBatchBase, error) {
 	var batchBase RetailerBatchBase
 	if input.Id != nil {
-		batchBase, _ = s.repo.GetBatchBaseById(ctx, input.Id)
+		batchBase, _ = s.repo.GetRetailerBatchBaseById(ctx, input.Id)
 	}
 	unitId := batchBase.UnitId
 	if batchBase.Id == nil {
@@ -112,7 +112,7 @@ func (s *RetailerBatchService) convertUnit(ctx context.Context, unitId int, inpu
 
 func (s *RetailerBatchService) incrementBatch(ctx context.Context, batch RetailerBatchBase, input RetailerBatchInput) error {
 	batch = batch.SetQuantity(batch.Quantity + input.Quantity)
-	err := s.repo.UpdateBatch(ctx, batch)
+	err := s.repo.UpdateRetailerBatch(ctx, batch)
 	// TODO check if should decrement warehouse
 	return err
 }
@@ -136,7 +136,7 @@ func (s *RetailerBatchService) tryToDecrementBatch(ctx context.Context, input Re
 		return err
 	}
 	if batchBase.Id == nil {
-		return common.NewBadRequestFromMessage("batch not found")
+		return common.NewBadRequestFromMessage("retailer batch not found")
 	}
 	return s.decrementBatch(ctx, batchBase, input)
 }
@@ -144,10 +144,10 @@ func (s *RetailerBatchService) tryToDecrementBatch(ctx context.Context, input Re
 func (s *RetailerBatchService) decrementBatch(ctx context.Context, batchBase RetailerBatchBase, input RetailerBatchInput) error {
 	newQty := batchBase.Quantity - input.Quantity
 	if newQty < 0 {
-		return common.NewBadRequestFromMessage("batch not enough")
+		return common.NewBadRequestFromMessage("retailer batch not enough")
 	}
 	batchBase = batchBase.SetQuantity(newQty)
-	return s.repo.UpdateBatch(ctx, batchBase)
+	return s.repo.UpdateRetailerBatch(ctx, batchBase)
 }
 
 func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
@@ -207,18 +207,18 @@ func (s *RetailerBatchService) bulkDecrementBatch(ctx context.Context, inputs []
 	return nil
 }
 
-func (s *RetailerBatchService) GetBatches(ctx context.Context) (common.PaginatedResponse[RetailerBatch], error) {
+func (s *RetailerBatchService) GetBatches(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error) {
 	paginationParam := common.GetPaginationParams(ctx)
-	batches, err := s.repo.GetBatches(ctx, paginationParam)
+	batches, err := s.repo.GetRetailerBatches(ctx, retailerId, paginationParam)
 	if err != nil {
 		return common.PaginatedResponse[RetailerBatch]{}, err
 	}
 	return s.createBatchesPage(batches, paginationParam.PageSize), nil
 }
 
-func (s *RetailerBatchService) SearchBatchesBySku(ctx context.Context, sku string) (common.PaginatedResponse[RetailerBatch], error) {
+func (s *RetailerBatchService) SearchBatchesBySku(ctx context.Context, retailerId int, sku string) (common.PaginatedResponse[RetailerBatch], error) {
 	paginationParam := common.GetPaginationParams(ctx)
-	batches, err := s.repo.SearchBatchesBySku(ctx, sku, paginationParam)
+	batches, err := s.repo.SearchRetailerBatchesBySku(ctx, retailerId, sku, paginationParam)
 	if err != nil {
 		return common.PaginatedResponse[RetailerBatch]{}, err
 	}
@@ -241,5 +241,6 @@ func (s *RetailerBatchService) createBatchesPage(batches []RetailerBatch, pageSi
 
 func (s *RetailerBatchService) DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error {
 	// TODO fill
+	// TODO try to acquire lock first
 	return nil
 }

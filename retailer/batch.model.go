@@ -9,10 +9,11 @@ import (
 )
 
 type RetailerBatchInput struct {
-	Id       *int    `json:"id,omitempty"`
-	Sku      string  `json:"Sku,omitempty"`
-	Quantity float64 `json:"quantity"`
-	UnitId   int     `json:"unitId"`
+	Id         *int    `json:"id,omitempty"`
+	Sku        string  `json:"Sku,omitempty"`
+	Quantity   float64 `json:"quantity"`
+	UnitId     int     `json:"unitId"`
+	RetailerId int     `json:"retailerId"`
 }
 
 type RetailerBatchBase struct {
@@ -20,7 +21,7 @@ type RetailerBatchBase struct {
 	RetailerId *int      `json:"retailerId,omitempty"`
 	Sku        string    `json:"sku"`
 	Quantity   float64   `json:"quantity"`
-	UnitId     int       `json:"unitId"`
+	UnitId     int       `json:"unitId,omitempty"`
 	ExpiresAt  time.Time `json:"expiresAt"`
 }
 
@@ -48,6 +49,7 @@ func ValidateBatchInput(input RetailerBatchInput) error {
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
+		common.ValidateId(input.RetailerId, "retailerId"),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {

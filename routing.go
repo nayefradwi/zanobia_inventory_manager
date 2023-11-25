@@ -184,6 +184,7 @@ func registerRetailerRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	middleware := newUserMiddleWare(provider)
 	retailerRouter := chi.NewRouter()
 	retailerController := retailer.NewRetailerController(provider.services.retailerService)
+	batchController := retailer.NewRetailerBatchController(provider.services.retailerBatchService)
 	retailerRouter.Post("/", retailerController.CreateRetailer)
 	retailerRouter.Post("/{id}/contacts", retailerController.AddRetailerContacts)
 	retailerRouter.Post("/{id}/contact", retailerController.AddRetailerContactInfo)
@@ -196,9 +197,21 @@ func registerRetailerRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 		)).
 		Delete("/{id}", retailerController.RemoveRetailer)
 	retailerRouter.Put("/", retailerController.UpdateRetailer)
+	retailerRouter.Get("/{id}/batches", batchController.GetBatches)
+	retailerRouter.Get("/{id}/batches/search", batchController.SearchBatchesBySku)
+	registerRetailerBatchRoutes(retailerRouter, provider)
 	mainRouter.Mount("/retailers", retailerRouter)
 }
 
+func registerRetailerBatchRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	batchRouter := chi.NewRouter()
+	batchController := retailer.NewRetailerBatchController(provider.services.retailerBatchService)
+	batchRouter.Post("/batch/stock", batchController.IncrementBatch)
+	batchRouter.Delete("/batch/stock", batchController.DecrementBatch)
+	batchRouter.Post("/stock", batchController.BulkIncrementBatch)
+	batchRouter.Delete("/stock", batchController.BulkDecrementBatch)
+	mainRouter.Mount("/batches", batchRouter)
+}
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	ok, _ := json.Marshal(map[string]interface{}{"status": "ok"})
 	w.Header().Set("Content-Type", "application/json")

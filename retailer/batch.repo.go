@@ -2,18 +2,22 @@ package retailer
 
 import (
 	"context"
+	"log"
+	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/product"
 )
 
 type IRetailerBatchRepository interface {
-	CreateBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) error
-	UpdateBatch(ctx context.Context, base RetailerBatchBase) error
-	GetBatchBaseById(ctx context.Context, id *int) (RetailerBatchBase, error)
-	GetBatchBase(ctx context.Context, sku string, expirationDate string) (RetailerBatchBase, error)
-	GetBatches(ctx context.Context, params common.PaginationParams) ([]RetailerBatch, error)
-	SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]RetailerBatch, error)
+	CreateRetailerBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) error
+	UpdateRetailerBatch(ctx context.Context, base RetailerBatchBase) error
+	GetRetailerBatchBaseById(ctx context.Context, id *int) (RetailerBatchBase, error)
+	GetRetailerBatchBase(ctx context.Context, retailerId int, sku string, expirationDate string) (RetailerBatchBase, error)
+	GetRetailerBatches(ctx context.Context, retailerId int, params common.PaginationParams) ([]RetailerBatch, error)
+	SearchRetailerBatchesBySku(ctx context.Context, retailerId int, sku string, params common.PaginationParams) ([]RetailerBatch, error)
 }
 
 type RetailerBatchRepository struct {
@@ -26,32 +30,157 @@ func NewRetailerBatchRepository(db *pgxpool.Pool) *RetailerBatchRepository {
 	}
 }
 
-func (r *RetailerBatchRepository) CreateBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) error {
-	// TODO fill
+func (r *RetailerBatchRepository) CreateRetailerBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) error {
+	sql := `INSERT INTO retailer_batches (sku, retailer_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)`
+	op := common.GetOperator(ctx, r.Pool)
+	_, err := op.Exec(ctx, sql, input.Sku, input.RetailerId, input.Quantity, input.UnitId, expiresAt)
+	if err != nil {
+		log.Printf("Failed to create retailer batch: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to create retailer batch")
+	}
 	return nil
 }
 
-func (r *RetailerBatchRepository) UpdateBatch(ctx context.Context, base RetailerBatchBase) error {
-	// TODO fill
+func (r *RetailerBatchRepository) UpdateRetailerBatch(ctx context.Context, base RetailerBatchBase) error {
+	updatedAt := time.Now().UTC()
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `UPDATE retailer_batches SET quantity = $1, updated_at = $2 WHERE id = $3 and retailer_id = $4`
+	_, err := op.Exec(ctx, sql, base.Quantity, updatedAt, base.Id, base.RetailerId)
+	if err != nil {
+		log.Printf("Failed to update retailer batch: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to update retailer batch")
+	}
 	return nil
 }
 
-func (r *RetailerBatchRepository) GetBatchBaseById(ctx context.Context, id *int) (RetailerBatchBase, error) {
-	// TODO fill
-	return RetailerBatchBase{}, nil
+func (r *RetailerBatchRepository) GetRetailerBatchBaseById(ctx context.Context, id *int) (RetailerBatchBase, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `SELECT id, sku, quantity, unit_id, expires_at, retailer_id FROM retailer_batches WHERE id = $1`
+	row := op.QueryRow(ctx, sql, id)
+	var retailerBatchBase RetailerBatchBase
+	err := row.Scan(
+		&retailerBatchBase.Id, &retailerBatchBase.Sku, &retailerBatchBase.Quantity,
+		&retailerBatchBase.UnitId, &retailerBatchBase.ExpiresAt, &retailerBatchBase.RetailerId,
+	)
+	if err != nil {
+		log.Printf("Failed to get retailer batch base: %s", err.Error())
+		return RetailerBatchBase{}, common.NewBadRequestFromMessage("Failed to get retailer batch base")
+	}
+	return retailerBatchBase, nil
 }
 
-func (r *RetailerBatchRepository) GetBatchBase(ctx context.Context, sku string, expirationDate string) (RetailerBatchBase, error) {
-	// TODO fill
-	return RetailerBatchBase{}, nil
+func (r *RetailerBatchRepository) GetRetailerBatchBase(
+	ctx context.Context, retailerId int,
+	sku string, expirationDate string,
+) (RetailerBatchBase, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	sql := `
+		SELECT id, sku, quantity, unit_id, expires_at, retailer_id
+		FROM retailer_batches
+		WHERE sku = $1 AND expires_at = $2 and retailer_id = $3
+	`
+	row := op.QueryRow(ctx, sql, sku, expirationDate, retailerId)
+	var retailerBatchBase RetailerBatchBase
+	err := row.Scan(
+		&retailerBatchBase.Id, &retailerBatchBase.Sku,
+		&retailerBatchBase.Quantity, &retailerBatchBase.UnitId,
+		&retailerBatchBase.ExpiresAt, &retailerBatchBase.RetailerId,
+	)
+	if err != nil {
+		log.Printf("Failed to get retailer batch base: %s", err.Error())
+		return RetailerBatchBase{}, common.NewBadRequestFromMessage("Failed to get retailer batch base")
+	}
+	return retailerBatchBase, nil
 }
 
-func (r *RetailerBatchRepository) GetBatches(ctx context.Context, params common.PaginationParams) ([]RetailerBatch, error) {
-	// TODO fill
-	return nil, nil
+func (r *RetailerBatchRepository) GetRetailerBatches(ctx context.Context, retailerId int, params common.PaginationParams) ([]RetailerBatch, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	lang := common.GetLanguageParam(ctx)
+	rows, err := common.NewPaginationQueryBuilder(
+		baseBatchListingSql,
+		[]string{"b.expires_at DESC", "b.id DESC"},
+	).
+		WithOperator(op).
+		WithConditions([]string{
+			"utx.language_code = $1",
+			"AND",
+			"b.retailer_id = $2",
+		}).
+		WithCursorKeys([]string{"b.expires_at", "b.id"}).
+		WithParams(params).
+		WithCompareSymbols("<", "<=", ">").
+		Build().
+		Query(ctx, lang, retailerId)
+	if err != nil {
+		log.Printf("Failed to get batches: %s", err.Error())
+		return nil, common.NewBadRequestFromMessage("Failed to get batches")
+	}
+	defer rows.Close()
+	return r.parseRetailerBatchRows(rows)
 }
 
-func (r *RetailerBatchRepository) SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]RetailerBatch, error) {
-	// TODO fill
-	return nil, nil
+func (r *RetailerBatchRepository) SearchRetailerBatchesBySku(
+	ctx context.Context, retailerId int, sku string,
+	params common.PaginationParams,
+) ([]RetailerBatch, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	lang := common.GetLanguageParam(ctx)
+	rows, err := common.NewPaginationQueryBuilder(
+		baseBatchListingSql,
+		[]string{"b.expires_at DESC", "b.id DESC"},
+	).
+		WithOperator(op).
+		WithConditions([]string{
+			"utx.language_code = $1",
+			"AND",
+			"b.retailer_id = $2",
+			"AND",
+			"b.sku = $3",
+		}).
+		WithCursorKeys([]string{"b.expires_at", "b.id"}).
+		WithParams(params).
+		WithCompareSymbols("<", "<=", ">").
+		Build().
+		Query(ctx, lang, retailerId, sku)
+	if err != nil {
+		log.Printf("Failed to get retailer batches: %s", err.Error())
+		return nil, common.NewBadRequestFromMessage("Failed to get retailer batches")
+	}
+	defer rows.Close()
+	return r.parseRetailerBatchRows(rows)
+}
+
+const baseBatchListingSql = `
+select b.id, b.sku, b.quantity, b.expires_at, utx.unit_id, utx.name, utx.symbol,
+pvartx.name, pvar.id, pvar.price, pvar.product_id, ptx.name,
+rtx.retailer_id, rtx.name
+from retailer_batches b
+join unit_translations utx on utx.unit_id = b.unit_id
+join product_variants pvar on pvar.sku = b.sku
+join product_translations ptx on ptx.product_id = pvar.product_id
+join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
+join retailer_translations rtx on rtx.retailer_id = b.retailer_id and utx.language_code = rtx.language_code
+`
+
+func (r *RetailerBatchRepository) parseRetailerBatchRows(rows pgx.Rows) ([]RetailerBatch, error) {
+	var retailerBatches []RetailerBatch
+	for rows.Next() {
+		var retailerBatch RetailerBatch
+		var productVariantBase product.ProductVariantBase
+		var unit product.Unit
+		err := rows.Scan(
+			&retailerBatch.Id, &retailerBatch.Sku, &retailerBatch.Quantity, &retailerBatch.ExpiresAt,
+			&unit.Id, &unit.Name, &unit.Symbol,
+			&productVariantBase.Name, &productVariantBase.Id, &productVariantBase.Price,
+			&productVariantBase.ProductId, &retailerBatch.ProductName, &retailerBatch.RetailerId, &retailerBatch.RetailerName,
+		)
+		if err != nil {
+			log.Printf("Failed to scan retailer batches: %s", err.Error())
+			return []RetailerBatch{}, common.NewBadRequestFromMessage("Failed to scan retailer batches")
+		}
+		retailerBatch.Unit = unit
+		retailerBatch.ProductVariantBase = &productVariantBase
+		retailerBatches = append(retailerBatches, retailerBatch)
+	}
+	return retailerBatches, nil
 }
