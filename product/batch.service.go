@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -41,38 +42,6 @@ func GenerateBatchLockKey(sku string) string {
 	return "batch:" + sku + ":lock"
 }
 
-func (s *BatchService) IncrementBatch(ctx context.Context, batchInput BatchInput) error {
-	if err := ValidateBatchInput(batchInput); err != nil {
-		return err
-	}
-	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(batchInput.Sku), func() error {
-		err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-			ctx = common.SetOperator(ctx, tx)
-			return s.tryToIncrementBatch(ctx, batchInput)
-		})
-		return err
-	})
-}
-
-func (s *BatchService) tryToIncrementBatch(ctx context.Context, input BatchInput) error {
-	batchBase, err := s.getConvertedBatch(ctx, &input)
-	if err != nil {
-		return err
-	}
-	if batchBase.Id == nil {
-		return s.tryToCreateBatch(ctx, input)
-	}
-	return s.incrementBatch(ctx, batchBase, input)
-}
-
-func (s *BatchService) tryToCreateBatch(ctx context.Context, input BatchInput) error {
-	expiresAt, err := s.productService.GetProductVariantExpirationDate(ctx, input.Sku)
-	if err != nil {
-		return err
-	}
-	return s.batchRepo.CreateBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
-}
-
 func (s *BatchService) getConvertedBatch(ctx context.Context, input *BatchInput) (BatchBase, error) {
 	var batchBase BatchBase
 	if input.Id != nil {
@@ -108,24 +77,56 @@ func (s *BatchService) convertUnit(ctx context.Context, unitId int, input BatchI
 	return out.Quantity, nil
 }
 
-func (s *BatchService) incrementBatch(ctx context.Context, batch BatchBase, input BatchInput) error {
-	batch = batch.SetQuantity(batch.Quantity + input.Quantity)
-	err := s.batchRepo.UpdateBatch(ctx, batch)
-	// TODO check if should decrement inventory
+func (s *BatchService) IncrementBatch(ctx context.Context, batchInput BatchInput) error {
+	if err := ValidateBatchInput(batchInput); err != nil {
+		return err
+	}
+	err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.tryToIncrementBatch(ctx, batchInput)
+	})
 	return err
+}
+
+func (s *BatchService) tryToIncrementBatch(ctx context.Context, input BatchInput) error {
+	batchBase, err := s.getConvertedBatch(ctx, &input)
+	if err != nil {
+		return err
+	}
+	if batchBase.Id == nil {
+		return s.tryToCreateBatch(ctx, input)
+	}
+	return s.incrementBatch(ctx, batchBase, input)
+}
+
+func (s *BatchService) tryToCreateBatch(ctx context.Context, input BatchInput) error {
+	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(input.Sku), func() error {
+		expiresAt, err := s.productService.GetProductVariantExpirationDate(ctx, input.Sku)
+		if err != nil {
+			return err
+		}
+		return s.batchRepo.CreateBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
+	})
+}
+
+func (s *BatchService) incrementBatch(ctx context.Context, batch BatchBase, input BatchInput) error {
+	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(strconv.Itoa(*input.Id)), func() error {
+		batch = batch.SetQuantity(batch.Quantity + input.Quantity)
+		err := s.batchRepo.UpdateBatch(ctx, batch)
+		// TODO check if should decrement inventory
+		return err
+	})
 }
 
 func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {
 	if err := ValidateBatchInput(input); err != nil {
 		return err
 	}
-	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(input.Sku), func() error {
-		err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-			ctx = common.SetOperator(ctx, tx)
-			return s.tryToDecrementBatch(ctx, input)
-		})
-		return err
+	err := common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.tryToDecrementBatch(ctx, input)
 	})
+	return err
 }
 
 func (s *BatchService) tryToDecrementBatch(ctx context.Context, input BatchInput) error {
@@ -140,12 +141,14 @@ func (s *BatchService) tryToDecrementBatch(ctx context.Context, input BatchInput
 }
 
 func (s *BatchService) decrementBatch(ctx context.Context, batchBase BatchBase, input BatchInput) error {
-	newQty := batchBase.Quantity - input.Quantity
-	if newQty < 0 {
-		return common.NewBadRequestFromMessage("batch not enough")
-	}
-	batchBase = batchBase.SetQuantity(newQty)
-	return s.batchRepo.UpdateBatch(ctx, batchBase)
+	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(strconv.Itoa(*input.Id)), func() error {
+		newQty := batchBase.Quantity - input.Quantity
+		if newQty < 0 {
+			return common.NewBadRequestFromMessage("batch not enough")
+		}
+		batchBase = batchBase.SetQuantity(newQty)
+		return s.batchRepo.UpdateBatch(ctx, batchBase)
+	})
 }
 
 func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInput) error {
@@ -157,19 +160,10 @@ func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInp
 }
 
 func (s *BatchService) bulkIncrementBatch(ctx context.Context, inputs []BatchInput) error {
-	locks := make([]common.Lock, 0)
-	locksPtr := &locks
-	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inputs {
 		if err := ValidateBatchInput(input); err != nil {
 			return err
 		}
-		lock, lockErr := s.lockingService.Acquire(ctx, GenerateBatchLockKey(input.Sku))
-		if lockErr != nil {
-			return common.NewBadRequestFromMessage("Failed to acquire lock")
-		}
-		locks = append(locks, lock)
-		locksPtr = &locks
 		if err := s.tryToIncrementBatch(ctx, input); err != nil {
 			return err
 		}
@@ -186,19 +180,10 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 }
 
 func (s *BatchService) bulkDecrementBatch(ctx context.Context, inputs []BatchInput) error {
-	locks := make([]common.Lock, 0)
-	locksPtr := &locks
-	defer s.lockingService.ReleaseMany(context.Background(), locksPtr)
 	for _, input := range inputs {
 		if err := ValidateBatchInput(input); err != nil {
 			return err
 		}
-		lock, lockErr := s.lockingService.Acquire(ctx, GenerateBatchLockKey(input.Sku))
-		if lockErr != nil {
-			return common.NewBadRequestFromMessage("Failed to acquire lock")
-		}
-		locks = append(locks, lock)
-		locksPtr = &locks
 		if err := s.tryToDecrementBatch(ctx, input); err != nil {
 			return err
 		}
