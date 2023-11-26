@@ -11,6 +11,8 @@ type BatchController struct {
 	batchService IBatchService
 }
 
+const useMostExpiredKey = "useMostExpired"
+
 func NewBatchController(batchService IBatchService) BatchController {
 	return BatchController{
 		batchService,
@@ -30,8 +32,10 @@ func (c BatchController) IncrementBatch(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c BatchController) IncrementBatchWithRecipe(w http.ResponseWriter, r *http.Request) {
+	useMostExpired := r.URL.Query().Get(useMostExpiredKey)
 	common.ParseBody[BatchInput](w, r.Body, func(input BatchInput) {
 		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, true)
+		ctx = common.SetBoolToContext(ctx, UseMostExpiredKey{}, useMostExpired)
 		err := c.batchService.IncrementBatch(ctx, input)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
@@ -65,8 +69,10 @@ func (c BatchController) BulkIncrementBatch(w http.ResponseWriter, r *http.Reque
 }
 
 func (c BatchController) BulkIncrementBatchWithRecipe(w http.ResponseWriter, r *http.Request) {
+	useMostExpired := r.URL.Query().Get(useMostExpiredKey)
 	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
 		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, true)
+		ctx = common.SetBoolToContext(ctx, UseMostExpiredKey{}, useMostExpired)
 		err := c.batchService.BulkIncrementBatch(ctx, inputs)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,

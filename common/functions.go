@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"time"
@@ -62,4 +63,33 @@ func Base64Decode(input string) (string, error) {
 		return "", err
 	}
 	return string(decoded), nil
+}
+
+func GetBoolFromContext(ctx context.Context, key any) bool {
+	value := ctx.Value(key)
+	if value == nil {
+		return false
+	}
+	if val, ok := value.(bool); ok {
+		return val
+	}
+	return false
+}
+
+func SetBoolToContext(ctx context.Context, key any, value string) context.Context {
+	if value == "true" {
+		return context.WithValue(ctx, key, true)
+	}
+	return context.WithValue(ctx, key, false)
+}
+
+func GetIntFromContext(ctx context.Context, key any) int {
+	value := ctx.Value(key)
+	if value == nil {
+		return 0
+	}
+	if val, ok := value.(int); ok {
+		return val
+	}
+	return 0
 }

@@ -9,6 +9,7 @@ import (
 )
 
 type DecrementRecipeKey struct{}
+type UseMostExpiredKey struct{}
 type IBatchService interface {
 	IncrementBatch(ctx context.Context, batchInput BatchInput) error
 	DecrementBatch(ctx context.Context, input BatchInput) error
@@ -132,13 +133,26 @@ func (s *BatchService) tryToDecrementRecipe(ctx context.Context, input BatchInpu
 	}
 	batchInputsFromRecipes := make([]BatchInput, len(recipes))
 	for i, recipe := range recipes {
+		batchId, err := s.getBatchIdForRecipeBasedOnCtx(ctx, recipe.RecipeVariantSku)
+		if err != nil {
+			return err
+		}
 		batchInputsFromRecipes[i] = BatchInput{
+			Id:       &batchId,
 			Sku:      recipe.RecipeVariantSku,
 			Quantity: recipe.Quantity * input.Quantity,
 			UnitId:   *recipe.Unit.Id,
 		}
 	}
 	return s.bulkDecrementBatch(ctx, batchInputsFromRecipes)
+}
+
+func (s *BatchService) getBatchIdForRecipeBasedOnCtx(ctx context.Context, sku string) (int, error) {
+	shouldUseMostExpired := ctx.Value(UseMostExpiredKey{}).(bool)
+	if shouldUseMostExpired {
+		return s.batchRepo.GetMostExpiredBatchId(ctx, sku)
+	}
+	return s.batchRepo.GetLeastExpiredBatchId(ctx, sku)
 }
 
 func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {

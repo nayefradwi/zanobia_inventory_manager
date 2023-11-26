@@ -18,6 +18,8 @@ type IBatchRepository interface {
 	GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error)
 	GetBatches(ctx context.Context, params common.PaginationParams) ([]Batch, error)
 	SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]Batch, error)
+	GetLeastExpiredBatchId(ctx context.Context, sku string) (int, error)
+	GetMostExpiredBatchId(ctx context.Context, sku string) (int, error)
 }
 
 const baseBatchListingSql = `
@@ -169,4 +171,32 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 		batches = append(batches, batch)
 	}
 	return batches, nil
+}
+
+func (r *BatchRepository) GetLeastExpiredBatchId(ctx context.Context, sku string) (int, error) {
+	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at < NOW() AND warehouse_id = $2 ORDER BY expires_at ASC LIMIT 1`
+	op := common.GetOperator(ctx, r.Pool)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	row := op.QueryRow(ctx, sql, sku, warehouseId)
+	var id int
+	err := row.Scan(&id)
+	if err != nil {
+		log.Printf("Failed to get least expired batch id: %s", err.Error())
+		return 0, common.NewBadRequestFromMessage("Failed to get least expired batch id")
+	}
+	return id, nil
+}
+
+func (r *BatchRepository) GetMostExpiredBatchId(ctx context.Context, sku string) (int, error) {
+	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at < NOW() AND warehouse_id = $2 ORDER BY expires_at DESC LIMIT 1`
+	op := common.GetOperator(ctx, r.Pool)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	row := op.QueryRow(ctx, sql, sku, warehouseId)
+	var id int
+	err := row.Scan(&id)
+	if err != nil {
+		log.Printf("Failed to get most expired batch id: %s", err.Error())
+		return 0, common.NewBadRequestFromMessage("Failed to get most expired batch id")
+	}
+	return id, nil
 }
