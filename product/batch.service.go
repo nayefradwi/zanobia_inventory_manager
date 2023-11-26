@@ -133,7 +133,6 @@ func (s *BatchService) tryToDecrementRecipe(ctx context.Context, input BatchInpu
 	batchInputsFromRecipes := make([]BatchInput, len(recipes))
 	for i, recipe := range recipes {
 		batchInputsFromRecipes[i] = BatchInput{
-			Id:       recipe.RecipeVariantId,
 			Sku:      recipe.RecipeVariantSku,
 			Quantity: recipe.Quantity * input.Quantity,
 			UnitId:   *recipe.Unit.Id,

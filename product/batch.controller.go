@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -18,11 +19,24 @@ func NewBatchController(batchService IBatchService) BatchController {
 
 func (c BatchController) IncrementBatch(w http.ResponseWriter, r *http.Request) {
 	common.ParseBody[BatchInput](w, r.Body, func(input BatchInput) {
-		err := c.batchService.IncrementBatch(r.Context(), input)
+		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, false)
+		err := c.batchService.IncrementBatch(ctx, input)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
 			Writer:  w,
 			Message: "Batch incremented successfully",
+		})
+	})
+}
+
+func (c BatchController) IncrementBatchWithRecipe(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[BatchInput](w, r.Body, func(input BatchInput) {
+		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, true)
+		err := c.batchService.IncrementBatch(ctx, input)
+		common.WriteEmptyResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Batch incremented successfully with recipe",
 		})
 	})
 }
@@ -40,11 +54,24 @@ func (c BatchController) DecrementBatch(w http.ResponseWriter, r *http.Request) 
 
 func (c BatchController) BulkIncrementBatch(w http.ResponseWriter, r *http.Request) {
 	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
-		err := c.batchService.BulkIncrementBatch(r.Context(), inputs)
+		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, false)
+		err := c.batchService.BulkIncrementBatch(ctx, inputs)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
 			Writer:  w,
 			Message: "Batches incremented successfully",
+		})
+	})
+}
+
+func (c BatchController) BulkIncrementBatchWithRecipe(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
+		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, true)
+		err := c.batchService.BulkIncrementBatch(ctx, inputs)
+		common.WriteEmptyResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Batches incremented successfully with recipe",
 		})
 	})
 }

@@ -187,6 +187,7 @@ func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku
 			&recipeVariantId, &recipeVariantName, &ingredientCost,
 			&unit.Id, &unit.Name, &unit.Symbol, &productName,
 			&variantUnit.Name, &variantUnit.Symbol, &variantUnit.Id,
+			&recipe.RecipeVariantSku,
 		)
 		if err != nil {
 			log.Printf("failed to scan recipe: %s", err.Error())
