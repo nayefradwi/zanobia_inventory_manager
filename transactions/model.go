@@ -18,6 +18,7 @@ const (
 	TransactionReasonTypeAuditIncrease = "audit_increase"
 	TransactionReasonTypeAuditDecrease = "audit_decrease"
 	TransactionReasonTypeRecipeUse     = "recipe_use"
+	TransactionReasonTypeProduced      = "produced"
 )
 
 type TransactionReason struct {
