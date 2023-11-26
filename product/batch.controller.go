@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
 type BatchController struct {
@@ -36,6 +37,7 @@ func (c BatchController) IncrementBatchWithRecipe(w http.ResponseWriter, r *http
 	common.ParseBody[BatchInput](w, r.Body, func(input BatchInput) {
 		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, true)
 		ctx = common.SetBoolToContext(ctx, UseMostExpiredKey{}, useMostExpired)
+		input.Reason = transactions.TransactionReasonTypeProduced
 		err := c.batchService.IncrementBatch(ctx, input)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
@@ -73,6 +75,9 @@ func (c BatchController) BulkIncrementBatchWithRecipe(w http.ResponseWriter, r *
 	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
 		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, true)
 		ctx = common.SetBoolToContext(ctx, UseMostExpiredKey{}, useMostExpired)
+		for i := range inputs {
+			inputs[i].Reason = transactions.TransactionReasonTypeProduced
+		}
 		err := c.batchService.BulkIncrementBatch(ctx, inputs)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
