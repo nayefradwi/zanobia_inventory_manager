@@ -12,6 +12,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/retailer"
+	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 )
@@ -46,6 +47,7 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	registerProductRoutes(authorizedRouter, provider)
 	registerWarehouseRoutes(authorizedRouter, provider)
 	registerRetailerRoutes(authorizedRouter, provider)
+	registerTransactionRoutes(authorizedRouter, provider)
 	r.Mount("/", authorizedRouter)
 	return r
 }
@@ -219,6 +221,15 @@ func registerRetailerBatchRoutes(mainRouter *chi.Mux, provider *ServiceProvider)
 	batchRouter.Delete("/stock", batchController.BulkDecrementBatch)
 	mainRouter.Mount("/batches", batchRouter)
 }
+
+func registerTransactionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
+	transactionRouter := chi.NewRouter()
+	transactionController := transactions.NewTransactionController(provider.services.transactionService)
+	transactionRouter.Post("/reasons", transactionController.CreateTransactionReason)
+	transactionRouter.Get("/reasons", transactionController.GetTransactionReasons)
+	mainRouter.Mount("/transactions", transactionRouter)
+}
+
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	ok, _ := json.Marshal(map[string]interface{}{"status": "ok"})
 	w.Header().Set("Content-Type", "application/json")

@@ -7,6 +7,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/retailer"
+	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 	"github.com/redis/go-redis/v9"
@@ -29,6 +30,7 @@ type systemRepositories struct {
 	batchRepository         product.IBatchRepository
 	retailerRepository      retailer.IRetailerRepository
 	retailerBatchRepository retailer.IRetailerBatchRepository
+	transactionRepository   transactions.ITransactionRepository
 }
 
 type systemServices struct {
@@ -43,6 +45,7 @@ type systemServices struct {
 	batchService         product.IBatchService
 	retailerService      retailer.IRetailerService
 	retailerBatchService retailer.IRetailerBatchService
+	transactionService   transactions.ITransactionService
 }
 type ServiceProvider struct {
 	services systemServices
@@ -75,6 +78,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	batchRepo := product.NewBatchRepository(connections.dbPool)
 	retailerRepo := retailer.NewRetailerRepository(connections.dbPool)
 	retailerBatchRepo := retailer.NewRetailerBatchRepository(connections.dbPool)
+	transactionRepo := transactions.NewTransactionRepository(connections.dbPool)
 	return systemRepositories{
 		userRepository:          userRepo,
 		permissionRepository:    permssionRepo,
@@ -86,6 +90,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 		batchRepository:         batchRepo,
 		retailerRepository:      retailerRepo,
 		retailerBatchRepository: retailerBatchRepo,
+		transactionRepository:   transactionRepo,
 	}
 }
 
@@ -117,6 +122,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		unitService,
 	)
 	retailerService := retailer.NewRetailerService(repositories.retailerRepository, retailerBatchService)
+	transactionService := transactions.NewTransactionService(repositories.transactionRepository)
 	s.services = systemServices{
 		userService:          userService,
 		permissionService:    permissionService,
@@ -129,6 +135,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		batchService:         batchService,
 		retailerService:      retailerService,
 		retailerBatchService: retailerBatchService,
+		transactionService:   transactionService,
 	}
 }
 
