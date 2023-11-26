@@ -88,6 +88,7 @@ func ForRetailerTransactions(ctx context.Context, command CreateRetailerTransact
 		return transactionInput{}, err
 	}
 	userId := user.GetUserFromContext(ctx).Id
+	warehouseId := warehouse.GetWarehouseId(ctx)
 	amount := command.Quantity * command.CostPerQty
 	return transactionInput{
 		UserId:          &userId,
@@ -99,5 +100,6 @@ func ForRetailerTransactions(ctx context.Context, command CreateRetailerTransact
 		Reason:          command.Reason,
 		Comment:         command.Comment,
 		Sku:             command.Sku,
+		WarehouseId:     &warehouseId,
 	}, nil
 }

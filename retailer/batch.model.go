@@ -51,6 +51,7 @@ func ValidateBatchInputIncrement(input RetailerBatchInput) error {
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
+		common.ValidateAlphanuemericName(input.Reason, "reason"),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
@@ -71,6 +72,7 @@ func ValidateBatchInputDecrement(input RetailerBatchInput) error {
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
 		common.ValidateIdPtr(input.Id, "id"),
+		common.ValidateAlphanuemericName(input.Reason, "reason"),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
