@@ -17,7 +17,7 @@ const (
 	TransactionReasonTypeReturn        = "return"
 	TransactionReasonTypeAuditIncrease = "audit_increase"
 	TransactionReasonTypeAuditDecrease = "audit_decrease"
-	TransactionReasonTypeRecipeUse     = "recipe_use"
+	TransactionReasonTypeRecipeUse     = "recipeuse"
 	TransactionReasonTypeProduced      = "produced"
 )
 
@@ -25,7 +25,7 @@ type TransactionReason struct {
 	Id          *int   `json:"id,omitempty"`
 	Name        string `json:"name,omitempty"`
 	Description string `json:"Description,omitempty"`
-	IsPositive  bool   `json:"isPositive,omitempty"`
+	IsPositive  bool   `json:"isPositive"`
 }
 
 type transactionInput struct {
