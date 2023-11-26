@@ -362,11 +362,11 @@ CREATE TABLE transaction_history_reasons (
 
 CREATE TABLE transaction_history (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    batch_id INTEGER REFERENCES batches(id),
-    retailer_batch_id INTEGER REFERENCES retailer_batches(id),
-    warehouse_id INTEGER REFERENCES warehouses(id),
-    retailer_id INTEGER REFERENCES retailers(id),
+    user_id INTEGER NOT NULL,
+    batch_id INTEGER,
+    retailer_batch_id INTEGER,
+    warehouse_id INTEGER NOT NULL,
+    retailer_id INTEGER,
     quantity NUMERIC(12, 4) NOT NULL,
     unit_id INTEGER NOT NULL REFERENCES units(id),
     amount NUMERIC(12, 4) NOT NULL,
@@ -379,5 +379,5 @@ CREATE TABLE transaction_history (
 
 DROP INDEX IF EXISTS idx_transaction_history CASCADE;
 
-CREATE INDEX idx_transaction_history ON transaction_history(batch_id, retailer_batch_id, sku);
+CREATE INDEX idx_transaction_history ON transaction_history(batch_id, retailer_batch_id, sku, warehouse_id, retailer_id, user_id);
 -- END TRANSACTIONS TABLES --
