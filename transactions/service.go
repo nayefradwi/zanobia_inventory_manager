@@ -6,6 +6,7 @@ type ITransactionService interface {
 	CreateTransactionReason(ctx context.Context, reason TransactionReason) error
 	GetTransactionReasons(ctx context.Context) ([]TransactionReason, error)
 	CreateWarehouseTransaction(ctx context.Context, command CreateWarehouseTransactionCommand) error
+	CreateRetailerTransaction(ctx context.Context, command CreateRetailerTransactionCommand) error
 }
 
 type TransactionService struct {

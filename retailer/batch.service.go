@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
+	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
 type IRetailerBatchService interface {
@@ -20,10 +21,11 @@ type IRetailerBatchService interface {
 }
 
 type RetailerBatchService struct {
-	repo           IRetailerBatchRepository
-	productService product.IProductService
-	lockingService common.IDistributedLockingService
-	unitService    product.IUnitService
+	repo               IRetailerBatchRepository
+	productService     product.IProductService
+	lockingService     common.IDistributedLockingService
+	unitService        product.IUnitService
+	transactionService transactions.ITransactionService
 }
 
 func NewRetailerBatchService(
@@ -31,12 +33,14 @@ func NewRetailerBatchService(
 	productService product.IProductService,
 	lockingService common.IDistributedLockingService,
 	unitService product.IUnitService,
+	transactionService transactions.ITransactionService,
 ) *RetailerBatchService {
 	return &RetailerBatchService{
 		repo,
 		productService,
 		lockingService,
 		unitService,
+		transactionService,
 	}
 }
 
@@ -104,11 +108,26 @@ func (s *RetailerBatchService) tryToIncrementBatch(ctx context.Context, input Re
 
 func (s *RetailerBatchService) tryToCreateBatch(ctx context.Context, input RetailerBatchInput) error {
 	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(input.Sku), func() error {
-		expiresAt, _, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
+		expiresAt, price, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
 		if err != nil {
 			return err
 		}
-		return s.repo.CreateRetailerBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
+
+		id, err := s.repo.CreateRetailerBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
+		if err != nil {
+			return err
+		}
+		transactionCommand := transactions.CreateRetailerTransactionCommand{
+			RetailerBatchId: id,
+			Quantity:        input.Quantity,
+			UnitId:          input.UnitId,
+			Reason:          input.Reason,
+			Sku:             input.Sku,
+			RetailerId:      input.RetailerId,
+			CostPerQty:      price,
+			Comment:         "Created retailer batch",
+		}
+		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)
 	})
 }
 
@@ -116,8 +135,25 @@ func (s *RetailerBatchService) incrementBatch(ctx context.Context, batch Retaile
 	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(strconv.Itoa(*batch.Id)), func() error {
 		batch = batch.SetQuantity(batch.Quantity + input.Quantity)
 		err := s.repo.UpdateRetailerBatch(ctx, batch)
+		if err != nil {
+			return err
+		}
 		// TODO check if should decrement warehouse
-		return err
+		_, price, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
+		if err != nil {
+			return err
+		}
+		transactionCommand := transactions.CreateRetailerTransactionCommand{
+			RetailerBatchId: *batch.Id,
+			Quantity:        input.Quantity,
+			UnitId:          input.UnitId,
+			Reason:          input.Reason,
+			Sku:             input.Sku,
+			RetailerId:      *batch.RetailerId,
+			CostPerQty:      price,
+			Comment:         "Incremented retailer batch",
+		}
+		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)
 	})
 }
 
@@ -150,7 +186,28 @@ func (s *RetailerBatchService) decrementBatch(ctx context.Context, batchBase Ret
 			return common.NewBadRequestFromMessage("retailer batch not enough")
 		}
 		batchBase = batchBase.SetQuantity(newQty)
-		return s.repo.UpdateRetailerBatch(ctx, batchBase)
+		if input.CostPerQty == 0 {
+			_, costPerQty, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
+			if err != nil {
+				return err
+			}
+			input.CostPerQty = costPerQty
+		}
+		if err := s.repo.UpdateRetailerBatch(ctx, batchBase); err != nil {
+			return err
+		}
+		transactionCommand := transactions.CreateRetailerTransactionCommand{
+			RetailerBatchId: *batchBase.Id,
+			Quantity:        input.Quantity,
+			UnitId:          batchBase.UnitId,
+			Reason:          input.Reason,
+			Sku:             batchBase.Sku,
+			RetailerId:      *batchBase.RetailerId,
+			CostPerQty:      input.CostPerQty,
+			Comment:         "decremented retailer batch",
+		}
+		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)
+
 	})
 }
 

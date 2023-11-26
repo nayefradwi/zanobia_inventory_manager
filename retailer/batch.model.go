@@ -14,6 +14,8 @@ type RetailerBatchInput struct {
 	Quantity   float64 `json:"quantity"`
 	UnitId     int     `json:"unitId"`
 	RetailerId int     `json:"retailerId"`
+	Reason     string  `json:"reason,omitempty"`
+	CostPerQty float64
 }
 
 type RetailerBatchBase struct {

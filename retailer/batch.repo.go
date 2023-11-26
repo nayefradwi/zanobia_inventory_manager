@@ -12,7 +12,7 @@ import (
 )
 
 type IRetailerBatchRepository interface {
-	CreateRetailerBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) error
+	CreateRetailerBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) (int, error)
 	UpdateRetailerBatch(ctx context.Context, base RetailerBatchBase) error
 	GetRetailerBatchBaseById(ctx context.Context, id *int) (RetailerBatchBase, error)
 	GetRetailerBatchBase(ctx context.Context, retailerId int, sku string, expirationDate string) (RetailerBatchBase, error)
@@ -31,15 +31,17 @@ func NewRetailerBatchRepository(db *pgxpool.Pool) *RetailerBatchRepository {
 	}
 }
 
-func (r *RetailerBatchRepository) CreateRetailerBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) error {
-	sql := `INSERT INTO retailer_batches (sku, retailer_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)`
+func (r *RetailerBatchRepository) CreateRetailerBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) (int, error) {
+	sql := `INSERT INTO retailer_batches (sku, retailer_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, input.Sku, input.RetailerId, input.Quantity, input.UnitId, expiresAt)
+	row := op.QueryRow(ctx, sql, input.Sku, input.RetailerId, input.Quantity, input.UnitId, expiresAt)
+	var id int
+	err := row.Scan(&id)
 	if err != nil {
 		log.Printf("Failed to create retailer batch: %s", err.Error())
-		return common.NewBadRequestFromMessage("Failed to create retailer batch")
+		return 0, common.NewBadRequestFromMessage("Failed to create retailer batch")
 	}
-	return nil
+	return id, nil
 }
 
 func (r *RetailerBatchRepository) UpdateRetailerBatch(ctx context.Context, base RetailerBatchBase) error {
