@@ -345,5 +345,39 @@ CREATE INDEX idx_retailer_translation ON retailer_translations(name, language_co
 CREATE INDEX idx_retailer_contact_info_translation ON retailer_contact_info_translations(name, language_code);
 CREATE UNIQUE INDEX idx_retailer_contact_info ON retailer_contact_info(retailer_id, phone);
 CREATE UNIQUE INDEX idx_retailer_batch ON retailer_batches(sku, retailer_id, expires_at);
-
 -- END RETAILER TABLES --
+
+-- TRANSACTIONS TABLES --
+DROP TABLE IF EXISTS transaction_history CASCADE;
+DROP TABLE IF EXISTS transaction_history_reasons CASCADE;
+
+CREATE TABLE transaction_history_reasons (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    is_positive BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE transaction_history (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    batch_id INTEGER REFERENCES batches(id),
+    retailer_batch_id INTEGER REFERENCES retailer_batches(id),
+    quantity NUMERIC(12, 4) NOT NULL,
+    unit_id INTEGER NOT NULL REFERENCES units(id),
+    amount NUMERIC(12, 4) NOT NULL,
+    reason_id INTEGER NOT NULL REFERENCES transaction_history_reasons(id),
+    comment VARCHAR(255),
+    sku VARCHAR(36) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+DROP INDEX IF EXISTS idx_transaction_history CASCADE;
+DROP INDEX IF EXISTS idx_transaction_history_reason CASCADE;
+
+CREATE INDEX idx_transaction_history ON transaction_history(batch_id, retailer_batch_id, sku);
+CREATE UNIQUE INDEX idx_transaction_history_reason ON transaction_history_reasons(name);
+-- END TRANSACTIONS TABLES --
