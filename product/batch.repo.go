@@ -174,7 +174,7 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 }
 
 func (r *BatchRepository) GetLeastExpiredBatchId(ctx context.Context, sku string) (int, error) {
-	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at < NOW() AND warehouse_id = $2 ORDER BY expires_at ASC LIMIT 1`
+	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at < NOW() AND warehouse_id = $2 ORDER BY expires_at DESC LIMIT 1`
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	row := op.QueryRow(ctx, sql, sku, warehouseId)
@@ -188,7 +188,7 @@ func (r *BatchRepository) GetLeastExpiredBatchId(ctx context.Context, sku string
 }
 
 func (r *BatchRepository) GetMostExpiredBatchId(ctx context.Context, sku string) (int, error) {
-	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at < NOW() AND warehouse_id = $2 ORDER BY expires_at DESC LIMIT 1`
+	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at < NOW() AND warehouse_id = $2 ORDER BY expires_at ASC LIMIT 1`
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	row := op.QueryRow(ctx, sql, sku, warehouseId)
