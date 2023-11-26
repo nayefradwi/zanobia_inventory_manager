@@ -29,7 +29,7 @@ func ValidateWarehouseTransactionCommand(command CreateWarehouseTransactionComma
 		common.ValidateStringLength(command.Reason, "reason", 3, 50),
 		common.ValidateAmountPositive(command.CostPerQty, "costPerQty"),
 		common.ValidateStringLength(command.Comment, "comment", 0, 255),
-		common.ValidateStringLength(command.Sku, "sku", 0, 36),
+		common.ValidateStringLength(command.Sku, "sku", 10, 36),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
@@ -53,7 +53,7 @@ func ValidateRetailerTransactionCommand(command CreateRetailerTransactionCommand
 		common.ValidateStringLength(command.Reason, "reason", 3, 50),
 		common.ValidateAmountPositive(command.CostPerQty, "costPerQty"),
 		common.ValidateStringLength(command.Comment, "comment", 0, 255),
-		common.ValidateStringLength(command.Sku, "sku", 0, 36),
+		common.ValidateStringLength(command.Sku, "sku", 10, 36),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {

@@ -20,7 +20,7 @@ type IProductRepo interface {
 	GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error)
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
 	GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error)
-	GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error)
+	GetProductVariantExpirationDateAndCost(ctx context.Context, sku string) (time.Time, float64, error)
 	GetProductOptions(ctx context.Context, productId int) ([]ProductOption, error)
 	GetProductSelectedValues(ctx context.Context, productId int, optionValueIds []int) (map[string]ProductOptionValue, error)
 	InsertProductOptionValue(ctx context.Context, optionId int, optionValue ProductOptionValue) (int, error)

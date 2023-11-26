@@ -108,12 +108,14 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	warehouseService := warehouse.NewWarehouseService(repositories.warehouseRepository)
 	recipeService := product.NewRecipeService(repositories.recipeRepository, unitService)
 	productService := product.NewProductService(repositories.productRepository, recipeService)
+	transactionService := transactions.NewTransactionService(repositories.transactionRepository)
 	batchService := product.NewBatchService(
 		repositories.batchRepository,
 		productService,
 		lockingService,
 		unitService,
 		recipeService,
+		transactionService,
 	)
 	retailerBatchService := retailer.NewRetailerBatchService(
 		repositories.retailerBatchRepository,
@@ -122,7 +124,6 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		unitService,
 	)
 	retailerService := retailer.NewRetailerService(repositories.retailerRepository, retailerBatchService)
-	transactionService := transactions.NewTransactionService(repositories.transactionRepository)
 	s.services = systemServices{
 		userService:          userService,
 		permissionService:    permissionService,

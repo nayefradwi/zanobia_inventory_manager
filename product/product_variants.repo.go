@@ -101,19 +101,20 @@ func (r *ProductRepo) GetUnitIdOfProductVariantBySku(ctx context.Context, sku st
 	return unitId, nil
 }
 
-func (r *ProductRepo) GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error) {
+func (r *ProductRepo) GetProductVariantExpirationDateAndCost(ctx context.Context, sku string) (time.Time, float64, error) {
 	sql := `
-		select expires_in_days from product_variants where sku = $1
+		select expires_in_days, price from product_variants where sku = $1
 	`
 	op := common.GetOperator(ctx, r.Pool)
 	row := op.QueryRow(ctx, sql, sku)
 	var expiresInDays int
-	err := row.Scan(&expiresInDays)
+	var price float64
+	err := row.Scan(&expiresInDays, &price)
 	if err != nil {
 		log.Printf("failed to scan expires in days: %s", err.Error())
-		return time.Time{}, common.NewBadRequestError("failed to get expires in days", zimutils.GetErrorCodeFromError(err))
+		return time.Time{}, 0, common.NewBadRequestError("failed to get expires in days", zimutils.GetErrorCodeFromError(err))
 	}
-	return time.Now().AddDate(0, 0, expiresInDays), nil
+	return time.Now().AddDate(0, 0, expiresInDays), price, nil
 }
 
 func (r *ProductRepo) GetProductOptions(ctx context.Context, productId int) ([]ProductOption, error) {

@@ -104,7 +104,7 @@ func (s *RetailerBatchService) tryToIncrementBatch(ctx context.Context, input Re
 
 func (s *RetailerBatchService) tryToCreateBatch(ctx context.Context, input RetailerBatchInput) error {
 	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(input.Sku), func() error {
-		expiresAt, err := s.productService.GetProductVariantExpirationDate(ctx, input.Sku)
+		expiresAt, _, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
 		if err != nil {
 			return err
 		}

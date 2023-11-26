@@ -16,7 +16,7 @@ type IProductService interface {
 	GetProductVariant(ctx context.Context, productVariantId int) (ProductVariant, error)
 	AddProductVariant(ctx context.Context, input ProductVariantInput) error
 	GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error)
-	GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error)
+	GetProductVariantExpirationDateAndCost(ctx context.Context, sku string) (time.Time, float64, error)
 	AddVariantOptionValue(ctx context.Context, input AddVariantValueInput) error
 }
 
@@ -148,8 +148,8 @@ func (s *ProductService) GetUnitIdOfProductVariantBySku(ctx context.Context, sku
 	return s.repo.GetUnitIdOfProductVariantBySku(ctx, sku)
 }
 
-func (s *ProductService) GetProductVariantExpirationDate(ctx context.Context, sku string) (time.Time, error) {
-	return s.repo.GetProductVariantExpirationDate(ctx, sku)
+func (s *ProductService) GetProductVariantExpirationDateAndCost(ctx context.Context, sku string) (time.Time, float64, error) {
+	return s.repo.GetProductVariantExpirationDateAndCost(ctx, sku)
 }
 
 func (s *ProductService) AddVariantOptionValue(ctx context.Context, input AddVariantValueInput) error {

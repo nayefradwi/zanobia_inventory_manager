@@ -12,7 +12,7 @@ import (
 )
 
 type IBatchRepository interface {
-	CreateBatch(ctx context.Context, input BatchInput, expiresAt string) error
+	CreateBatch(ctx context.Context, input BatchInput, expiresAt string) (int, error)
 	UpdateBatch(ctx context.Context, base BatchBase) error
 	GetBatchBaseById(ctx context.Context, id *int) (BatchBase, error)
 	GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error)
@@ -39,16 +39,18 @@ func NewBatchRepository(pool *pgxpool.Pool) *BatchRepository {
 	return &BatchRepository{pool}
 }
 
-func (r *BatchRepository) CreateBatch(ctx context.Context, input BatchInput, expiresAt string) error {
-	sql := `INSERT INTO batches (sku, warehouse_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)`
+func (r *BatchRepository) CreateBatch(ctx context.Context, input BatchInput, expiresAt string) (int, error) {
+	sql := `INSERT INTO batches (sku, warehouse_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
-	_, err := op.Exec(ctx, sql, input.Sku, warehouseId, input.Quantity, input.UnitId, expiresAt)
+	row := op.QueryRow(ctx, sql, input.Sku, warehouseId, input.Quantity, input.UnitId, expiresAt)
+	var id int
+	err := row.Scan(&id)
 	if err != nil {
 		log.Printf("Failed to create batch: %s", err.Error())
-		return common.NewBadRequestFromMessage("Failed to create batch")
+		return 0, common.NewBadRequestFromMessage("Failed to create batch")
 	}
-	return nil
+	return id, nil
 }
 
 func (r *BatchRepository) UpdateBatch(ctx context.Context, base BatchBase) error {

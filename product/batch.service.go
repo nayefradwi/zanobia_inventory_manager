@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
 type DecrementRecipeKey struct{}
@@ -20,11 +21,12 @@ type IBatchService interface {
 }
 
 type BatchService struct {
-	batchRepo      IBatchRepository
-	productService IProductService
-	lockingService common.IDistributedLockingService
-	unitService    IUnitService
-	recipeService  IRecipeService
+	batchRepo          IBatchRepository
+	productService     IProductService
+	lockingService     common.IDistributedLockingService
+	unitService        IUnitService
+	recipeService      IRecipeService
+	transactionService transactions.ITransactionService
 }
 
 func NewBatchService(
@@ -33,6 +35,7 @@ func NewBatchService(
 	lockingService common.IDistributedLockingService,
 	unitService IUnitService,
 	recipeService IRecipeService,
+	transactionService transactions.ITransactionService,
 ) *BatchService {
 	return &BatchService{
 		batchRepo,
@@ -40,6 +43,7 @@ func NewBatchService(
 		lockingService,
 		unitService,
 		recipeService,
+		transactionService,
 	}
 }
 
@@ -106,11 +110,24 @@ func (s *BatchService) tryToIncrementBatch(ctx context.Context, input BatchInput
 
 func (s *BatchService) tryToCreateBatch(ctx context.Context, input BatchInput) error {
 	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(input.Sku), func() error {
-		expiresAt, err := s.productService.GetProductVariantExpirationDate(ctx, input.Sku)
+		expiresAt, price, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
 		if err != nil {
 			return err
 		}
-		return s.batchRepo.CreateBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
+		id, err := s.batchRepo.CreateBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
+		if err != nil {
+			return err
+		}
+		transactionCommand := transactions.CreateWarehouseTransactionCommand{
+			BatchId:    id,
+			Quantity:   input.Quantity,
+			UnitId:     input.UnitId,
+			Reason:     input.Reason,
+			Sku:        input.Sku,
+			CostPerQty: price,
+			Comment:    "New batch created",
+		}
+		return s.transactionService.CreateWarehouseTransaction(ctx, transactionCommand)
 	})
 }
 
@@ -118,11 +135,30 @@ func (s *BatchService) incrementBatch(ctx context.Context, batch BatchBase, inpu
 	return s.lockingService.RunWithLock(ctx, GenerateBatchLockKey(strconv.Itoa(*input.Id)), func() error {
 		batch = batch.SetQuantity(batch.Quantity + input.Quantity)
 		err := s.batchRepo.UpdateBatch(ctx, batch)
+		if err != nil {
+			return err
+		}
 		shouldDecrementRecipe := ctx.Value(DecrementRecipeKey{}).(bool)
 		if shouldDecrementRecipe {
 			err = s.tryToDecrementRecipe(ctx, input)
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		_, price, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
+		if err != nil {
+			return err
+		}
+		transactionCommand := transactions.CreateWarehouseTransactionCommand{
+			BatchId:    *batch.Id,
+			Quantity:   input.Quantity,
+			UnitId:     input.UnitId,
+			Reason:     input.Reason,
+			Sku:        input.Sku,
+			CostPerQty: price,
+			Comment:    "New batch incremented",
+		}
+		return s.transactionService.CreateWarehouseTransaction(ctx, transactionCommand)
 	})
 }
 
@@ -138,10 +174,12 @@ func (s *BatchService) tryToDecrementRecipe(ctx context.Context, input BatchInpu
 			return err
 		}
 		batchInputsFromRecipes[i] = BatchInput{
-			Id:       &batchId,
-			Sku:      recipe.RecipeVariantSku,
-			Quantity: recipe.Quantity * input.Quantity,
-			UnitId:   *recipe.Unit.Id,
+			Id:         &batchId,
+			Sku:        recipe.RecipeVariantSku,
+			Quantity:   recipe.Quantity * input.Quantity,
+			UnitId:     *recipe.Unit.Id,
+			Reason:     transactions.TransactionReasonTypeRecipeUse,
+			CostPerQty: recipe.IngredientCost,
 		}
 	}
 	return s.bulkDecrementBatch(ctx, batchInputsFromRecipes)
@@ -184,7 +222,26 @@ func (s *BatchService) decrementBatch(ctx context.Context, batchBase BatchBase, 
 			return common.NewBadRequestFromMessage("batch not enough")
 		}
 		batchBase = batchBase.SetQuantity(newQty)
-		return s.batchRepo.UpdateBatch(ctx, batchBase)
+		if input.CostPerQty == 0 {
+			_, costPerQty, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
+			if err != nil {
+				return err
+			}
+			input.CostPerQty = costPerQty
+		}
+		if err := s.batchRepo.UpdateBatch(ctx, batchBase); err != nil {
+			return err
+		}
+		transactionCommand := transactions.CreateWarehouseTransactionCommand{
+			BatchId:    *input.Id,
+			Quantity:   input.Quantity,
+			UnitId:     input.UnitId,
+			Reason:     input.Reason,
+			Sku:        input.Sku,
+			CostPerQty: input.CostPerQty,
+			Comment:    "New batch decremented",
+		}
+		return s.transactionService.CreateWarehouseTransaction(ctx, transactionCommand)
 	})
 }
 

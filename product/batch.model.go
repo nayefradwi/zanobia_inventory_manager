@@ -8,10 +8,12 @@ import (
 )
 
 type BatchInput struct {
-	Id       *int    `json:"id,omitempty"`
-	Sku      string  `json:"Sku,omitempty"`
-	Quantity float64 `json:"quantity"`
-	UnitId   int     `json:"unitId"`
+	Id         *int    `json:"id,omitempty"`
+	Sku        string  `json:"Sku,omitempty"`
+	Quantity   float64 `json:"quantity"`
+	UnitId     int     `json:"unitId"`
+	Reason     string  `json:"reason,omitempty"`
+	CostPerQty float64
 }
 
 type BatchBase struct {
@@ -46,6 +48,7 @@ func ValidateBatchInputIncrement(input BatchInput) error {
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
+		common.ValidateAlphanuemericName(input.Reason, "reason"),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
@@ -66,6 +69,7 @@ func ValidateBatchInputDecrement(input BatchInput) error {
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
 		common.ValidateIdPtr(input.Id, "id"),
+		common.ValidateAlphanuemericName(input.Reason, "reason"),
 	)
 	errors := make([]common.ErrorDetails, 0)
 	for _, result := range validationResults {
