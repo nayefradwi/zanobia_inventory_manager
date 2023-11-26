@@ -11,6 +11,7 @@ import (
 type ITransactionRepository interface {
 	CreateTransactionReason(ctx context.Context, reason TransactionReason) error
 	GetTransactionReasons(ctx context.Context) ([]TransactionReason, error)
+	InsertTransaction(ctx context.Context, input transactionInput) error
 }
 
 type TransactionRepository struct {
@@ -54,4 +55,21 @@ func (r *TransactionRepository) GetTransactionReasons(ctx context.Context) ([]Tr
 		reasons = append(reasons, reason)
 	}
 	return reasons, nil
+}
+
+func (r *TransactionRepository) InsertTransaction(ctx context.Context, input transactionInput) error {
+	sql := `
+		INSERT INTO transaction_history (user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, 
+		quantity, unit_id, amount, reason, comment, sku) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		`
+	op := common.GetOperator(ctx, r.Pool)
+	_, err := op.Exec(
+		ctx, sql, input.UserId, input.BatchId, input.RetailerBatchId, input.WarehouseId, input.RetailerId,
+		input.Quantity, input.UnitId, input.Amount, input.Reason, input.Comment, input.Sku,
+	)
+	if err != nil {
+		log.Printf("Failed to insert transaction: %s", err.Error())
+		return common.NewBadRequestFromMessage("Failed to insert transaction")
+	}
+	return nil
 }

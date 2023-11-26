@@ -112,3 +112,22 @@ func ValidateSliceSize[T any](data []T, field string, min int, max int) ErrorDet
 	}
 	return ErrorDetails{}
 }
+
+func ValidateAmountPositive[T float64 | int](amount T, field string) ErrorDetails {
+	if amount <= 0 {
+		return ErrorDetails{
+			Message: field + " must be greater than 0",
+			Field:   field,
+		}
+	}
+	return ErrorDetails{}
+}
+func ValidateAmount[T float64 | int](amount T, field string, min, max T) ErrorDetails {
+	if amount < min || amount > max {
+		return ErrorDetails{
+			Message: field + " must be greater than " + strconv.Itoa(int(min)) + " and less than " + strconv.Itoa(int(max)),
+			Field:   field,
+		}
+	}
+	return ErrorDetails{}
+}

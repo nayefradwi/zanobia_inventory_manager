@@ -353,7 +353,7 @@ DROP TABLE IF EXISTS transaction_history_reasons CASCADE;
 
 CREATE TABLE transaction_history_reasons (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(50) UNIQUE NOT NULL,
     description VARCHAR(255) NOT NULL,
     is_positive BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -365,11 +365,12 @@ CREATE TABLE transaction_history (
     user_id INTEGER NOT NULL REFERENCES users(id),
     batch_id INTEGER REFERENCES batches(id),
     retailer_batch_id INTEGER REFERENCES retailer_batches(id),
-    warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
+    warehouse_id INTEGER REFERENCES warehouses(id),
+    retailer_id INTEGER REFERENCES retailers(id),
     quantity NUMERIC(12, 4) NOT NULL,
     unit_id INTEGER NOT NULL REFERENCES units(id),
     amount NUMERIC(12, 4) NOT NULL,
-    reason_id INTEGER NOT NULL REFERENCES transaction_history_reasons(id),
+    reason VARCHAR(50) NOT NULL REFERENCES transaction_history_reasons(name),
     comment VARCHAR(255),
     sku VARCHAR(36) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -377,8 +378,6 @@ CREATE TABLE transaction_history (
 
 
 DROP INDEX IF EXISTS idx_transaction_history CASCADE;
-DROP INDEX IF EXISTS idx_transaction_history_reason CASCADE;
 
 CREATE INDEX idx_transaction_history ON transaction_history(batch_id, retailer_batch_id, sku);
-CREATE UNIQUE INDEX idx_transaction_history_reason ON transaction_history_reasons(name);
 -- END TRANSACTIONS TABLES --
