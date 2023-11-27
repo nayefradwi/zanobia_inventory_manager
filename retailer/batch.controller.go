@@ -1,11 +1,13 @@
 package retailer
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/product"
 )
 
 type RetailerBatchController struct {
@@ -102,11 +104,12 @@ func (c RetailerBatchController) MoveFromWarehouseToRetailer(w http.ResponseWrit
 
 func (c RetailerBatchController) ReturnToWarehouseToRetailer(w http.ResponseWriter, r *http.Request) {
 	common.ParseBody[RetailerBatchFromWarehouseInput](w, r.Body, func(data RetailerBatchFromWarehouseInput) {
-		err := c.service.ReturnBatchToWarehouse(r.Context(), data)
+		ctx := context.WithValue(r.Context(), product.DecrementRecipeKey{}, false)
+		err := c.service.ReturnBatchToWarehouse(ctx, data)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
 			Writer:  w,
-			Message: "Batch moved successfully",
+			Message: "Batch returned successfully",
 		})
 	})
 }

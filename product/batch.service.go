@@ -120,6 +120,13 @@ func (s *BatchService) tryToCreateBatch(ctx context.Context, input BatchInput) e
 		if err != nil {
 			return err
 		}
+		shouldDecrementRecipe := ctx.Value(DecrementRecipeKey{}).(bool)
+		if shouldDecrementRecipe {
+			err = s.tryToDecrementRecipe(ctx, input)
+		}
+		if err != nil {
+			return err
+		}
 		transactionCommand := transactions.CreateWarehouseTransactionCommand{
 			BatchId:    id,
 			Quantity:   input.Quantity,
