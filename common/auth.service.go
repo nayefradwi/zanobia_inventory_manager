@@ -83,13 +83,15 @@ func DecodeAccessToken(tokenString string, secret string) (map[string]interface{
 }
 
 func verifyToken(tokenString string, secret string) (bool, *jwt.Token) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, NewUnAuthorizedError("Invalid token")
-		}
-		return []byte(secret), nil
-	})
+	token, err := jwt.Parse(tokenString, validateTokenMethod)
 	return err == nil && token.Valid, token
+}
+
+func validateTokenMethod(token *jwt.Token) (interface{}, error) {
+	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		return nil, NewUnAuthorizedError("Invalid token")
+	}
+	return []byte(secret), nil
 }
 
 func parseToken(token *jwt.Token) jwt.MapClaims {
