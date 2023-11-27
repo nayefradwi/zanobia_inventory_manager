@@ -15,10 +15,12 @@ const (
 	TransactionReasonTypeLost          = "lost"
 	TransactionReasonTypeFound         = "found"
 	TransactionReasonTypeReturn        = "return"
-	TransactionReasonTypeAuditIncrease = "audit_increase"
-	TransactionReasonTypeAuditDecrease = "audit_decrease"
-	TransactionReasonTypeRecipeUse     = "recipeuse"
+	TransactionReasonTypeAuditIncrease = "auditIncrease"
+	TransactionReasonTypeAuditDecrease = "auditDecrease"
+	TransactionReasonTypeRecipeUse     = "recipeUse"
 	TransactionReasonTypeProduced      = "produced"
+	TransactionReasonTypeTransferIn    = "transferIn"
+	TransactionReasonTypeTransferOut   = "transferOut"
 )
 
 type TransactionReason struct {

@@ -18,6 +18,7 @@ type IRetailerBatchService interface {
 	GetBatches(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error)
 	SearchBatchesBySku(ctx context.Context, retailerId int, sku string) (common.PaginatedResponse[RetailerBatch], error)
 	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
+	MoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error
 }
 
 type RetailerBatchService struct {
@@ -26,6 +27,7 @@ type RetailerBatchService struct {
 	lockingService     common.IDistributedLockingService
 	unitService        product.IUnitService
 	transactionService transactions.ITransactionService
+	batchService       product.IBatchService
 }
 
 func NewRetailerBatchService(
@@ -34,6 +36,7 @@ func NewRetailerBatchService(
 	lockingService common.IDistributedLockingService,
 	unitService product.IUnitService,
 	transactionService transactions.ITransactionService,
+	batchService product.IBatchService,
 ) *RetailerBatchService {
 	return &RetailerBatchService{
 		repo,
@@ -41,6 +44,7 @@ func NewRetailerBatchService(
 		lockingService,
 		unitService,
 		transactionService,
+		batchService,
 	}
 }
 
@@ -51,7 +55,7 @@ func GenerateRetailerBatchLockKey(fieldValue string) string {
 func (s *RetailerBatchService) getConvertedBatch(ctx context.Context, input *RetailerBatchInput) (RetailerBatchBase, error) {
 	var batchBase RetailerBatchBase
 	if input.Id != nil {
-		batchBase, _ = s.repo.GetRetailerBatchBaseById(ctx, input.Id)
+		batchBase, _ = s.repo.GetRetailerBatchBaseById(ctx, input.Id, input.RetailerId)
 	}
 	unitId := batchBase.UnitId
 	if batchBase.Id == nil {
@@ -138,7 +142,6 @@ func (s *RetailerBatchService) incrementBatch(ctx context.Context, batch Retaile
 		if err != nil {
 			return err
 		}
-		// TODO check if should decrement warehouse
 		_, price, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
 		if err != nil {
 			return err
@@ -286,4 +289,33 @@ func (s *RetailerBatchService) DeleteBatchesOfRetailer(ctx context.Context, reta
 	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(strconv.Itoa(retailerId)), func() error {
 		return s.repo.DeleteBatchesOfRetailer(ctx, retailerId)
 	})
+}
+
+func (s *RetailerBatchService) MoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
+	if err := ValidateRetailerBatchFromWarehouseInput(moveInput); err != nil {
+		return err
+	}
+	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		retailerBatchInput := RetailerBatchInput{
+			Id:         moveInput.Id,
+			Sku:        moveInput.Sku,
+			Quantity:   moveInput.Quantity,
+			UnitId:     moveInput.UnitId,
+			RetailerId: moveInput.RetailerId,
+			Reason:     transactions.TransactionReasonTypeTransferIn,
+		}
+		if err := s.tryToIncrementBatch(ctx, retailerBatchInput); err != nil {
+			return err
+		}
+		batchInput := product.BatchInput{
+			Id:       &moveInput.FromBatchId,
+			Sku:      moveInput.Sku,
+			Quantity: moveInput.Quantity,
+			UnitId:   moveInput.UnitId,
+			Reason:   transactions.TransactionReasonTypeTransferIn,
+		}
+		return s.batchService.DecrementForRetailer(ctx, batchInput)
+	})
+	return err
 }

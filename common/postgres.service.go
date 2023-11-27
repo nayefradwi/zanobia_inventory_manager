@@ -17,6 +17,7 @@ func RunWithTransaction(ctx context.Context, pool *pgxpool.Pool, transaction Tra
 		return NewInternalServerError()
 	}
 	defer tx.Rollback(ctx)
+	ctx = SetOperator(ctx, tx)
 	transactionErr := transaction(ctx, tx)
 	if transactionErr != nil {
 		if apiErr, ok := transactionErr.(*ApiError); ok {

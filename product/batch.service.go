@@ -18,6 +18,7 @@ type IBatchService interface {
 	BulkDecrementBatch(ctx context.Context, inputs []BatchInput) error
 	GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error)
 	SearchBatchesBySku(ctx context.Context, sku string) (common.PaginatedResponse[Batch], error)
+	DecrementForRetailer(ctx context.Context, input BatchInput) error
 }
 
 type BatchService struct {
@@ -315,4 +316,8 @@ func (s *BatchService) createBatchesPage(batches []Batch, pageSize int) common.P
 		batches,
 	)
 	return res
+}
+
+func (s *BatchService) DecrementForRetailer(ctx context.Context, input BatchInput) error {
+	return s.tryToDecrementBatch(ctx, input)
 }

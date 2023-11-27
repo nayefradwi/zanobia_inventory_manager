@@ -11,6 +11,7 @@ import (
 type RetailerBatchController struct {
 	service IRetailerBatchService
 }
+type DecrementWarehouseKey struct{}
 
 func NewRetailerBatchController(service IRetailerBatchService) *RetailerBatchController {
 	return &RetailerBatchController{
@@ -86,4 +87,15 @@ func (c RetailerBatchController) SearchBatchesBySku(w http.ResponseWriter, r *ht
 			Data:   batchesPage,
 		},
 	)
+}
+
+func (c RetailerBatchController) MoveFromWarehouseToRetailer(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[RetailerBatchFromWarehouseInput](w, r.Body, func(data RetailerBatchFromWarehouseInput) {
+		err := c.service.MoveFromWarehouseToRetailer(r.Context(), data)
+		common.WriteEmptyResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Batch moved successfully",
+		})
+	})
 }

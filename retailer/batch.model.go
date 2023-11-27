@@ -18,6 +18,16 @@ type RetailerBatchInput struct {
 	CostPerQty float64
 }
 
+type RetailerBatchFromWarehouseInput struct {
+	Id          *int    `json:"id,omitempty"`
+	Sku         string  `json:"Sku,omitempty"`
+	Quantity    float64 `json:"quantity"`
+	UnitId      int     `json:"unitId"`
+	RetailerId  int     `json:"retailerId"`
+	Reason      string  `json:"reason,omitempty"`
+	FromBatchId int     `json:"fromBatchId"`
+}
+
 type RetailerBatchBase struct {
 	Id         *int      `json:"id,omitempty"`
 	RetailerId *int      `json:"retailerId,omitempty"`
@@ -91,4 +101,27 @@ func (b RetailerBatch) GetCursorValue() []string {
 		common.GetUtcDateOnlyStringFromTime(b.ExpiresAt),
 		strconv.Itoa(*b.Id),
 	}
+}
+
+func ValidateRetailerBatchFromWarehouseInput(input RetailerBatchFromWarehouseInput) error {
+	validationResults := make([]common.ErrorDetails, 0)
+	validationResults = append(validationResults,
+		common.ValidateId(input.UnitId, "unitId"),
+		common.ValidateNotZero(input.Quantity, "quantity"),
+		common.ValidateStringLength(input.Sku, "sku", 10, 36),
+		common.ValidateIdPtr(input.Id, "id"),
+		common.ValidateId(input.FromBatchId, "fromBatchId"),
+		common.ValidateId(input.RetailerId, "retailerId"),
+		common.ValidateAmountPositive[float64](input.Quantity, "quantity"),
+	)
+	errors := make([]common.ErrorDetails, 0)
+	for _, result := range validationResults {
+		if len(result.Message) > 0 {
+			errors = append(errors, result)
+		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid retailer batch input", errors...)
+	}
+	return nil
 }

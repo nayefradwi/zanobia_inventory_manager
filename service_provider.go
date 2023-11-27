@@ -123,6 +123,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 		lockingService,
 		unitService,
 		transactionService,
+		batchService,
 	)
 	retailerService := retailer.NewRetailerService(repositories.retailerRepository, retailerBatchService)
 	s.services = systemServices{

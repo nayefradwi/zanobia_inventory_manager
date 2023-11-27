@@ -14,7 +14,7 @@ import (
 type IRetailerBatchRepository interface {
 	CreateRetailerBatch(ctx context.Context, input RetailerBatchInput, expiresAt string) (int, error)
 	UpdateRetailerBatch(ctx context.Context, base RetailerBatchBase) error
-	GetRetailerBatchBaseById(ctx context.Context, id *int) (RetailerBatchBase, error)
+	GetRetailerBatchBaseById(ctx context.Context, id *int, retailerId int) (RetailerBatchBase, error)
 	GetRetailerBatchBase(ctx context.Context, retailerId int, sku string, expirationDate string) (RetailerBatchBase, error)
 	GetRetailerBatches(ctx context.Context, retailerId int, params common.PaginationParams) ([]RetailerBatch, error)
 	SearchRetailerBatchesBySku(ctx context.Context, retailerId int, sku string, params common.PaginationParams) ([]RetailerBatch, error)
@@ -56,10 +56,10 @@ func (r *RetailerBatchRepository) UpdateRetailerBatch(ctx context.Context, base 
 	return nil
 }
 
-func (r *RetailerBatchRepository) GetRetailerBatchBaseById(ctx context.Context, id *int) (RetailerBatchBase, error) {
+func (r *RetailerBatchRepository) GetRetailerBatchBaseById(ctx context.Context, id *int, retailerId int) (RetailerBatchBase, error) {
 	op := common.GetOperator(ctx, r.Pool)
-	sql := `SELECT id, sku, quantity, unit_id, expires_at, retailer_id FROM retailer_batches WHERE id = $1`
-	row := op.QueryRow(ctx, sql, id)
+	sql := `SELECT id, sku, quantity, unit_id, expires_at, retailer_id FROM retailer_batches WHERE id = $1 AND retailer_id = $2`
+	row := op.QueryRow(ctx, sql, id, retailerId)
 	var retailerBatchBase RetailerBatchBase
 	err := row.Scan(
 		&retailerBatchBase.Id, &retailerBatchBase.Sku, &retailerBatchBase.Quantity,
