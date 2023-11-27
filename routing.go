@@ -220,6 +220,7 @@ func registerRetailerBatchRoutes(mainRouter *chi.Mux, provider *ServiceProvider)
 	batchRouter.Post("/stock", batchController.BulkIncrementBatch)
 	batchRouter.Delete("/stock", batchController.BulkDecrementBatch)
 	batchRouter.Post("/batch/stock/from-warehouse", batchController.MoveFromWarehouseToRetailer)
+	batchRouter.Delete("/batch/stock/to-warehouse", batchController.ReturnToWarehouseToRetailer)
 	mainRouter.Mount("/batches", batchRouter)
 }
 

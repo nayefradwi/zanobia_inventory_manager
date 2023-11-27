@@ -19,6 +19,7 @@ type IBatchService interface {
 	GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error)
 	SearchBatchesBySku(ctx context.Context, sku string) (common.PaginatedResponse[Batch], error)
 	DecrementForRetailer(ctx context.Context, input BatchInput) error
+	ReturnToWarehouse(ctx context.Context, input BatchInput) error
 }
 
 type BatchService struct {
@@ -320,4 +321,8 @@ func (s *BatchService) createBatchesPage(batches []Batch, pageSize int) common.P
 
 func (s *BatchService) DecrementForRetailer(ctx context.Context, input BatchInput) error {
 	return s.tryToDecrementBatch(ctx, input)
+}
+
+func (s *BatchService) ReturnToWarehouse(ctx context.Context, input BatchInput) error {
+	return s.tryToIncrementBatch(ctx, input)
 }

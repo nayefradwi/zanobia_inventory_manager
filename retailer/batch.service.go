@@ -19,6 +19,7 @@ type IRetailerBatchService interface {
 	SearchBatchesBySku(ctx context.Context, retailerId int, sku string) (common.PaginatedResponse[RetailerBatch], error)
 	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
 	MoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error
+	ReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error
 }
 
 type RetailerBatchService struct {
@@ -297,25 +298,62 @@ func (s *RetailerBatchService) MoveFromWarehouseToRetailer(ctx context.Context, 
 	}
 	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		ctx = common.SetOperator(ctx, tx)
-		retailerBatchInput := RetailerBatchInput{
-			Id:         moveInput.Id,
-			Sku:        moveInput.Sku,
-			Quantity:   moveInput.Quantity,
-			UnitId:     moveInput.UnitId,
-			RetailerId: moveInput.RetailerId,
-			Reason:     transactions.TransactionReasonTypeTransferIn,
-		}
-		if err := s.tryToIncrementBatch(ctx, retailerBatchInput); err != nil {
-			return err
-		}
-		batchInput := product.BatchInput{
-			Id:       &moveInput.FromBatchId,
-			Sku:      moveInput.Sku,
-			Quantity: moveInput.Quantity,
-			UnitId:   moveInput.UnitId,
-			Reason:   transactions.TransactionReasonTypeTransferIn,
-		}
-		return s.batchService.DecrementForRetailer(ctx, batchInput)
+		return s.tryToMoveFromWarehouseToRetailer(ctx, moveInput)
 	})
 	return err
+}
+
+func (s *RetailerBatchService) tryToMoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
+	retailerBatchInput := RetailerBatchInput{
+		Id:         moveInput.Id,
+		Sku:        moveInput.Sku,
+		Quantity:   moveInput.Quantity,
+		UnitId:     moveInput.UnitId,
+		RetailerId: moveInput.RetailerId,
+		Reason:     transactions.TransactionReasonTypeTransferIn,
+	}
+	if err := s.tryToIncrementBatch(ctx, retailerBatchInput); err != nil {
+		return err
+	}
+	batchInput := product.BatchInput{
+		Id:       &moveInput.BatchId,
+		Sku:      moveInput.Sku,
+		Quantity: moveInput.Quantity,
+		UnitId:   moveInput.UnitId,
+		Reason:   transactions.TransactionReasonTypeTransferIn,
+	}
+	return s.batchService.DecrementForRetailer(ctx, batchInput)
+}
+
+func (s *RetailerBatchService) ReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
+	if err := ValidateRetailerBatchFromWarehouseInput(moveInput); err != nil {
+		return err
+	}
+	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.tryToReturnBatchToWarehouse(ctx, moveInput)
+	})
+	return err
+}
+
+func (s *RetailerBatchService) tryToReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
+	retailerBatchInput := RetailerBatchInput{
+		Id:         moveInput.Id,
+		Sku:        moveInput.Sku,
+		Quantity:   moveInput.Quantity,
+		UnitId:     moveInput.UnitId,
+		RetailerId: moveInput.RetailerId,
+		Reason:     transactions.TransactionReasonTypeTransferOut,
+	}
+	if err := s.tryToDecrementBatch(ctx, retailerBatchInput); err != nil {
+		return err
+	}
+	batchInput := product.BatchInput{
+		Id:       &moveInput.BatchId,
+		Sku:      moveInput.Sku,
+		Quantity: moveInput.Quantity,
+		UnitId:   moveInput.UnitId,
+		Reason:   transactions.TransactionReasonTypeReturn,
+	}
+	return s.batchService.ReturnToWarehouse(ctx, batchInput)
 }

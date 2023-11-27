@@ -19,13 +19,13 @@ type RetailerBatchInput struct {
 }
 
 type RetailerBatchFromWarehouseInput struct {
-	Id          *int    `json:"id,omitempty"`
-	Sku         string  `json:"Sku,omitempty"`
-	Quantity    float64 `json:"quantity"`
-	UnitId      int     `json:"unitId"`
-	RetailerId  int     `json:"retailerId"`
-	Reason      string  `json:"reason,omitempty"`
-	FromBatchId int     `json:"fromBatchId"`
+	Id         *int    `json:"id,omitempty"`
+	Sku        string  `json:"Sku,omitempty"`
+	Quantity   float64 `json:"quantity"`
+	UnitId     int     `json:"unitId"`
+	RetailerId int     `json:"retailerId"`
+	Reason     string  `json:"reason,omitempty"`
+	BatchId    int     `json:"batchId"`
 }
 
 type RetailerBatchBase struct {
@@ -110,7 +110,7 @@ func ValidateRetailerBatchFromWarehouseInput(input RetailerBatchFromWarehouseInp
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
 		common.ValidateIdPtr(input.Id, "id"),
-		common.ValidateId(input.FromBatchId, "fromBatchId"),
+		common.ValidateId(input.BatchId, "fromBatchId"),
 		common.ValidateId(input.RetailerId, "retailerId"),
 		common.ValidateAmountPositive[float64](input.Quantity, "quantity"),
 	)

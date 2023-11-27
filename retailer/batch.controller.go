@@ -99,3 +99,14 @@ func (c RetailerBatchController) MoveFromWarehouseToRetailer(w http.ResponseWrit
 		})
 	})
 }
+
+func (c RetailerBatchController) ReturnToWarehouseToRetailer(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[RetailerBatchFromWarehouseInput](w, r.Body, func(data RetailerBatchFromWarehouseInput) {
+		err := c.service.ReturnBatchToWarehouse(r.Context(), data)
+		common.WriteEmptyResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Batch moved successfully",
+		})
+	})
+}
