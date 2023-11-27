@@ -71,7 +71,7 @@ func GenerateAccessTokenWithOptions(claims map[string]interface{}, options *Toke
 }
 
 func DecodeAccessToken(tokenString string, secret string) (map[string]interface{}, error) {
-	if isParsed, token := verifyToken(tokenString, secret); isParsed {
+	if isVerified, token := verifyToken(tokenString, secret); isVerified {
 		claims := parseToken(token)
 		isValid := claims.Valid()
 		if isValid != nil {
