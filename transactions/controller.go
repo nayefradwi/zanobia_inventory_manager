@@ -2,7 +2,9 @@ package transactions
 
 import (
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -27,14 +29,6 @@ func (c TransactionController) CreateTransactionReason(w http.ResponseWriter, r 
 	})
 }
 
-func (c TransactionController) GetTransactionsOfBatch(w http.ResponseWriter, r *http.Request) {
-	// TODO fill
-}
-
-func (c TransactionController) GetTransactionsOfUser(w http.ResponseWriter, r *http.Request) {
-	// TODO fill
-}
-
 func (c TransactionController) GetTransactionReasons(w http.ResponseWriter, r *http.Request) {
 	reasons, err := c.service.GetTransactionReasons(r.Context())
 	common.WriteResponse[[]TransactionReason](common.Result[[]TransactionReason]{
@@ -44,10 +38,55 @@ func (c TransactionController) GetTransactionReasons(w http.ResponseWriter, r *h
 	})
 }
 
+func (c TransactionController) GetTransactionsOfBatch(w http.ResponseWriter, r *http.Request) {
+	idVal := chi.URLParam(r, "id")
+	id, _ := strconv.Atoi(idVal)
+	transactions, err := c.service.GetTransactionsOfBatch(r.Context(), id)
+	common.WriteResponse[[]Transaction](common.Result[[]Transaction]{
+		Writer: w,
+		Error:  err,
+		Data:   transactions,
+	})
+}
+
 func (c TransactionController) GetTransactionsOfSku(w http.ResponseWriter, r *http.Request) {
-	// TODO fill
+	sku := chi.URLParam(r, "sku")
+	transactions, err := c.service.GetTransactionsOfSKU(r.Context(), sku)
+	common.WriteResponse[[]Transaction](common.Result[[]Transaction]{
+		Writer: w,
+		Error:  err,
+		Data:   transactions,
+	})
 }
 
 func (c TransactionController) GetTransactionsOfRetailer(w http.ResponseWriter, r *http.Request) {
-	// TODO fill
+	idVal := chi.URLParam(r, "id")
+	id, _ := strconv.Atoi(idVal)
+	transactions, err := c.service.GetTransactionsOfRetailer(r.Context(), id)
+	common.WriteResponse[[]Transaction](common.Result[[]Transaction]{
+		Writer: w,
+		Error:  err,
+		Data:   transactions,
+	})
+}
+
+func (c TransactionController) GetTransactionsOfRetailerBatch(w http.ResponseWriter, r *http.Request) {
+	idVal, batchIdVal := chi.URLParam(r, "id"), chi.URLParam(r, "batchId")
+	id, _ := strconv.Atoi(idVal)
+	batchId, _ := strconv.Atoi(batchIdVal)
+	transactions, err := c.service.GetTransactionsOfRetailerBatch(r.Context(), id, batchId)
+	common.WriteResponse[[]Transaction](common.Result[[]Transaction]{
+		Writer: w,
+		Error:  err,
+		Data:   transactions,
+	})
+}
+
+func (c TransactionController) GetTransactionsOfMyWarehouse(w http.ResponseWriter, r *http.Request) {
+	transactions, err := c.service.GetTransactionsOfWarehouse(r.Context())
+	common.WriteResponse[[]Transaction](common.Result[[]Transaction]{
+		Writer: w,
+		Error:  err,
+		Data:   transactions,
+	})
 }

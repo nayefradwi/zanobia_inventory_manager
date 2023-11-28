@@ -229,6 +229,11 @@ func registerTransactionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	transactionController := transactions.NewTransactionController(provider.services.transactionService)
 	transactionRouter.Post("/reasons", transactionController.CreateTransactionReason)
 	transactionRouter.Get("/reasons", transactionController.GetTransactionReasons)
+	transactionRouter.Get("/retailer/{id}", transactionController.GetTransactionsOfRetailer)
+	transactionRouter.Get("/retailer/{id}/batch/{batchId}", transactionController.GetTransactionsOfRetailerBatch)
+	transactionRouter.Get("/sku/{sku}", transactionController.GetTransactionsOfSku)
+	transactionRouter.Get("/batch/{id}", transactionController.GetTransactionsOfBatch)
+	transactionRouter.Get("/warehouse", transactionController.GetTransactionsOfMyWarehouse)
 	mainRouter.Mount("/transactions", transactionRouter)
 }
 

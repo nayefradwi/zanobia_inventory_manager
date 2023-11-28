@@ -379,5 +379,5 @@ CREATE TABLE transaction_history (
 
 DROP INDEX IF EXISTS idx_transaction_history CASCADE;
 
-CREATE INDEX idx_transaction_history ON transaction_history(batch_id, retailer_batch_id, sku, warehouse_id, retailer_id, user_id);
+CREATE INDEX idx_transaction_history ON transaction_history(batch_id, retailer_batch_id, sku, warehouse_id, retailer_id, user_id, created_at);
 -- END TRANSACTIONS TABLES --

@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"context"
+	"time"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
@@ -28,6 +29,22 @@ type TransactionReason struct {
 	Name        string `json:"name,omitempty"`
 	Description string `json:"Description,omitempty"`
 	IsPositive  bool   `json:"isPositive"`
+}
+
+type Transaction struct {
+	Id              *int              `json:"id,omitempty"`
+	UserId          *int              `json:"userId,omitempty"`
+	BatchId         *int              `json:"batchId,omitempty"`
+	RetailerBatchId *int              `json:"retailerBatchId,omitempty"`
+	WarehouseId     *int              `json:"warehouseId,omitempty"`
+	RetailerId      *int              `json:"retailerId,omitempty"`
+	Quantity        float64           `json:"quantity"`
+	UnitId          *int              `json:"unitId,omitempty"`
+	Amount          float64           `json:"amount,omitempty"`
+	Reason          TransactionReason `json:"reason,omitempty"`
+	Comment         string            `json:"comment,omitempty"`
+	Sku             string            `json:"sku,omitempty"`
+	CreatedAt       time.Time         `json:"createdAt,omitempty"`
 }
 
 type transactionInput struct {
