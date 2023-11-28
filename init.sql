@@ -267,7 +267,7 @@ CREATE TABLE recipes (
 
 CREATE TABLE batches (
     id SERIAL PRIMARY KEY,
-    sku VARCHAR(36) NOT NULL REFERENCES product_variants(sku),
+    sku VARCHAR(36) NOT NULL REFERENCES product_variants(sku) ON UPDATE CASCADE,
     warehouse_id INTEGER NOT NULL REFERENCES warehouses(id),
     quantity NUMERIC(12, 4) NOT NULL,
     unit_id INTEGER NOT NULL REFERENCES units(id),
@@ -327,7 +327,7 @@ CREATE TABLE retailer_contact_info_translations (
 
 CREATE TABLE retailer_batches (
     id SERIAL PRIMARY KEY,
-    sku VARCHAR(36) NOT NULL REFERENCES product_variants(sku),
+    sku VARCHAR(36) NOT NULL REFERENCES product_variants(sku) ON UPDATE CASCADE,
     retailer_id INTEGER NOT NULL REFERENCES retailers(id),
     quantity NUMERIC(12, 4) NOT NULL,
     unit_id INTEGER NOT NULL REFERENCES units(id),

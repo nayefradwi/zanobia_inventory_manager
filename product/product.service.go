@@ -216,20 +216,8 @@ func (s *ProductService) DeleteProductVariant(ctx context.Context, id int) error
 }
 
 func (s *ProductService) UpdateProductVariantSku(ctx context.Context, input UpdateSkuInput) error {
-	return common.RunWithTransaction(ctx, s.repo.(*ProductRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
-		if details := common.ValidateStringLength(input.NewSku, "sku", 10, 36); details.Message != "" {
-			return common.NewValidationError("invalid sku", details)
-		}
-		if err := s.repo.UpdateBatchesSku(ctx, input.OldSku, input.NewSku); err != nil {
-			return err
-		}
-		if err := s.repo.UpdateRetailersBatchesSku(ctx, input.OldSku, input.NewSku); err != nil {
-			return err
-		}
-		if err := s.repo.UpdateProductVariantSku(ctx, input.OldSku, input.NewSku); err != nil {
-			return err
-		}
-		return nil
-	})
+	if details := common.ValidateStringLength(input.NewSku, "sku", 10, 36); details.Message != "" {
+		return common.NewValidationError("invalid sku", details)
+	}
+	return s.repo.UpdateProductVariantSku(ctx, input.OldSku, input.NewSku)
 }
