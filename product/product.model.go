@@ -7,6 +7,11 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
+type UpdateSkuInput struct {
+	OldSku string `json:"oldSku"`
+	NewSku string `json:"newSku"`
+}
+
 type ProductOption struct {
 	Id     *int                 `json:"id,omitempty"`
 	Name   string               `json:"name"`

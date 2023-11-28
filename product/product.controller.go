@@ -118,3 +118,14 @@ func (c ProductController) DeleteProductVariant(w http.ResponseWriter, r *http.R
 		},
 	)
 }
+
+func (c ProductController) UpdateProductVariantSku(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[UpdateSkuInput](w, r.Body, func(input UpdateSkuInput) {
+		err := c.service.UpdateProductVariantSku(r.Context(), input)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product variant sku updated successfully",
+		})
+	})
+}
