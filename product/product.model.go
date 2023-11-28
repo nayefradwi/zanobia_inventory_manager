@@ -86,6 +86,16 @@ type ProductVariant struct {
 	StandardUnit *Unit    `json:"standardUnit,omitempty"`
 }
 
+type ProductVariantUpdate struct {
+	Id         int      `json:"id,omitempty"`
+	Price      float64  `json:"price,omitempty"`
+	WidthInCm  *float64 `json:"widthInCm,omitempty"`
+	HeightInCm *float64 `json:"heightInCm,omitempty"`
+	DepthInCm  *float64 `json:"depthInCm,omitempty"`
+	WeightInG  *float64 `json:"weightInG,omitempty"`
+	IsArchived bool     `json:"isArchived"`
+}
+
 type ProductVariantInput struct {
 	ProductVariant ProductVariant `json:"productVariant"`
 	OptionValueIds []int          `json:"optionsValueIds,omitempty"`

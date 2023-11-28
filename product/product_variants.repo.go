@@ -168,3 +168,20 @@ func (r *ProductRepo) GetProductSelectedValues(ctx context.Context, productId in
 	}
 	return productOptionValues, nil
 }
+
+func (r *ProductRepo) UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error {
+	sql := `
+	update product_variants set price = $1, width_in_cm = $2, height_in_cm = $3, depth_in_cm = $4,
+	weight_in_g = $5, is_archived = $6 where id = $7
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	_, err := op.Exec(ctx, sql, update.Price, update.WidthInCm,
+		update.HeightInCm, update.DepthInCm, update.WeightInG,
+		update.IsArchived, update.Id,
+	)
+	if err != nil {
+		log.Printf("failed to update product variant details: %s", err.Error())
+		return common.NewInternalServerError()
+	}
+	return nil
+}

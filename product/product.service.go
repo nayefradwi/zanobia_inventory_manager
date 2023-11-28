@@ -18,6 +18,7 @@ type IProductService interface {
 	GetUnitIdOfProductVariantBySku(ctx context.Context, sku string) (int, error)
 	GetProductVariantExpirationDateAndCost(ctx context.Context, sku string) (time.Time, float64, error)
 	AddVariantOptionValue(ctx context.Context, input AddVariantValueInput) error
+	UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error
 }
 
 type ProductService struct {
@@ -161,4 +162,20 @@ func (s *ProductService) AddVariantOptionValue(ctx context.Context, input AddVar
 	}
 	_, err := s.repo.InsertProductOptionValue(ctx, input.ProductOptionId, input.ToProductOptionValue())
 	return err
+}
+
+func (s *ProductService) UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error {
+	if update.Id == 0 {
+		return common.NewValidationError("invalid product variant", common.ErrorDetails{
+			Message: "product variant id cannot be empty",
+			Field:   "productVariantId",
+		})
+	}
+	if update.Price < 0 {
+		return common.NewValidationError("invalid product variant", common.ErrorDetails{
+			Message: "price cannot be negative",
+			Field:   "price",
+		})
+	}
+	return s.repo.UpdateProductVariantDetails(ctx, update)
 }

@@ -94,3 +94,14 @@ func (c ProductController) AddOptionValue(w http.ResponseWriter, r *http.Request
 		})
 	})
 }
+
+func (c ProductController) UpdateProductVariantDetails(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[ProductVariantUpdate](w, r.Body, func(pvu ProductVariantUpdate) {
+		err := c.service.UpdateProductVariantDetails(r.Context(), pvu)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product variant updated successfully",
+		})
+	})
+}

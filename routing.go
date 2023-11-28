@@ -137,6 +137,7 @@ func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider
 	productController := product.NewProductController(provider.services.productService)
 	productVariantRouter.Post("/", productController.CreateProductVariant)
 	productVariantRouter.Get("/{id}", productController.GetProductVariant)
+	productVariantRouter.Put("/", productController.UpdateProductVariantDetails)
 	productVariantRouter.Post("/options/values", productController.AddOptionValue)
 	registerRecipeRoutes(productVariantRouter, provider)
 	registerBatchesRoutes(productVariantRouter, provider)

@@ -24,6 +24,7 @@ type IProductRepo interface {
 	GetProductOptions(ctx context.Context, productId int) ([]ProductOption, error)
 	GetProductSelectedValues(ctx context.Context, productId int, optionValueIds []int) (map[string]ProductOptionValue, error)
 	InsertProductOptionValue(ctx context.Context, optionId int, optionValue ProductOptionValue) (int, error)
+	UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error
 }
 
 type ProductRepo struct {
