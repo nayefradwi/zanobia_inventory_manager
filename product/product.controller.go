@@ -105,3 +105,16 @@ func (c ProductController) UpdateProductVariantDetails(w http.ResponseWriter, r 
 		})
 	})
 }
+
+func (c ProductController) DeleteProductVariant(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, _ := strconv.Atoi(idParam)
+	err := c.service.DeleteProductVariant(r.Context(), id)
+	common.WriteEmptyResponse(
+		common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product variant deleted successfully",
+		},
+	)
+}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -19,6 +20,7 @@ type IProductService interface {
 	GetProductVariantExpirationDateAndCost(ctx context.Context, sku string) (time.Time, float64, error)
 	AddVariantOptionValue(ctx context.Context, input AddVariantValueInput) error
 	UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error
+	DeleteProductVariant(ctx context.Context, id int) error
 }
 
 type ProductService struct {
@@ -178,4 +180,36 @@ func (s *ProductService) UpdateProductVariantDetails(ctx context.Context, update
 		})
 	}
 	return s.repo.UpdateProductVariantDetails(ctx, update)
+}
+
+func (s *ProductService) DeleteProductVariant(ctx context.Context, id int) error {
+	return common.RunWithTransaction(ctx, s.repo.(*ProductRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		sku, err := s.repo.(*ProductRepo).GetProductVariantSkuFromId(ctx, id)
+		if err != nil {
+			return err
+		}
+		if sku == "" {
+			return common.NewNotFoundError("product variant not found")
+		}
+		if err := s.repo.DeleteProductVariantTranslations(ctx, id); err != nil {
+			return err
+		}
+		if err := s.repo.DeleteProductVariantValues(ctx, id); err != nil {
+			return err
+		}
+		if err := s.repo.DeleteRecipes(ctx, id); err != nil {
+			return err
+		}
+		if err := s.repo.DeleteBatches(ctx, sku); err != nil {
+			return err
+		}
+		if err := s.repo.DeleteRetailerBatches(ctx, sku); err != nil {
+			return err
+		}
+		if err := s.repo.DeleteProductVariant(ctx, id); err != nil {
+			return err
+		}
+		return nil
+	})
 }

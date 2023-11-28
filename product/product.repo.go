@@ -25,6 +25,13 @@ type IProductRepo interface {
 	GetProductSelectedValues(ctx context.Context, productId int, optionValueIds []int) (map[string]ProductOptionValue, error)
 	InsertProductOptionValue(ctx context.Context, optionId int, optionValue ProductOptionValue) (int, error)
 	UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error
+	GetProductVariantSkuFromId(ctx context.Context, id int) (string, error)
+	DeleteProductVariantTranslations(ctx context.Context, id int) error
+	DeleteProductVariantValues(ctx context.Context, id int) error
+	DeleteRecipes(ctx context.Context, id int) error
+	DeleteBatches(ctx context.Context, sku string) error
+	DeleteRetailerBatches(ctx context.Context, sku string) error
+	DeleteProductVariant(ctx context.Context, id int) error
 }
 
 type ProductRepo struct {
