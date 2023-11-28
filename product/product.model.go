@@ -1,6 +1,7 @@
 package product
 
 import (
+	"sort"
 	"strconv"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -108,13 +109,11 @@ func (p ProductInput) generateProductVariant() (ProductVariant, []ProductOptionV
 	if len(p.Options) == 0 {
 		return p.createProductVariant("normal", true), []ProductOptionValue{}
 	}
-	optionValues := make([]ProductOptionValue, 0)
-	name := ""
-	for _, variant := range p.Options {
-		optionValues = append(optionValues, variant.Values[0])
-		name += variant.Values[0].Value + "_"
+	optionValues := make([]ProductOptionValue, len(p.Options))
+	for i, variant := range p.Options {
+		optionValues[i] = variant.Values[0]
 	}
-	name = name[:len(name)-1]
+	name := GenerateName(optionValues)
 	productVariant := p.createProductVariant(name, true)
 	return productVariant, optionValues
 }
@@ -136,9 +135,24 @@ func (p ProductInput) createProductVariant(value string, isDefault bool) Product
 }
 
 func GenerateName(values []ProductOptionValue) string {
+	// sort alphabetically with numbers first
 	name := ""
+	SortOptionValues(values)
 	for _, value := range values {
 		name += value.Value + "_"
 	}
 	return name[:len(name)-1]
+}
+
+func SortOptionValues(values []ProductOptionValue) {
+	sort.Slice(values, func(i, j int) bool {
+		valueI, valueJ := values[i].Value, values[j].Value
+		if z, err := strconv.Atoi(valueI); err == nil {
+			if y, err := strconv.Atoi(valueJ); err == nil {
+				return y < z
+			}
+			return true
+		}
+		return valueJ > valueI
+	})
 }
