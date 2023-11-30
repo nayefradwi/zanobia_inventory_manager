@@ -1,11 +1,11 @@
 package product
 
 type RecipeBase struct {
-	Id              *int    `json:"id"`
-	ResultVariantId *int    `json:"resultVariantId"`
-	Quantity        float64 `json:"quantity"`
-	UnitId          *int    `json:"unitId"`
-	RecipeVariantId *int    `json:"recipeVariantId"`
+	Id               *int    `json:"id"`
+	ResultVariantSku *int    `json:"resultVariantSku"`
+	Quantity         float64 `json:"quantity"`
+	UnitId           *int    `json:"unitId"`
+	RecipeVariantSku *int    `json:"recipeVariantSku"`
 }
 
 type Recipe struct {

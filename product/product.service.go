@@ -94,7 +94,7 @@ func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId
 	if productVariant.Id == nil {
 		return ProductVariant{}, common.NewNotFoundError("product variant not found")
 	}
-	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariant(ctx, *productVariant.Id)
+	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariantSku(ctx, productVariant.Sku)
 	if recipeErr != nil {
 		log.Printf("failed to get recipe of product variant: %s", recipeErr.Error())
 	} else if len(recipes) > 0 {

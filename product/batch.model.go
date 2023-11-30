@@ -89,3 +89,13 @@ func (b Batch) GetCursorValue() []string {
 		strconv.Itoa(*b.Id),
 	}
 }
+
+func (b BatchInput) SetUnitId(unitId int) BatchInput {
+	b.UnitId = unitId
+	return b
+}
+
+func (b BatchInput) SetConvertedQuantity(quantity float64) BatchInput {
+	b.Quantity = quantity
+	return b
+}

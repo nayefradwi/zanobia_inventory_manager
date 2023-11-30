@@ -32,8 +32,6 @@ type IProductRepo interface {
 	DeleteBatches(ctx context.Context, sku string) error
 	DeleteRetailerBatches(ctx context.Context, sku string) error
 	DeleteProductVariant(ctx context.Context, id int) error
-	// UpdateBatchesSku(ctx context.Context, oldSku, newSku string) error
-	// UpdateRetailersBatchesSku(ctx context.Context, oldSku, newSku string) error
 	UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error
 }
 
