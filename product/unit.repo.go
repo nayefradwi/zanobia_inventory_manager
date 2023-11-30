@@ -12,12 +12,13 @@ import (
 
 type IUnitRepository interface {
 	GetAllUnits(ctx context.Context) ([]Unit, error)
-	CreateUnit(ctx context.Context, unit Unit) error
+	CreateUnit(ctx context.Context, unit Unit) (int, error)
 	GetUnitFromName(ctx context.Context, name string) (Unit, error)
 	AddUnitConversion(ctx context.Context, conversion UnitConversion) error
 	GetUnitById(ctx context.Context, id *int) (Unit, error)
 	GetUnitConversionByUnitId(ctx context.Context, id *int, conversionId *int) (UnitConversion, error)
 	TranslateUnit(ctx context.Context, unit Unit, languageCode string) error
+	GetUnitConversions(ctx context.Context) ([]UnitConversion, error)
 }
 
 type UnitRepository struct {
@@ -28,10 +29,12 @@ func NewUnitRepository(dbPool *pgxpool.Pool) *UnitRepository {
 	return &UnitRepository{dbPool}
 }
 
-func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
+func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) (int, error) {
+	var id int
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
 		ctx = common.SetOperator(ctx, tx)
-		id, addErr := r.addUnit(ctx)
+		var addErr error
+		id, addErr = r.addUnit(ctx)
 		if addErr != nil {
 			return addErr
 		}
@@ -42,7 +45,7 @@ func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) error {
 		}
 		return nil
 	})
-	return err
+	return id, err
 }
 
 func (r *UnitRepository) TranslateUnit(ctx context.Context, unit Unit, languageCode string) error {
@@ -157,4 +160,26 @@ func (r *UnitRepository) GetUnitConversionByUnitId(ctx context.Context, id *int,
 		return UnitConversion{}, common.NewNotFoundError("Unit conversion not found")
 	}
 	return conversion, nil
+}
+
+func (r *UnitRepository) GetUnitConversions(ctx context.Context) ([]UnitConversion, error) {
+	sql := `SELECT id, to_unit_id, from_unit_id, conversion_factor FROM unit_conversions`
+	op := common.GetOperator(ctx, r.Pool)
+	rows, err := op.Query(ctx, sql)
+	if err != nil {
+		log.Printf("failed to get unit conversions: %s", err.Error())
+		return nil, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	conversions := make([]UnitConversion, 0)
+	for rows.Next() {
+		var conversion UnitConversion
+		err := rows.Scan(&conversion.Id, &conversion.ToUnitId, &conversion.FromUnitId, &conversion.ConversionFactor)
+		if err != nil {
+			log.Printf("failed to scan unit conversion: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		conversions = append(conversions, conversion)
+	}
+	return conversions, nil
 }
