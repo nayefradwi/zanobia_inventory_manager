@@ -16,6 +16,20 @@ type BatchInput struct {
 	CostPerQty float64
 }
 
+type BatchModificationRequest struct {
+	RecipeMap        map[string]Recipe
+	BatchBasesLookup map[string]BatchBase
+	OriginalUnits    map[string]int
+	BatchInputMap    map[string]BatchInput
+	SkuList          []string
+	BatchIds         []int
+	// 	BatchInputMap           map[string]BatchInput
+	// 	BatchCurrentQuantities  map[string]float64
+	// 	RecipeBatchInputMap     map[string]BatchInput
+	// 	RecipeCurrentQuantities map[string]float64
+	// 	SkuList                 []string
+}
+
 type BatchBase struct {
 	Id          *int      `json:"id,omitempty"`
 	WarehouseId *int      `json:"warehouseId,omitempty"`
@@ -40,6 +54,16 @@ func (b BatchBase) SetQuantity(quantity float64) BatchBase {
 func (b BatchBase) SetExpiresAt(expiresAt time.Time) BatchBase {
 	b.ExpiresAt = expiresAt
 	return b
+}
+
+func ValidateBatchInputsIncrement(inputs []BatchInput) error {
+	for _, input := range inputs {
+		validationErr := ValidateBatchInputIncrement(input)
+		if validationErr != nil {
+			return validationErr
+		}
+	}
+	return nil
 }
 
 func ValidateBatchInputIncrement(input BatchInput) error {

@@ -93,3 +93,10 @@ func GetIntFromContext(ctx context.Context, key any) int {
 	}
 	return 0
 }
+
+func MergeSlice[T any](slice1 []T, slice2 []T) []T {
+	result := make([]T, 0)
+	result = append(result, slice1...)
+	result = append(result, slice2...)
+	return result
+}
