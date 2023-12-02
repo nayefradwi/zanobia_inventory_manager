@@ -95,18 +95,15 @@ func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInp
 	if err := ValidateBatchInputsIncrement(inputs); err != nil {
 		return err
 	}
-	locks, err := s.lockAllBatches(ctx, inputs)
-	defer s.unlockAllBatches(ctx, locks)
-	if err != nil {
-		return err
-	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		return s.bulkIncrementBatchesTransaction(ctx, inputs)
 	})
 }
 
 func (s *BatchService) bulkIncrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
-	batchUpdateRequest, err := s.createBulkUpdateRequest(ctx, inputs)
+	batchUpdateRequest, err := s.lockAndCreateUpdateRequestForIncrementBatches(ctx, inputs)
+	defer s.unlockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
+	defer s.unlockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
 	if err != nil {
 		return err
 	}
@@ -145,11 +142,6 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 	if err := ValidateBatchInputsDecrement(inputs); err != nil {
 		return err
 	}
-	locks, err := s.lockAllBatches(ctx, inputs)
-	defer s.unlockAllBatches(ctx, locks)
-	if err != nil {
-		return err
-	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		return s.bulkDecrementBatchesTransaction(ctx, inputs)
 	})
@@ -157,7 +149,9 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 }
 
 func (s *BatchService) bulkDecrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
-	batchUpdateRequest, err := s.createBulkUpdateRequestWithoutRecipe(ctx, inputs)
+	batchUpdateRequest, err := s.lockAndCreateUpdateRequestForDecrementBatches(ctx, inputs)
+	defer s.unlockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
+	defer s.unlockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
 	if err != nil {
 		return err
 	}
@@ -177,23 +171,38 @@ func (s *BatchService) bulkDecrementBatchesTransaction(ctx context.Context, inpu
 	return nil
 }
 
-func (s *BatchService) lockAllBatches(ctx context.Context, inputs []BatchInput) ([]common.Lock, error) {
-	locks := make([]common.Lock, len(inputs))
-	for i, input := range inputs {
-		lockKey := GenerateBatchLockKey(input)
-		lock, err := s.lockingService.Acquire(ctx, lockKey)
-		if err != nil {
-			return nil, err
-		}
-		locks[i] = lock
+func (s *BatchService) lockAndCreateUpdateRequestForDecrementBatches(ctx context.Context, inputs []BatchInput) (BulkBatchUpdateRequest, error) {
+	batchUpdateRequest, err := s.createBulkUpdateRequestWithoutRecipe(ctx, inputs)
+	if err != nil {
+		return BulkBatchUpdateRequest{}, err
 	}
-	return locks, nil
+	if err := s.lockBatchUpdateRequest(ctx, batchUpdateRequest); err != nil {
+		return BulkBatchUpdateRequest{}, err
+	}
+	return batchUpdateRequest, nil
 }
 
-func (s *BatchService) unlockAllBatches(ctx context.Context, locks []common.Lock) {
-	for _, lock := range locks {
-		s.lockingService.Release(ctx, lock)
+func (s *BatchService) lockAndCreateUpdateRequestForIncrementBatches(ctx context.Context, inputs []BatchInput) (BulkBatchUpdateRequest, error) {
+	batchUpdateRequest, err := s.createBulkUpdateRequest(ctx, inputs)
+	if err != nil {
+		return BulkBatchUpdateRequest{}, err
 	}
+	if err := s.lockBatchUpdateRequest(ctx, batchUpdateRequest); err != nil {
+		return BulkBatchUpdateRequest{}, err
+	}
+	return batchUpdateRequest, nil
+}
+
+func (s *BatchService) lockBatchUpdateRequest(ctx context.Context, batchUpdateRequest BulkBatchUpdateRequest) error {
+	_, lockErrForIds := s.lockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
+	if lockErrForIds != nil {
+		return lockErrForIds
+	}
+	_, lockErrForSkus := s.lockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
+	if lockErrForSkus != nil {
+		return lockErrForSkus
+	}
+	return nil
 }
 
 func (s *BatchService) bulkIncrementBatches(
@@ -310,33 +319,100 @@ func (s *BatchService) createRecipeBatchInputs(
 		if !resultFound {
 			return nil, nil, common.NewBadRequestFromMessage("invalid recipe batch")
 		}
-		recipeConvertedQuantityToRecipeStandardUnit, err := s.unitService.ConvertUnit(
-			ctx,
-			ConvertUnitInput{
-				ToUnitId:   recipe.IngredientStandardUnit.Id,
-				FromUnitId: recipe.Unit.Id,
-				Quantity:   recipe.Quantity,
-			},
-		)
+		recipeBatchInput, err := s.createRecipeBatchInput(ctx, recipe, recipeBatchBase, resultBatch)
 		if err != nil {
-			log.Printf("failed to convert unit: %s", err.Error())
 			return nil, nil, err
 		}
-		recipeCostPerQty := recipe.IngredientCost *
-			recipeConvertedQuantityToRecipeStandardUnit.Quantity *
-			resultBatch.Quantity
-		recipeBatchInput := BatchInput{
-			Id:         recipeBatchBase.Id,
-			Quantity:   resultBatch.Quantity * recipe.Quantity,
-			UnitId:     recipeBatchBase.UnitId,
-			Sku:        recipe.RecipeVariantSku,
-			Reason:     transactions.TransactionReasonTypeRecipeUse,
-			CostPerQty: recipeCostPerQty,
-		}
+		// this will add the quantities of the same recipe batch inputs
+		recipeBatchInput = s.mergeRecipBatchInput(recipeBatchInput, recipeBatchMap)
 		recipeBatchMap[recipe.RecipeVariantSku] = recipeBatchInput
 		recipeBatchBaseIds = append(recipeBatchBaseIds, *recipeBatchBase.Id)
 	}
+	s.lockBatchesByIds(ctx, recipeBatchBaseIds)
 	return recipeBatchMap, recipeBatchBaseIds, nil
+}
+
+func (s *BatchService) lockBatchesBySkus(ctx context.Context, skus []string) ([]common.Lock, error) {
+	locks := make([]common.Lock, len(skus))
+	for i, sku := range skus {
+		lockKey := "batch:" + sku + ":lock"
+		lock, err := s.lockingService.Acquire(ctx, lockKey)
+		if err != nil {
+			return nil, err
+		}
+		locks[i] = lock
+	}
+	return locks, nil
+}
+
+func (s *BatchService) lockBatchesByIds(ctx context.Context, ids []int) ([]common.Lock, error) {
+	locks := make([]common.Lock, len(ids))
+	for i, id := range ids {
+		lockKey := "batch:" + strconv.Itoa(id) + ":lock"
+		lock, err := s.lockingService.Acquire(ctx, lockKey)
+		if err != nil {
+			return nil, err
+		}
+		locks[i] = lock
+	}
+	return locks, nil
+}
+
+func (s *BatchService) unlockBatchesByIds(ctx context.Context, ids []int) {
+	for _, id := range ids {
+		lockKey := "batch:" + strconv.Itoa(id) + ":lock"
+		s.lockingService.Release(ctx, common.Lock{Name: lockKey})
+	}
+}
+
+func (s *BatchService) unlockBatchesBySkus(ctx context.Context, skus []string) {
+	for _, sku := range skus {
+		lockKey := "batch:" + sku + ":lock"
+		s.lockingService.Release(ctx, common.Lock{Name: lockKey})
+	}
+}
+
+func (s *BatchService) createRecipeBatchInput(
+	ctx context.Context,
+	recipe Recipe, recipeBatchBase BatchBase,
+	resultBatch BatchInput,
+) (BatchInput, error) {
+	recipeConvertedQuantityToRecipeStandardUnit, err := s.unitService.ConvertUnit(
+		ctx,
+		ConvertUnitInput{
+			ToUnitId:   recipe.IngredientStandardUnit.Id,
+			FromUnitId: recipe.Unit.Id,
+			Quantity:   recipe.Quantity,
+		},
+	)
+	if err != nil {
+		log.Printf("failed to convert unit: %s", err.Error())
+		return BatchInput{}, err
+	}
+	recipeCostPerQty := recipe.IngredientCost *
+		recipeConvertedQuantityToRecipeStandardUnit.Quantity *
+		resultBatch.Quantity
+	recipeBatchInput := BatchInput{
+		Id:       recipeBatchBase.Id,
+		Quantity: resultBatch.Quantity * recipe.Quantity,
+		UnitId:   recipeBatchBase.UnitId,
+		Sku:      recipe.RecipeVariantSku,
+		Reason:   transactions.TransactionReasonTypeRecipeUse,
+		Cost:     recipeCostPerQty,
+	}
+	return recipeBatchInput, nil
+}
+
+func (s *BatchService) mergeRecipBatchInput(
+	recipeInputToMerge BatchInput,
+	recipeBatchInputMap map[string]BatchInput,
+) BatchInput {
+	recipeBatchInput, ok := recipeBatchInputMap[recipeInputToMerge.Sku]
+	if !ok {
+		return recipeInputToMerge
+	}
+	recipeBatchInput.Quantity += recipeInputToMerge.Quantity
+	return recipeBatchInput
 }
 
 /*

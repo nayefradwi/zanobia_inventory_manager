@@ -8,12 +8,12 @@ import (
 )
 
 type BatchInput struct {
-	Id         *int    `json:"id,omitempty"`
-	Sku        string  `json:"Sku,omitempty"`
-	Quantity   float64 `json:"quantity"`
-	UnitId     int     `json:"unitId"`
-	Reason     string  `json:"reason,omitempty"`
-	CostPerQty float64
+	Id       *int    `json:"id,omitempty"`
+	Sku      string  `json:"Sku,omitempty"`
+	Quantity float64 `json:"quantity"`
+	UnitId   int     `json:"unitId"`
+	Reason   string  `json:"reason,omitempty"`
+	Cost     float64
 }
 
 // what is needed:
