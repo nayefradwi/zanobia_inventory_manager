@@ -26,7 +26,6 @@ func NewRecipeRepository(dbPool *pgxpool.Pool) IRecipeRepository {
 
 func (r *RecipeRepository) CreateRecipes(ctx context.Context, recipes []RecipeBase) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		for _, recipe := range recipes {
 			err := r.AddIngredientToRecipe(ctx, recipe)
 			if err != nil {

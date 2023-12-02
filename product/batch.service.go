@@ -92,7 +92,6 @@ func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInp
 		return err
 	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return s.bulkIncrementBatchesTransaction(ctx, inputs)
 	})
 }
@@ -139,7 +138,6 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 		return err
 	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return s.bulkDecrementBatchesTransaction(ctx, inputs)
 	})
 
@@ -167,6 +165,16 @@ func (s *BatchService) bulkDecrementBatchesTransaction(ctx context.Context, inpu
 	// TODO: create transaction history
 	return nil
 }
+
+// func (s *BatchService) lockAllBatches(ctx context.Context, skus []string) error {
+// 	for _, sku := range skus {
+// 		lockKey := GenerateBatchLockKey(sku)
+// 		if err := s.lockingService.Lock(ctx, lockKey); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
 func (s *BatchService) bulkIncrementBatches(
 	batchLookup map[string]BatchBase,

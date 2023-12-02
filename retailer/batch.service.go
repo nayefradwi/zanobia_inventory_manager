@@ -93,7 +93,6 @@ func (s *RetailerBatchService) IncrementBatch(ctx context.Context, batchInput Re
 		return err
 	}
 	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return s.tryToIncrementBatch(ctx, batchInput)
 	})
 	return err
@@ -166,7 +165,6 @@ func (s *RetailerBatchService) DecrementBatch(ctx context.Context, input Retaile
 		return err
 	}
 	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return s.tryToDecrementBatch(ctx, input)
 	})
 	return err
@@ -217,7 +215,6 @@ func (s *RetailerBatchService) decrementBatch(ctx context.Context, batchBase Ret
 
 func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
 	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return s.bulkIncrementBatch(ctx, inputs)
 	})
 	return err
@@ -236,7 +233,6 @@ func (s *RetailerBatchService) bulkIncrementBatch(ctx context.Context, inputs []
 
 func (s *RetailerBatchService) BulkDecrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
 	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return s.bulkDecrementBatch(ctx, inputs)
 	})
 	return err
@@ -297,7 +293,6 @@ func (s *RetailerBatchService) MoveFromWarehouseToRetailer(ctx context.Context, 
 		return err
 	}
 	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return s.tryToMoveFromWarehouseToRetailer(ctx, moveInput)
 	})
 	return err
@@ -331,7 +326,6 @@ func (s *RetailerBatchService) ReturnBatchToWarehouse(ctx context.Context, moveI
 		return err
 	}
 	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return s.tryToReturnBatchToWarehouse(ctx, moveInput)
 	})
 	return err

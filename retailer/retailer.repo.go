@@ -34,7 +34,6 @@ func NewRetailerRepository(db *pgxpool.Pool) *RetailerRepo {
 
 func (r *RetailerRepo) CreateRetailer(ctx context.Context, retailer Retailer) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		id, err := r.insertRetailer(ctx, retailer)
 		if err != nil {
 			return err
@@ -76,7 +75,6 @@ func (r *RetailerRepo) translateRetialer(ctx context.Context, id int, retailer R
 
 func (r *RetailerRepo) AddRetailerContacts(ctx context.Context, retailerId int, contacts []RetailerContact) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return r.addRetailerContacts(ctx, retailerId, contacts)
 	})
 	return err
@@ -94,7 +92,6 @@ func (r *RetailerRepo) addRetailerContacts(ctx context.Context, retailerId int, 
 
 func (r *RetailerRepo) AddRetailerContactInfo(ctx context.Context, retailerId int, contact RetailerContact) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return r.addRetailerContactInfo(ctx, retailerId, contact)
 	})
 	return err
@@ -216,7 +213,6 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 
 func (r *RetailerRepo) RemoveRetailerContactInfo(ctx context.Context, contactInfoId int) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		if err := r.removeRetailerContactInfoTranslation(ctx, contactInfoId); err != nil {
 			return err
 		}
@@ -274,7 +270,6 @@ func (r *RetailerRepo) RemoveRetailerTranslations(ctx context.Context, retailerI
 
 func (r *RetailerRepo) UpdateRetailer(ctx context.Context, retailer Retailer) error {
 	return common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		if err := r.updateRetailerLatLng(ctx, *retailer.Id, retailer.Lat, retailer.Lng); err != nil {
 			return err
 		}

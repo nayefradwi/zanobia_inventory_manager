@@ -186,7 +186,6 @@ func (s *ProductService) UpdateProductVariantDetails(ctx context.Context, update
 
 func (s *ProductService) DeleteProductVariant(ctx context.Context, id int) error {
 	return common.RunWithTransaction(ctx, s.repo.(*ProductRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		sku, err := s.repo.(*ProductRepo).GetProductVariantSkuFromId(ctx, id)
 		if err != nil {
 			return err

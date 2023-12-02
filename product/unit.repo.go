@@ -32,7 +32,6 @@ func NewUnitRepository(dbPool *pgxpool.Pool) *UnitRepository {
 func (r *UnitRepository) CreateUnit(ctx context.Context, unit Unit) (int, error) {
 	var id int
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		var addErr error
 		id, addErr = r.addUnit(ctx)
 		if addErr != nil {

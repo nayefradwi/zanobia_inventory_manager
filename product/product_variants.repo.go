@@ -75,7 +75,6 @@ func (r *ProductRepo) GetProductVariant(ctx context.Context, productVariantId in
 
 func (r *ProductRepo) AddProductVariant(ctx context.Context, input ProductVariantInput) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		id, err := r.addProductVariant(ctx, input.ProductVariant.ProductId, input.ProductVariant)
 		if err != nil {
 			return err

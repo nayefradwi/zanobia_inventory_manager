@@ -205,8 +205,9 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 // }
 
 func (r *BatchRepository) getBatchBasesFromIds(ctx context.Context, ids []int) ([]BatchBase, error) {
-	// TODO: fill
-	return nil, common.NewBadRequestFromMessage("not implemented: getBatchBasesFromIds")
+	sql := `SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches WHERE id = ANY($1) and warehouse_id = $2`
+	op := common.GetOperator(ctx, r.Pool)
+	warehouseId := warehouse.GetWarehouseId(ctx)
 }
 
 func (r *BatchRepository) getMostExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error) {
