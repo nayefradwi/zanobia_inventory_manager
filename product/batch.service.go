@@ -234,7 +234,7 @@ func (s *BatchService) createBulkUpdateRequestWithRecipe(
 	input []BatchInput,
 ) (BulkBatchUpdateRequest, error) {
 	// this will give you all the batches in their correct unit conversions
-	batchUpdateRequest, err := s.createBulkUpdateRequest(ctx, input)
+	batchUpdateRequest, err := s.createBulkUpdateRequestWithoutRecipe(ctx, input)
 	if err != nil {
 		return BulkBatchUpdateRequest{}, err
 	}
@@ -275,10 +275,6 @@ func (s *BatchService) createBulkUpdateRequestWithRecipe(
 		}
 		recipeBatchMap[recipe.RecipeVariantSku] = recipeBatchInput
 		recipeBatchBaseIds = append(recipeBatchBaseIds, *recipeBatchBase.Id)
-	}
-	recipeBatchMap, err = s.convertUnitOfBatchInputMap(ctx, recipeBatchMap, batchUpdateRequest.OriginalUnitsMap)
-	if err != nil {
-		return BulkBatchUpdateRequest{}, err
 	}
 	batchUpdateRequest.RecipeBatchInputMap = recipeBatchMap
 	batchUpdateRequest.RecipeMap = recipeLookUp
