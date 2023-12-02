@@ -68,6 +68,7 @@ func (s *BatchService) createBulkUpdateRequestWithoutRecipe(
 	ctx context.Context,
 	input []BatchInput,
 ) (BulkBatchUpdateRequest, error) {
+	// TODO: check if cost is correct of batch
 	batchInputMapToUpdate, batchInputMapToCreate, skuList := s.createBatchInputMapSkuListAndIdList(input)
 	originalUnitsMap, err := s.productService.GetOriginalUnitsBySkuList(ctx, skuList)
 	if err != nil {

@@ -24,8 +24,7 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 
 func (s *BatchService) bulkDecrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
 	batchUpdateRequest, err := s.lockAndCreateUpdateRequestForDecrementBatches(ctx, inputs)
-	defer s.unlockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
-	defer s.unlockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
+	defer s.unlockBatchUpdateRequest(ctx, batchUpdateRequest)
 	if err != nil {
 		return err
 	}

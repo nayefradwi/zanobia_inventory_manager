@@ -23,8 +23,7 @@ func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInp
 
 func (s *BatchService) bulkIncrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
 	batchUpdateRequest, err := s.lockAndCreateUpdateRequestForIncrementBatches(ctx, inputs)
-	defer s.unlockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
-	defer s.unlockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
+	defer s.unlockBatchUpdateRequest(ctx, batchUpdateRequest)
 	if err != nil {
 		return err
 	}

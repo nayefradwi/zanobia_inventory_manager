@@ -7,6 +7,11 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
+func (s *BatchService) unlockBatchUpdateRequest(ctx context.Context, batchUpdateRequest BulkBatchUpdateRequest) {
+	s.unlockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
+	s.unlockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
+
+}
 func (s *BatchService) lockBatchUpdateRequest(ctx context.Context, batchUpdateRequest BulkBatchUpdateRequest) error {
 	_, lockErrForIds := s.lockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
 	if lockErrForIds != nil {

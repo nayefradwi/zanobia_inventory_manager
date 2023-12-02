@@ -37,7 +37,6 @@ func (s *BatchService) createRecipeBatchInputs(
 		recipeBatchMap[recipe.RecipeVariantSku] = recipeBatchInput
 		recipeBatchBaseIds = append(recipeBatchBaseIds, *recipeBatchBase.Id)
 	}
-	s.lockBatchesByIds(ctx, recipeBatchBaseIds)
 	return recipeBatchMap, recipeBatchBaseIds, nil
 }
 
@@ -67,7 +66,8 @@ func (s *BatchService) createRecipeBatchInput(
 		UnitId:   recipeBatchBase.UnitId,
 		Sku:      recipe.RecipeVariantSku,
 		Reason:   transactions.TransactionReasonTypeRecipeUse,
-		Cost:     recipeCostPerQty,
+		// TODO: check if cost is correct
+		Cost: recipeCostPerQty,
 	}
 	return recipeBatchInput, nil
 }
