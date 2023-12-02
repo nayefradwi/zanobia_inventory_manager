@@ -14,8 +14,8 @@ type IRecipeRepository interface {
 	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
 	DeleteRecipe(ctx context.Context, id int) error
 	GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error)
+	GetRecipesLookUpMapFromSkus(ctx context.Context, skuList []string) (map[string]Recipe, []string, error)
 }
-
 type RecipeRepository struct {
 	*pgxpool.Pool
 }
@@ -123,4 +123,45 @@ func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku
 		recipes = append(recipes, recipe)
 	}
 	return recipes, nil
+}
+
+func (r *RecipeRepository) GetRecipesLookUpMapFromSkus(ctx context.Context, skuList []string) (map[string]Recipe, []string, error) {
+	sql := `
+	SELECT recipes.id, result_variant_sku, recipe_variant_sku, 
+	quantity, unit_id, standard_unit_id, price
+	JOIN product_variants pv ON pv.sku = recipes.recipe_variant_sku
+	FROM recipes WHERE result_variant_sku = ANY($1)
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	rows, err := op.Query(ctx, sql, skuList)
+	if err != nil {
+		log.Printf("failed to get recipes: %s", err.Error())
+		return nil, nil, common.NewInternalServerError()
+	}
+	defer rows.Close()
+	recipeMap := make(map[string]Recipe)
+	recipeSkuList := make([]string, 0)
+	for rows.Next() {
+		var recipe Recipe
+		var unitId, standardUnitID int
+		err := rows.Scan(
+			&recipe.Id,
+			&recipe.ResultVariantSku,
+			&recipe.RecipeVariantSku,
+			&recipe.Quantity,
+			&unitId,
+			&standardUnitID,
+			&recipe.IngredientCost,
+		)
+		recipe.Unit = Unit{Id: &unitId}
+		recipe.IngredientStandardUnit = &Unit{Id: &standardUnitID}
+		if err != nil {
+			log.Printf("failed to scan recipe: %s", err.Error())
+			return nil, nil, common.NewInternalServerError()
+		}
+		recipeMap[recipe.RecipeVariantSku] = recipe
+		recipeSkuList = append(recipeSkuList, recipe.RecipeVariantSku)
+	}
+	return recipeMap, recipeSkuList, nil
+
 }

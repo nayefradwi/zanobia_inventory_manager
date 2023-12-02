@@ -90,6 +90,5 @@ func (s *RecipeService) GetRecipeOfProductVariantSku(ctx context.Context, sku st
 }
 
 func (s *RecipeService) GetRecipesLookUpMapFromSkus(ctx context.Context, skuList []string) (map[string]Recipe, []string, error) {
-	// TODO: fill
-	return map[string]Recipe{}, []string{}, common.NewBadRequestFromMessage("not implemented: getBatchBasesFromIds")
+	return s.repo.GetRecipesLookUpMapFromSkus(ctx, skuList)
 }

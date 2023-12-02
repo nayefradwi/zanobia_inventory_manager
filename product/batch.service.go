@@ -251,6 +251,7 @@ func (s *BatchService) createBulkUpdateRequestWithRecipe(
 		return BulkBatchUpdateRequest{}, err
 	}
 	recipeBatchMap := make(map[string]BatchInput, len(recipeBatches))
+	// TODO: convert recipe units to original units
 	recipeBatchBaseIds := make([]int, len(recipeBatches))
 	for _, recipeBatchBase := range recipeBatches {
 		if recipeBatchBase.Id == nil && recipeBatchBase.Sku == "" {
