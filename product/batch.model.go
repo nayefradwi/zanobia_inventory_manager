@@ -95,6 +95,16 @@ func ValidateBatchInputIncrement(input BatchInput) error {
 	return nil
 }
 
+func ValidateBatchInputsDecrement(inputs []BatchInput) error {
+	for _, input := range inputs {
+		validationErr := ValidateBatchInputDecrement(input)
+		if validationErr != nil {
+			return validationErr
+		}
+	}
+	return nil
+}
+
 func ValidateBatchInputDecrement(input BatchInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,

@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -97,6 +98,7 @@ func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInp
 }
 
 func (s *BatchService) bulkIncrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
+	// TODO: lock all the batches
 	batchUpdateRequest, err := s.createBulkUpdateRequest(ctx, inputs)
 	if err != nil {
 		return err
@@ -123,6 +125,44 @@ func (s *BatchService) bulkIncrementBatchesTransaction(ctx context.Context, inpu
 		batchNewQuantities = common.MergeMaps[int, float64](batchNewQuantities, decrementedQuantitis)
 	}
 	// TODO: bulkUpdateBatches(ctx, batchNewQuantities, batchUpdateRequest.BatchInputMapToCreate)
+	// TODO: create transaction history
+	return nil
+}
+
+func (s *BatchService) DecrementBatch(ctx context.Context, batchInput BatchInput) error {
+	return s.BulkDecrementBatch(ctx, []BatchInput{batchInput})
+}
+
+func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInput) error {
+	if err := ValidateBatchInputsDecrement(inputs); err != nil {
+		return err
+	}
+	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		ctx = common.SetOperator(ctx, tx)
+		return s.bulkDecrementBatchesTransaction(ctx, inputs)
+	})
+
+}
+
+func (s *BatchService) bulkDecrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
+	// TODO: lock all the batches
+
+	batchUpdateRequest, err := s.createBulkUpdateRequestWithoutRecipe(ctx, inputs)
+	if err != nil {
+		return err
+	}
+	if len(batchUpdateRequest.BatchInputMapToUpdate) <= 0 {
+		return common.NewBadRequestFromMessage("no batches to decrement")
+	}
+	decrementedQuantitis, err := s.bulkDecrementBatches(
+		batchUpdateRequest.BatchBasesLookup,
+		batchUpdateRequest.RecipeBatchInputMap,
+	)
+	if err != nil {
+		return err
+	}
+	log.Printf("decrementedQuantitis: %v", decrementedQuantitis)
+	// TODO: bulkUpdateBatches(ctx, decrementedQuantitis, batchUpdateRequest.BatchInputMapToCreate)
 	// TODO: create transaction history
 	return nil
 }
