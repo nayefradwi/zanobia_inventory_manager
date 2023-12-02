@@ -94,6 +94,13 @@ func (s *BatchService) createBulkUpdateRequest(
 	return s.createBulkUpdateRequestWithoutRecipe(ctx, input)
 }
 
+/*
+complexity analysis:
+- O(9n) time = O(n) time
+- O(6n) space = O(n) space
+- n = number of batch inputs
+- O(4) database calls if recipe is used
+*/
 func (s *BatchService) createBulkUpdateRequestWithRecipe(
 	ctx context.Context,
 	input []BatchInput,
@@ -103,11 +110,15 @@ func (s *BatchService) createBulkUpdateRequestWithRecipe(
 	if err != nil {
 		return BulkBatchUpdateRequest{}, err
 	}
-	recipeLookUp, recipeSkus, err := s.recipeService.GetRecipesLookUpMapFromSkus(ctx, batchUpdateRequest.SkuList)
+	recipeLookUp, recipeVariantSkus, err := s.recipeService.GetRecipesLookUpMapFromSkus(ctx, batchUpdateRequest.SkuList)
 	if err != nil {
 		return BulkBatchUpdateRequest{}, err
 	}
-	recipeBatches, err := s.getRecipeBatchBases(ctx, recipeSkus)
+	if len(recipeVariantSkus) == 0 {
+		// no recipes found
+		return batchUpdateRequest, nil
+	}
+	recipeBatches, err := s.getRecipeBatchBases(ctx, recipeVariantSkus)
 	if err != nil {
 		return BulkBatchUpdateRequest{}, err
 	}
@@ -138,8 +149,10 @@ func (s *BatchService) createBulkUpdateRequestWithRecipe(
 		recipeBatchBaseIds = append(recipeBatchBaseIds, *recipeBatchBase.Id)
 	}
 	batchUpdateRequest.RecipeBatchInputMap = recipeBatchMap
-	batchUpdateRequest.SkuList = append(batchUpdateRequest.SkuList, recipeSkus...)
+	batchUpdateRequest.RecipeMap = recipeLookUp
+	batchUpdateRequest.SkuList = append(batchUpdateRequest.SkuList, recipeVariantSkus...)
 	batchUpdateRequest.BatchIds = append(batchUpdateRequest.BatchIds, recipeBatchBaseIds...)
+	batchUpdateRequest.BatchInputLookUp = common.MergeMaps[string, BatchInput](batchUpdateRequest.BatchInputLookUp, recipeBatchMap)
 	return batchUpdateRequest, nil
 }
 
@@ -151,6 +164,13 @@ func (s *BatchService) getRecipeBatchBases(ctx context.Context, recipeSkus []str
 	return s.batchRepo.getLeastExpiredBatchBasesFromSkus(ctx, recipeSkus)
 }
 
+/*
+complexity analysis:
+- O(6n) time = O(n) time
+- O(2n) space = O(n) space
+- n = number of batch inputs
+- O(2) database calls
+*/
 func (s *BatchService) createBulkUpdateRequestWithoutRecipe(
 	ctx context.Context,
 	input []BatchInput,
