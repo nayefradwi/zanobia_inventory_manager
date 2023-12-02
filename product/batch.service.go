@@ -224,7 +224,7 @@ func (s *BatchService) createBulkUpdateRequest(
 
 /*
 complexity analysis:
-- O(9n) time = O(n) time
+- O(10n) time = O(n) time
 - O(6n) space = O(n) space
 - n = number of batch inputs
 - O(4) database calls if recipe is used
@@ -251,7 +251,6 @@ func (s *BatchService) createBulkUpdateRequestWithRecipe(
 		return BulkBatchUpdateRequest{}, err
 	}
 	recipeBatchMap := make(map[string]BatchInput, len(recipeBatches))
-	// TODO: convert recipe units to original units
 	recipeBatchBaseIds := make([]int, len(recipeBatches))
 	for _, recipeBatchBase := range recipeBatches {
 		if recipeBatchBase.Id == nil && recipeBatchBase.Sku == "" {
@@ -276,6 +275,10 @@ func (s *BatchService) createBulkUpdateRequestWithRecipe(
 		}
 		recipeBatchMap[recipe.RecipeVariantSku] = recipeBatchInput
 		recipeBatchBaseIds = append(recipeBatchBaseIds, *recipeBatchBase.Id)
+	}
+	recipeBatchMap, err = s.convertUnitOfBatchInputMap(ctx, recipeBatchMap, batchUpdateRequest.OriginalUnitsMap)
+	if err != nil {
+		return BulkBatchUpdateRequest{}, err
 	}
 	batchUpdateRequest.RecipeBatchInputMap = recipeBatchMap
 	batchUpdateRequest.RecipeMap = recipeLookUp
