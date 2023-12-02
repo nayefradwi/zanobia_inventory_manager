@@ -304,25 +304,26 @@ func (s *RetailerBatchService) MoveFromWarehouseToRetailer(ctx context.Context, 
 }
 
 func (s *RetailerBatchService) tryToMoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
-	retailerBatchInput := RetailerBatchInput{
-		Id:         moveInput.Id,
-		Sku:        moveInput.Sku,
-		Quantity:   moveInput.Quantity,
-		UnitId:     moveInput.UnitId,
-		RetailerId: moveInput.RetailerId,
-		Reason:     transactions.TransactionReasonTypeTransferIn,
-	}
-	if err := s.tryToIncrementBatch(ctx, retailerBatchInput); err != nil {
-		return err
-	}
-	batchInput := product.BatchInput{
-		Id:       &moveInput.BatchId,
-		Sku:      moveInput.Sku,
-		Quantity: moveInput.Quantity,
-		UnitId:   moveInput.UnitId,
-		Reason:   transactions.TransactionReasonTypeTransferIn,
-	}
-	return s.batchService.DecrementForRetailer(ctx, batchInput)
+	// retailerBatchInput := RetailerBatchInput{
+	// 	Id:         moveInput.Id,
+	// 	Sku:        moveInput.Sku,
+	// 	Quantity:   moveInput.Quantity,
+	// 	UnitId:     moveInput.UnitId,
+	// 	RetailerId: moveInput.RetailerId,
+	// 	Reason:     transactions.TransactionReasonTypeTransferIn,
+	// }
+	// if err := s.tryToIncrementBatch(ctx, retailerBatchInput); err != nil {
+	// 	return err
+	// }
+	// batchInput := product.BatchInput{
+	// 	Id:       &moveInput.BatchId,
+	// 	Sku:      moveInput.Sku,
+	// 	Quantity: moveInput.Quantity,
+	// 	UnitId:   moveInput.UnitId,
+	// 	Reason:   transactions.TransactionReasonTypeTransferIn,
+	// }
+	// return s.batchService.DecrementForRetailer(ctx, batchInput)
+	return nil
 }
 
 func (s *RetailerBatchService) ReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
@@ -337,23 +338,24 @@ func (s *RetailerBatchService) ReturnBatchToWarehouse(ctx context.Context, moveI
 }
 
 func (s *RetailerBatchService) tryToReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
-	retailerBatchInput := RetailerBatchInput{
-		Id:         moveInput.Id,
-		Sku:        moveInput.Sku,
-		Quantity:   moveInput.Quantity,
-		UnitId:     moveInput.UnitId,
-		RetailerId: moveInput.RetailerId,
-		Reason:     transactions.TransactionReasonTypeTransferOut,
-	}
-	if err := s.tryToDecrementBatch(ctx, retailerBatchInput); err != nil {
-		return err
-	}
-	batchInput := product.BatchInput{
-		Id:       &moveInput.BatchId,
-		Sku:      moveInput.Sku,
-		Quantity: moveInput.Quantity,
-		UnitId:   moveInput.UnitId,
-		Reason:   transactions.TransactionReasonTypeReturn,
-	}
-	return s.batchService.ReturnToWarehouse(ctx, batchInput)
+	// retailerBatchInput := RetailerBatchInput{
+	// 	Id:         moveInput.Id,
+	// 	Sku:        moveInput.Sku,
+	// 	Quantity:   moveInput.Quantity,
+	// 	UnitId:     moveInput.UnitId,
+	// 	RetailerId: moveInput.RetailerId,
+	// 	Reason:     transactions.TransactionReasonTypeTransferOut,
+	// }
+	// if err := s.tryToDecrementBatch(ctx, retailerBatchInput); err != nil {
+	// 	return err
+	// }
+	// batchInput := product.BatchInput{
+	// 	Id:       &moveInput.BatchId,
+	// 	Sku:      moveInput.Sku,
+	// 	Quantity: moveInput.Quantity,
+	// 	UnitId:   moveInput.UnitId,
+	// 	Reason:   transactions.TransactionReasonTypeReturn,
+	// }
+	// return s.batchService.ReturnToWarehouse(ctx, batchInput)
+	return nil
 }
