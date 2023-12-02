@@ -26,11 +26,11 @@ type UnitService struct {
 	unitsMap           map[int]Unit
 }
 
-func GetUnitConversionKey(toUnitId int, fromUnitId int) string {
+func (s UnitService) GetUnitConversionKey(toUnitId int, fromUnitId int) string {
 	return strconv.Itoa(toUnitId) + "-" + strconv.Itoa(fromUnitId)
 }
 
-func NewUnitService(repo IUnitRepository) *UnitService {
+func NewUnitService(repo IUnitRepository) IUnitService {
 	return &UnitService{
 		repo:               repo,
 		unitConversionsMap: make(map[string]UnitConversion),
@@ -74,7 +74,7 @@ func (s *UnitService) CreateConversion(ctx context.Context, conversion UnitConve
 	if err != nil {
 		return err
 	}
-	key := GetUnitConversionKey(*conversion.ToUnitId, *conversion.FromUnitId)
+	key := s.GetUnitConversionKey(*conversion.ToUnitId, *conversion.FromUnitId)
 	s.unitConversionsMap[key] = conversion
 	return nil
 }
@@ -101,7 +101,7 @@ func (s *UnitService) getSameUnitOutput(ctx context.Context, unitId int, quantit
 }
 
 func (s *UnitService) convertUsingMap(ctx context.Context, input ConvertUnitInput) (ConvertUnitOutput, error) {
-	key := GetUnitConversionKey(*input.ToUnitId, *input.FromUnitId)
+	key := s.GetUnitConversionKey(*input.ToUnitId, *input.FromUnitId)
 	unitConversion, ok := s.unitConversionsMap[key]
 	if !ok {
 		return s.convertUsingDatabase(ctx, input)
@@ -119,7 +119,7 @@ func (s *UnitService) convertUsingDatabase(ctx context.Context, input ConvertUni
 	if err != nil {
 		return ConvertUnitOutput{}, err
 	}
-	key := GetUnitConversionKey(*unitConversion.ToUnitId, *unitConversion.FromUnitId)
+	key := s.GetUnitConversionKey(*unitConversion.ToUnitId, *unitConversion.FromUnitId)
 	s.unitConversionsMap[key] = unitConversion
 	newQty := input.Quantity * unitConversion.ConversionFactor
 	newUnit, err := s.GetUnitById(ctx, unitConversion.ToUnitId)
@@ -155,7 +155,7 @@ func (s *UnitService) SetupUnitConversionsMap(ctx context.Context) error {
 	}
 	unitConversionsMap := make(map[string]UnitConversion)
 	for _, unitConversion := range unitConversions {
-		key := GetUnitConversionKey(*unitConversion.ToUnitId, *unitConversion.FromUnitId)
+		key := s.GetUnitConversionKey(*unitConversion.ToUnitId, *unitConversion.FromUnitId)
 		unitConversionsMap[key] = unitConversion
 	}
 	s.unitConversionsMap = unitConversionsMap

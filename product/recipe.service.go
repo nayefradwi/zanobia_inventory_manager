@@ -88,3 +88,8 @@ func (s *RecipeService) getCostOfRecipe(ctx context.Context, recipe Recipe) (flo
 func (s *RecipeService) GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error) {
 	return s.repo.GetRecipeOfProductVariantSku(ctx, sku)
 }
+
+func (s *RecipeService) GetRecipesLookUpMapFromSkus(ctx context.Context, skuList []string) (map[string]Recipe, []string, error) {
+	// TODO: fill
+	return map[string]Recipe{}, []string{}, common.NewBadRequestFromMessage("not implemented: getBatchBasesFromIds")
+}

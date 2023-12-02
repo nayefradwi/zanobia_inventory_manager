@@ -222,3 +222,7 @@ func (s *ProductService) UpdateProductVariantSku(ctx context.Context, input Upda
 	}
 	return s.repo.UpdateProductVariantSku(ctx, input.OldSku, input.NewSku)
 }
+
+func (s *ProductService) GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error) {
+	return nil, common.NewBadRequestFromMessage("not implemented: getBatchBasesFromIds")
+}

@@ -36,7 +36,7 @@ type BatchRepository struct {
 	*pgxpool.Pool
 }
 
-func NewBatchRepository(pool *pgxpool.Pool) *BatchRepository {
+func NewBatchRepository(pool *pgxpool.Pool) IBatchRepository {
 	return &BatchRepository{pool}
 }
 
@@ -176,30 +176,45 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 	return batches, nil
 }
 
-func (r *BatchRepository) GetLeastExpiredBatchId(ctx context.Context, sku string) (int, error) {
-	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at >= NOW() AND warehouse_id = $2 ORDER BY expires_at DESC LIMIT 1`
-	op := common.GetOperator(ctx, r.Pool)
-	warehouseId := warehouse.GetWarehouseId(ctx)
-	row := op.QueryRow(ctx, sql, sku, warehouseId)
-	var id int
-	err := row.Scan(&id)
-	if err != nil {
-		log.Printf("Failed to get least expired batch id: %s", err.Error())
-		return 0, common.NewBadRequestFromMessage("Failed to get least expired batch id")
-	}
-	return id, nil
+// func (r *BatchRepository) GetLeastExpiredBatchId(ctx context.Context, sku string) (int, error) {
+// 	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at >= NOW() AND warehouse_id = $2 ORDER BY expires_at DESC LIMIT 1`
+// 	op := common.GetOperator(ctx, r.Pool)
+// 	warehouseId := warehouse.GetWarehouseId(ctx)
+// 	row := op.QueryRow(ctx, sql, sku, warehouseId)
+// 	var id int
+// 	err := row.Scan(&id)
+// 	if err != nil {
+// 		log.Printf("Failed to get least expired batch id: %s", err.Error())
+// 		return 0, common.NewBadRequestFromMessage("Failed to get least expired batch id")
+// 	}
+// 	return id, nil
+// }
+
+// func (r *BatchRepository) GetMostExpiredBatchId(ctx context.Context, sku string) (int, error) {
+// 	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at >= NOW() AND warehouse_id = $2 ORDER BY expires_at ASC LIMIT 1`
+// 	op := common.GetOperator(ctx, r.Pool)
+// 	warehouseId := warehouse.GetWarehouseId(ctx)
+// 	row := op.QueryRow(ctx, sql, sku, warehouseId)
+// 	var id int
+// 	err := row.Scan(&id)
+// 	if err != nil {
+// 		log.Printf("Failed to get most expired batch id: %s", err.Error())
+// 		return 0, common.NewBadRequestFromMessage("Failed to get most expired batch id")
+// 	}
+// 	return id, nil
+// }
+
+func (r *BatchRepository) getBatchBasesFromIds(ctx context.Context, ids []int) ([]BatchBase, error) {
+	// TODO: fill
+	return nil, common.NewBadRequestFromMessage("not implemented: getBatchBasesFromIds")
 }
 
-func (r *BatchRepository) GetMostExpiredBatchId(ctx context.Context, sku string) (int, error) {
-	sql := `SELECT id FROM batches WHERE sku = $1 AND expires_at >= NOW() AND warehouse_id = $2 ORDER BY expires_at ASC LIMIT 1`
-	op := common.GetOperator(ctx, r.Pool)
-	warehouseId := warehouse.GetWarehouseId(ctx)
-	row := op.QueryRow(ctx, sql, sku, warehouseId)
-	var id int
-	err := row.Scan(&id)
-	if err != nil {
-		log.Printf("Failed to get most expired batch id: %s", err.Error())
-		return 0, common.NewBadRequestFromMessage("Failed to get most expired batch id")
-	}
-	return id, nil
+func (r *BatchRepository) getMostExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error) {
+	// TODO: fill
+	return nil, common.NewBadRequestFromMessage("not implemented: getMostExpiredBatchBasesFromSkus")
+}
+
+func (r *BatchRepository) getLeastExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error) {
+	// TODO: fill
+	return nil, common.NewBadRequestFromMessage("not implemented: getLeastExpiredBatchBasesFromSkus")
 }

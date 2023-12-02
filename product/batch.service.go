@@ -124,6 +124,7 @@ func (s *BatchService) bulkIncrementBatchesTransaction(ctx context.Context, inpu
 		}
 		batchNewQuantities = common.MergeMaps[int, float64](batchNewQuantities, decrementedQuantitis)
 	}
+	log.Printf("batchNewQuantities: %v", batchNewQuantities)
 	// TODO: bulkUpdateBatches(ctx, batchNewQuantities, batchUpdateRequest.BatchInputMapToCreate)
 	// TODO: create transaction history
 	return nil
@@ -357,7 +358,7 @@ func (s *BatchService) convertUnitOfBatchInputMap(
 	originalUnitsMap map[string]int,
 ) (map[string]BatchInput, error) {
 	for sku, batchInput := range batchInputMap {
-		originalUnitId, _ := originalUnitsMap[sku]
+		originalUnitId := originalUnitsMap[sku]
 		batchUnitId := batchInput.UnitId
 		convertUnitInput := ConvertUnitInput{
 			ToUnitId:   &originalUnitId,
