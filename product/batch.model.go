@@ -16,18 +16,27 @@ type BatchInput struct {
 	CostPerQty float64
 }
 
-type BatchModificationRequest struct {
+// what is needed:
+// 1. recipe map
+// 2. batch bases lookup which includes recipes batch bases and batch bases
+// 3. original units which will be used to determine the conversion factor
+// 4. batch input map to update will be used with the batch bases lookup to update the batch bases
+// 5. batch input map to create will be used to create new batch bases
+// 6. recipe batch input map will be used to decrement the recipe batch bases
+// 7. sku list will be used to get the original units and batch bases for recipes
+// 8. batch ids will be used to get the batch bases
+type BulkBatchUpdateRequest struct {
 	RecipeMap        map[string]Recipe
 	BatchBasesLookup map[string]BatchBase
-	OriginalUnits    map[string]int
-	BatchInputMap    map[string]BatchInput
-	SkuList          []string
-	BatchIds         []int
-	// 	BatchInputMap           map[string]BatchInput
-	// 	BatchCurrentQuantities  map[string]float64
-	// 	RecipeBatchInputMap     map[string]BatchInput
-	// 	RecipeCurrentQuantities map[string]float64
-	// 	SkuList                 []string
+	OriginalUnitsMap map[string]int
+	// need to convert to original units
+	BatchInputMapToUpdate map[string]BatchInput
+	// need to convert to original units
+	BatchInputMapToCreate map[string]BatchInput
+	BatchInputLookUp      map[string]BatchInput
+	RecipeBatchInputMap   map[string]BatchInput
+	SkuList               []string
+	BatchIds              []int
 }
 
 type BatchBase struct {

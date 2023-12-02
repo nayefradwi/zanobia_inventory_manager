@@ -100,3 +100,14 @@ func MergeSlice[T any](slice1 []T, slice2 []T) []T {
 	result = append(result, slice2...)
 	return result
 }
+
+func MergeMaps[K comparable, V any](map1 map[K]V, map2 map[K]V) map[K]V {
+	result := make(map[K]V)
+	for key, value := range map1 {
+		result[key] = value
+	}
+	for key, value := range map2 {
+		result[key] = value
+	}
+	return result
+}

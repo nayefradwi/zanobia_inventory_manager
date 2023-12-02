@@ -13,6 +13,7 @@ type IRecipeService interface {
 	DeleteRecipe(ctx context.Context, id int) error
 	GetTotalCostOfRecipes(ctx context.Context, recipes []Recipe) (float64, error)
 	GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error)
+	GetRecipesLookUpMapFromSkus(ctx context.Context, skuList []string) (map[string]Recipe, []string, error)
 }
 
 type RecipeService struct {

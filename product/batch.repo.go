@@ -18,8 +18,9 @@ type IBatchRepository interface {
 	GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error)
 	GetBatches(ctx context.Context, params common.PaginationParams) ([]Batch, error)
 	SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]Batch, error)
-	GetLeastExpiredBatchId(ctx context.Context, sku string) (int, error)
-	GetMostExpiredBatchId(ctx context.Context, sku string) (int, error)
+	getBatchBasesFromIds(ctx context.Context, ids []int) ([]BatchBase, error)
+	getMostExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error)
+	getLeastExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error)
 }
 
 const baseBatchListingSql = `

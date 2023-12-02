@@ -22,6 +22,7 @@ type IProductService interface {
 	UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error
 	DeleteProductVariant(ctx context.Context, id int) error
 	UpdateProductVariantSku(ctx context.Context, input UpdateSkuInput) error
+	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 }
 
 type ProductService struct {
