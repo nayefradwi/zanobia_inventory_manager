@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"log"
+	"strconv"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -47,8 +48,11 @@ func NewBatchService(
 	}
 }
 
-func GenerateBatchLockKey(sku string) string {
-	return "batch:" + sku + ":lock"
+func GenerateBatchLockKey(batchInput BatchInput) string {
+	if batchInput.Id != nil {
+		return "batch:" + strconv.Itoa(*batchInput.Id) + ":lock"
+	}
+	return "batch:" + batchInput.Sku + ":lock"
 }
 
 func (s *BatchService) GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error) {
@@ -91,13 +95,17 @@ func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInp
 	if err := ValidateBatchInputsIncrement(inputs); err != nil {
 		return err
 	}
+	locks, err := s.lockAllBatches(ctx, inputs)
+	defer s.unlockAllBatches(ctx, locks)
+	if err != nil {
+		return err
+	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		return s.bulkIncrementBatchesTransaction(ctx, inputs)
 	})
 }
 
 func (s *BatchService) bulkIncrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
-	// TODO: lock all the batches
 	batchUpdateRequest, err := s.createBulkUpdateRequest(ctx, inputs)
 	if err != nil {
 		return err
@@ -137,6 +145,11 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 	if err := ValidateBatchInputsDecrement(inputs); err != nil {
 		return err
 	}
+	locks, err := s.lockAllBatches(ctx, inputs)
+	defer s.unlockAllBatches(ctx, locks)
+	if err != nil {
+		return err
+	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		return s.bulkDecrementBatchesTransaction(ctx, inputs)
 	})
@@ -144,8 +157,6 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 }
 
 func (s *BatchService) bulkDecrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
-	// TODO: lock all the batches
-
 	batchUpdateRequest, err := s.createBulkUpdateRequestWithoutRecipe(ctx, inputs)
 	if err != nil {
 		return err
@@ -166,15 +177,24 @@ func (s *BatchService) bulkDecrementBatchesTransaction(ctx context.Context, inpu
 	return nil
 }
 
-// func (s *BatchService) lockAllBatches(ctx context.Context, skus []string) error {
-// 	for _, sku := range skus {
-// 		lockKey := GenerateBatchLockKey(sku)
-// 		if err := s.lockingService.Lock(ctx, lockKey); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
+func (s *BatchService) lockAllBatches(ctx context.Context, inputs []BatchInput) ([]common.Lock, error) {
+	locks := make([]common.Lock, len(inputs))
+	for i, input := range inputs {
+		lockKey := GenerateBatchLockKey(input)
+		lock, err := s.lockingService.Acquire(ctx, lockKey)
+		if err != nil {
+			return nil, err
+		}
+		locks[i] = lock
+	}
+	return locks, nil
+}
+
+func (s *BatchService) unlockAllBatches(ctx context.Context, locks []common.Lock) {
+	for _, lock := range locks {
+		s.lockingService.Release(ctx, lock)
+	}
+}
 
 func (s *BatchService) bulkIncrementBatches(
 	batchLookup map[string]BatchBase,
