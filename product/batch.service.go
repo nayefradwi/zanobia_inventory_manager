@@ -250,31 +250,9 @@ func (s *BatchService) createBulkUpdateRequestWithRecipe(
 	if err != nil {
 		return BulkBatchUpdateRequest{}, err
 	}
-	recipeBatchMap := make(map[string]BatchInput, len(recipeBatches))
-	recipeBatchBaseIds := make([]int, len(recipeBatches))
-	for _, recipeBatchBase := range recipeBatches {
-		if recipeBatchBase.Id == nil && recipeBatchBase.Sku == "" {
-			return BulkBatchUpdateRequest{}, common.NewBadRequestFromMessage("invalid recipe batch")
-		}
-		recipe, recipeFound := recipeLookUp[recipeBatchBase.Sku]
-		if !recipeFound {
-			return BulkBatchUpdateRequest{}, common.NewBadRequestFromMessage("invalid recipe batch")
-		}
-		resultBatch, resultFound := batchUpdateRequest.BatchInputLookUp[recipe.ResultVariantSku]
-		if !resultFound {
-			return BulkBatchUpdateRequest{}, common.NewBadRequestFromMessage("invalid recipe batch")
-		}
-		recipeBatchInput := BatchInput{
-			Id: recipeBatchBase.Id,
-			// calculate the quantity of the recipe batch
-			Quantity:   resultBatch.Quantity * recipe.Quantity,
-			UnitId:     recipeBatchBase.UnitId,
-			Sku:        recipe.RecipeVariantSku,
-			Reason:     transactions.TransactionReasonTypeRecipeUse,
-			CostPerQty: recipe.IngredientCost * recipe.Quantity * resultBatch.Quantity,
-		}
-		recipeBatchMap[recipe.RecipeVariantSku] = recipeBatchInput
-		recipeBatchBaseIds = append(recipeBatchBaseIds, *recipeBatchBase.Id)
+	recipeBatchMap, recipeBatchBaseIds, err := s.createRecipeBatchInputs(ctx, recipeBatches, recipeLookUp, batchUpdateRequest.BatchInputLookUp)
+	if err != nil {
+		return BulkBatchUpdateRequest{}, err
 	}
 	batchUpdateRequest.RecipeBatchInputMap = recipeBatchMap
 	batchUpdateRequest.RecipeMap = recipeLookUp
@@ -290,6 +268,55 @@ func (s *BatchService) getRecipeBatchBases(ctx context.Context, recipeSkus []str
 		return s.batchRepo.getMostExpiredBatchBasesFromSkus(ctx, recipeSkus)
 	}
 	return s.batchRepo.getLeastExpiredBatchBasesFromSkus(ctx, recipeSkus)
+}
+
+func (s *BatchService) createRecipeBatchInputs(
+	ctx context.Context,
+	recipeBatches []BatchBase,
+	recipeLookUp map[string]Recipe,
+	batchInputLookUp map[string]BatchInput,
+) (map[string]BatchInput, []int, error) {
+	recipeBatchMap := make(map[string]BatchInput, len(recipeBatches))
+	recipeBatchBaseIds := make([]int, len(recipeBatches))
+	for _, recipeBatchBase := range recipeBatches {
+		if recipeBatchBase.Id == nil && recipeBatchBase.Sku == "" {
+			return nil, nil, common.NewBadRequestFromMessage("invalid recipe batch")
+		}
+		recipe, recipeFound := recipeLookUp[recipeBatchBase.Sku]
+		if !recipeFound {
+			return nil, nil, common.NewBadRequestFromMessage("invalid recipe batch")
+		}
+		resultBatch, resultFound := batchInputLookUp[recipe.ResultVariantSku]
+		if !resultFound {
+			return nil, nil, common.NewBadRequestFromMessage("invalid recipe batch")
+		}
+		recipeConvertedQuantityToRecipeStandardUnit, err := s.unitService.ConvertUnit(
+			ctx,
+			ConvertUnitInput{
+				ToUnitId:   recipe.IngredientStandardUnit.Id,
+				FromUnitId: recipe.Unit.Id,
+				Quantity:   recipe.Quantity,
+			},
+		)
+		if err != nil {
+			log.Printf("failed to convert unit: %s", err.Error())
+			return nil, nil, err
+		}
+		recipeCostPerQty := recipe.IngredientCost *
+			recipeConvertedQuantityToRecipeStandardUnit.Quantity *
+			resultBatch.Quantity
+		recipeBatchInput := BatchInput{
+			Id:         recipeBatchBase.Id,
+			Quantity:   resultBatch.Quantity * recipe.Quantity,
+			UnitId:     recipeBatchBase.UnitId,
+			Sku:        recipe.RecipeVariantSku,
+			Reason:     transactions.TransactionReasonTypeRecipeUse,
+			CostPerQty: recipeCostPerQty,
+		}
+		recipeBatchMap[recipe.RecipeVariantSku] = recipeBatchInput
+		recipeBatchBaseIds = append(recipeBatchBaseIds, *recipeBatchBase.Id)
+	}
+	return recipeBatchMap, recipeBatchBaseIds, nil
 }
 
 /*
