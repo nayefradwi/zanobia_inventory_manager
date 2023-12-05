@@ -105,6 +105,8 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	permissionService := user.NewPermissionService(repositories.permissionRepository)
 	roleService := user.NewRoleService(repositories.roleRepository)
 	unitService := product.NewUnitService(repositories.unitRepository)
+	unitService.SetupUnitsMap(context.Background())
+	unitService.SetupUnitConversionsMap(context.Background())
 	warehouseService := warehouse.NewWarehouseService(repositories.warehouseRepository)
 	recipeService := product.NewRecipeService(repositories.recipeRepository, unitService)
 	productService := product.NewProductService(repositories.productRepository, recipeService)

@@ -16,7 +16,7 @@ type IUnitRepository interface {
 	GetUnitFromName(ctx context.Context, name string) (Unit, error)
 	AddUnitConversion(ctx context.Context, conversion UnitConversion) error
 	GetUnitById(ctx context.Context, id *int) (Unit, error)
-	GetUnitConversionByUnitId(ctx context.Context, id *int, conversionId *int) (UnitConversion, error)
+	GetUnitConversionByUnitId(ctx context.Context, toUnitId *int, fromUnitId *int) (UnitConversion, error)
 	TranslateUnit(ctx context.Context, unit Unit, languageCode string) error
 	GetUnitConversions(ctx context.Context) ([]UnitConversion, error)
 }
@@ -145,10 +145,10 @@ func (r *UnitRepository) GetUnitById(ctx context.Context, id *int) (Unit, error)
 	return unit, nil
 }
 
-func (r *UnitRepository) GetUnitConversionByUnitId(ctx context.Context, id *int, conversionId *int) (UnitConversion, error) {
+func (r *UnitRepository) GetUnitConversionByUnitId(ctx context.Context, toUnitId *int, fromUnitId *int) (UnitConversion, error) {
 	sql := `SELECT id, to_unit_id, from_unit_id, conversion_factor FROM unit_conversions WHERE to_unit_id = $1 AND from_unit_id = $2`
 	op := common.GetOperator(ctx, r.Pool)
-	row := op.QueryRow(ctx, sql, id, conversionId)
+	row := op.QueryRow(ctx, sql, toUnitId, fromUnitId)
 	var conversion UnitConversion
 	err := row.Scan(&conversion.Id, &conversion.ToUnitId, &conversion.FromUnitId, &conversion.ConversionFactor)
 	if err != nil {

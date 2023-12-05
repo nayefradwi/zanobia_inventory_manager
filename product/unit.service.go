@@ -48,6 +48,7 @@ func (s *UnitService) CreateUnit(ctx context.Context, unit Unit) error {
 		return err
 	}
 	unit.Id = &id
+	log.Printf("adding unit to cached map: %s", unit.Name)
 	s.unitsMap[id] = unit
 	return nil
 }
@@ -75,6 +76,7 @@ func (s *UnitService) CreateConversion(ctx context.Context, conversion UnitConve
 		return err
 	}
 	key := s.GetUnitConversionKey(*conversion.ToUnitId, *conversion.FromUnitId)
+	log.Printf("adding unit conversion to cached map: %s", key)
 	s.unitConversionsMap[key] = conversion
 	return nil
 }
@@ -106,6 +108,7 @@ func (s *UnitService) convertUsingMap(ctx context.Context, input ConvertUnitInpu
 	if !ok {
 		return s.convertUsingDatabase(ctx, input)
 	}
+	log.Printf("converting using cached unit conversions map")
 	newQty := input.Quantity * unitConversion.ConversionFactor
 	newUnit, err := s.GetUnitById(ctx, unitConversion.ToUnitId)
 	if err != nil {
@@ -115,11 +118,12 @@ func (s *UnitService) convertUsingMap(ctx context.Context, input ConvertUnitInpu
 }
 
 func (s *UnitService) convertUsingDatabase(ctx context.Context, input ConvertUnitInput) (ConvertUnitOutput, error) {
+	log.Printf("converting using database; cache miss")
 	unitConversion, err := s.repo.GetUnitConversionByUnitId(ctx, input.ToUnitId, input.FromUnitId)
 	if err != nil {
 		return ConvertUnitOutput{}, err
 	}
-	key := s.GetUnitConversionKey(*unitConversion.ToUnitId, *unitConversion.FromUnitId)
+	key := s.GetUnitConversionKey(*input.ToUnitId, *input.FromUnitId)
 	s.unitConversionsMap[key] = unitConversion
 	newQty := input.Quantity * unitConversion.ConversionFactor
 	newUnit, err := s.GetUnitById(ctx, unitConversion.ToUnitId)
@@ -138,8 +142,10 @@ func (s *UnitService) GetUnitById(ctx context.Context, id *int) (Unit, error) {
 	}
 	unit := s.unitsMap[*id]
 	if unit.Id != nil {
+		log.Printf("returning unit from cached map: %s", unit.Name)
 		return unit, nil
 	}
+	log.Printf("unit not found in cached map, fetching from database")
 	unit, err := s.repo.GetUnitById(ctx, id)
 	if err != nil {
 		return Unit{}, err
@@ -150,6 +156,7 @@ func (s *UnitService) GetUnitById(ctx context.Context, id *int) (Unit, error) {
 
 func (s *UnitService) SetupUnitConversionsMap(ctx context.Context) error {
 	unitConversions, err := s.repo.GetUnitConversions(ctx)
+	unitConversions = unitConversions[:1]
 	if err != nil {
 		return err
 	}
