@@ -1,21 +1,34 @@
 package product
 
-import "time"
+import (
+	"time"
+
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
+)
+
+type BatchVariantMetaInfo struct {
+	UnitId        int
+	ExpiresInDays int
+	Cost          float64
+}
 
 type BulkBatchUpdateInfo struct {
-	RecipeMap             map[string]Recipe
-	BatchBasesLookup      map[string]BatchBase
-	OriginalUnitsMap      map[string]int
-	BatchInputMapToUpdate map[string]BatchInput
-	BatchInputMapToCreate map[string]BatchInput
-	SkuList               []string
-	Ids                   []int
+	RecipeMap                  map[string]Recipe
+	BatchBasesLookup           map[string]BatchBase
+	BatchVariantMetaInfoLookup map[string]BatchVariantMetaInfo
+	BatchInputMapToUpdate      map[string]BatchInput
+	BatchInputMapToCreate      map[string]BatchInput
+	SkuList                    []string
+	Ids                        []int
+	locks                      []common.Lock
 }
 
 type BatchUpdateRequest struct {
 	BatchId  *int
 	NewValue float64
 	Reason   string
+	Sku      string
 }
 
 type BatchCreateRequest struct {
@@ -25,16 +38,8 @@ type BatchCreateRequest struct {
 	ExpiryDate time.Time
 }
 
-type BatchTransactionInfo struct {
-	BatchId *int
-	Amount  float64
-	Reason  string
-	UnitId  int
-	Sku     string
-}
-
 type BulkBatchUpdateUnitOfWork struct {
 	BatchUpdateRequestLookup map[string]BatchUpdateRequest
 	BatchCreateRequestLookup map[string]BatchCreateRequest
-	BatchTransactionInfo     []BatchTransactionInfo
+	BatchTransactionHistory  []transactions.CreateWarehouseTransactionCommand
 }

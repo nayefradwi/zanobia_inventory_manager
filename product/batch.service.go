@@ -15,6 +15,8 @@ type IBatchService interface {
 	DecrementBatch(ctx context.Context, input BatchInput) error
 	BulkIncrementBatch(ctx context.Context, inputs []BatchInput) error
 	BulkDecrementBatch(ctx context.Context, inputs []BatchInput) error
+	IncrementBatchWithRecipe(ctx context.Context, batchInput BatchInput) error
+	BulkIncrementWithRecipeBatch(ctx context.Context, inputs []BatchInput) error
 	GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error)
 	SearchBatchesBySku(ctx context.Context, sku string) (common.PaginatedResponse[Batch], error)
 }
@@ -83,4 +85,38 @@ func (s *BatchService) createBatchesPage(batches []Batch, pageSize int) common.P
 		batches,
 	)
 	return res
+}
+
+func (s *BatchService) convertBatchInput(
+	ctx context.Context,
+	batchInput BatchInput,
+	batchVariantMetaInfo BatchVariantMetaInfo,
+) (
+	BatchInput,
+	error,
+) {
+	convertInput := ConvertUnitInput{
+		ToUnitId:   &batchVariantMetaInfo.UnitId,
+		Quantity:   batchInput.Quantity,
+		FromUnitId: &batchInput.UnitId,
+	}
+	conversionOutput, err := s.unitService.ConvertUnit(ctx, convertInput)
+	if err != nil {
+		return BatchInput{}, err
+	}
+	batchInput.Quantity = conversionOutput.Quantity
+	batchInput.UnitId = *conversionOutput.Unit.Id
+	return batchInput, nil
+}
+
+func (s *BatchService) processBulkBatchUnitOfWork(
+	ctx context.Context,
+	bulkBatchUpdateUnitOfWork BulkBatchUpdateUnitOfWork,
+) error {
+	// TODO: fill this
+	// create update sql batches
+	// create create sql batches
+	// create transaction history batches
+	// maybe do all of this in repo
+	return nil
 }

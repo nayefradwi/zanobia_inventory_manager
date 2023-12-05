@@ -13,6 +13,7 @@ type BatchInput struct {
 	Quantity float64 `json:"quantity"`
 	UnitId   int     `json:"unitId"`
 	Reason   string  `json:"reason,omitempty"`
+	Comment  string  `json:"comment,omitempty"`
 }
 
 type BatchBase struct {

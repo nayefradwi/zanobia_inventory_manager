@@ -1,58 +1,71 @@
 package product
 
-// func (s *BatchService) unlockBatchUpdateRequest(ctx context.Context, batchUpdateRequest BulkBatchUpdateInfo) {
-// 	s.unlockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
-// 	s.unlockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
+import (
+	"context"
+	"strconv"
 
-// }
-// func (s *BatchService) lockBatchUpdateRequest(ctx context.Context, batchUpdateRequest BulkBatchUpdateInfo) error {
-// 	_, lockErrForIds := s.lockBatchesByIds(ctx, batchUpdateRequest.BatchIds)
-// 	if lockErrForIds != nil {
-// 		return lockErrForIds
-// 	}
-// 	_, lockErrForSkus := s.lockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
-// 	if lockErrForSkus != nil {
-// 		return lockErrForSkus
-// 	}
-// 	return nil
-// }
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+)
 
-// func (s *BatchService) lockBatchesBySkus(ctx context.Context, skus []string) ([]common.Lock, error) {
-// 	locks := make([]common.Lock, len(skus))
-// 	for i, sku := range skus {
-// 		lockKey := "batch:" + sku + ":lock"
-// 		lock, err := s.lockingService.Acquire(ctx, lockKey)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		locks[i] = lock
-// 	}
-// 	return locks, nil
-// }
+func (s *BatchService) unlockBatchUpdateRequest(ctx context.Context, batchUpdateRequest BulkBatchUpdateInfo) {
+	for _, lock := range batchUpdateRequest.locks {
+		s.lockingService.Release(ctx, lock)
+	}
+}
 
-// func (s *BatchService) lockBatchesByIds(ctx context.Context, ids []int) ([]common.Lock, error) {
-// 	locks := make([]common.Lock, len(ids))
-// 	for i, id := range ids {
-// 		lockKey := "batch:" + strconv.Itoa(id) + ":lock"
-// 		lock, err := s.lockingService.Acquire(ctx, lockKey)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		locks[i] = lock
-// 	}
-// 	return locks, nil
-// }
+func (s *BatchService) lockBatchUpdateRequest(ctx context.Context, batchUpdateRequest BulkBatchUpdateInfo) (BulkBatchUpdateInfo, error) {
+	idLocks, lockErrForIds := s.lockBatchesByIds(ctx, batchUpdateRequest.Ids)
+	if lockErrForIds != nil {
+		return batchUpdateRequest, lockErrForIds
+	}
+	skuLocks, lockErrForSkus := s.lockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
+	if lockErrForSkus != nil {
+		return batchUpdateRequest, lockErrForSkus
+	}
+	batchUpdateRequest.locks = append(idLocks, skuLocks...)
+	return batchUpdateRequest, nil
+}
 
-// func (s *BatchService) unlockBatchesByIds(ctx context.Context, ids []int) {
-// 	for _, id := range ids {
-// 		lockKey := "batch:" + strconv.Itoa(id) + ":lock"
-// 		s.lockingService.Release(ctx, common.Lock{Name: lockKey})
-// 	}
-// }
+func (s *BatchService) lockBatchesBySkus(ctx context.Context, skus []string) ([]common.Lock, error) {
+	locks := make([]common.Lock, len(skus))
+	for i, sku := range skus {
+		lockKey := s.createBatchLockKey(sku)
+		lock, err := s.lockingService.Acquire(ctx, lockKey)
+		if err != nil {
+			return nil, err
+		}
+		locks[i] = lock
+	}
+	return locks, nil
+}
 
-// func (s *BatchService) unlockBatchesBySkus(ctx context.Context, skus []string) {
-// 	for _, sku := range skus {
-// 		lockKey := "batch:" + sku + ":lock"
-// 		s.lockingService.Release(ctx, common.Lock{Name: lockKey})
-// 	}
-// }
+func (s *BatchService) lockBatchesByIds(ctx context.Context, ids []int) ([]common.Lock, error) {
+	locks := make([]common.Lock, len(ids))
+	for i, id := range ids {
+		lockKey := s.createBatchLockKey(strconv.Itoa(id))
+		lock, err := s.lockingService.Acquire(ctx, lockKey)
+		if err != nil {
+			return nil, err
+		}
+		locks[i] = lock
+	}
+	return locks, nil
+}
+
+func (s *BatchService) createBatchLockKey(idOrSku string) string {
+	return "batch:" + idOrSku + ":lock"
+}
+
+func (s *BatchService) unlockBatchesByIds(ctx context.Context, ids []int) {
+	for _, id := range ids {
+		lockKey := s.createBatchLockKey(strconv.Itoa(id))
+		s.lockingService.Release(ctx, common.Lock{Name: lockKey})
+	}
+}
+
+func (s *BatchService) unlockBatchesBySkus(ctx context.Context, skus []string) {
+	for _, sku := range skus {
+		lockKey := s.createBatchLockKey(sku)
+		s.lockingService.Release(ctx, common.Lock{Name: lockKey})
+	}
+}

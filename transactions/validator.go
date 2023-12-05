@@ -27,7 +27,7 @@ func ValidateWarehouseTransactionCommand(command CreateWarehouseTransactionComma
 		common.ValidateAmountPositive(command.Quantity, "quantity"),
 		common.ValidateId(command.UnitId, "unitId"),
 		common.ValidateStringLength(command.Reason, "reason", 3, 50),
-		common.ValidateAmountPositive(command.CostPerQty, "costPerQty"),
+		common.ValidateAmountPositive(command.Cost, "costPerQty"),
 		common.ValidateStringLength(command.Comment, "comment", 0, 255),
 		common.ValidateStringLength(command.Sku, "sku", 10, 36),
 	)
@@ -51,7 +51,7 @@ func ValidateRetailerTransactionCommand(command CreateRetailerTransactionCommand
 		common.ValidateAmountPositive(command.Quantity, "quantity"),
 		common.ValidateId(command.UnitId, "unitId"),
 		common.ValidateStringLength(command.Reason, "reason", 3, 50),
-		common.ValidateAmountPositive(command.CostPerQty, "costPerQty"),
+		common.ValidateAmountPositive(command.Cost, "costPerQty"),
 		common.ValidateStringLength(command.Comment, "comment", 0, 255),
 		common.ValidateStringLength(command.Sku, "sku", 10, 36),
 	)
