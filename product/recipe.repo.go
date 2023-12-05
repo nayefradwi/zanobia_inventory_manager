@@ -64,20 +64,20 @@ func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku
 	SELECT
     	r.id,
     	r.quantity,
+		pvartx_result.product_variant_id AS result_variant_id,
 		r.result_variant_sku,
-    	pvartx_result.product_variant_id AS result_variant_id,
     	pvartx_result.name AS result_variant_name,
+		pvartx_recipe.product_variant_id AS recipe_variant_id,
 		r.recipe_variant_sku,
-    	pvartx_recipe.product_variant_id AS recipe_variant_id,
    		pvartx_recipe.name AS recipe_variant_name,
 		pvar_recipe.price AS recipe_price,
-    	utx.unit_id,
-    	utx.name,
-    	utx.symbol,
-		ptx.name,
-		orig_utx.name,
-		orig_utx.symbol,
-		orig_utx.unit_id,
+    	utx.unit_id as recipe_unit_id,
+    	utx.name as recipe_unit_name,
+    	utx.symbol as recipe_unit_symbol,
+		ptx.name as product_name,
+		orig_utx.name as ingredient_standard_unit_name,
+		orig_utx.symbol as ingredient_standard_unit_symbol,
+		orig_utx.unit_id as ingredient_standard_unit_id
 	FROM
     	recipes r
 	JOIN unit_translations utx ON r.unit_id = utx.unit_id
@@ -104,11 +104,10 @@ func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku
 	for rows.Next() {
 		var recipe Recipe
 		var unit, recipeStandardUnit Unit
-		var ingredientCost float64
 		var productName string
 		err := rows.Scan(
-			&recipe.Id, &recipe.Quantity, &recipe.ResultVariantSku, &recipe.ResultVariantId, &recipe.ResultVariantName,
-			&recipe.RecipeVariantSku, &recipe.RecipeVariantName, &recipe.RecipeVariantId, &recipe.IngredientCost,
+			&recipe.Id, &recipe.Quantity, &recipe.ResultVariantId, &recipe.ResultVariantSku, &recipe.ResultVariantName,
+			&recipe.RecipeVariantId, &recipe.RecipeVariantSku, &recipe.RecipeVariantName, &recipe.IngredientCost,
 			&unit.Id, &unit.Name, &unit.Symbol, &productName,
 			&recipeStandardUnit.Name, &recipeStandardUnit.Symbol, &recipeStandardUnit.Id,
 		)
@@ -117,7 +116,6 @@ func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku
 			return nil, common.NewInternalServerError()
 		}
 		recipe.Unit = unit
-		recipe.IngredientCost = ingredientCost
 		recipe.ProductName = productName
 		recipe.IngredientStandardUnit = &recipeStandardUnit
 		recipes = append(recipes, recipe)

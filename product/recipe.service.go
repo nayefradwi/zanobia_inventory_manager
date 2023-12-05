@@ -72,7 +72,7 @@ func (s *RecipeService) getCostOfRecipe(ctx context.Context, recipe Recipe) (flo
 	if *recipe.Unit.Id == *recipe.IngredientStandardUnit.Id {
 		return recipe.Quantity * recipe.IngredientCost, nil
 	}
-	// I need a way to bulk convert units
+	// convert unit should be cached
 	newQty, err := s.unitService.ConvertUnit(ctx, ConvertUnitInput{
 		FromUnitId: recipe.Unit.Id,
 		ToUnitId:   recipe.IngredientStandardUnit.Id,
