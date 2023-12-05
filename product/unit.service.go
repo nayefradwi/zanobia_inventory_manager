@@ -156,7 +156,6 @@ func (s *UnitService) GetUnitById(ctx context.Context, id *int) (Unit, error) {
 
 func (s *UnitService) SetupUnitConversionsMap(ctx context.Context) error {
 	unitConversions, err := s.repo.GetUnitConversions(ctx)
-	unitConversions = unitConversions[:1]
 	if err != nil {
 		return err
 	}
