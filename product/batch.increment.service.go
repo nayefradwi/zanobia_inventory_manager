@@ -26,7 +26,10 @@ func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInp
 	})
 }
 
-func (s *BatchService) processBulkBatchIncrement(ctx context.Context, bulkBatchUpdateInfo BulkBatchUpdateInfo) error {
+func (s *BatchService) processBulkBatchIncrement(
+	ctx context.Context,
+	bulkBatchUpdateInfo BulkBatchUpdateInfo,
+) error {
 	bulkBatchUpdateInfo, lockErr := s.lockBatchUpdateRequest(ctx, bulkBatchUpdateInfo)
 	defer s.unlockBatchUpdateRequest(ctx, bulkBatchUpdateInfo)
 	if lockErr != nil {
