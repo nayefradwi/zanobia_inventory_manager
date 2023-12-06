@@ -86,7 +86,7 @@ func (s *BatchService) createRecipeUpdateRequests(
 	batchRecipeUpdateRequests2, transactionHistory2, err := s.createRecipeUpdateFromBatchCreate(
 		ctx,
 		bulkUpdateBatchInfo,
-		batchUpdateRequestLookup,
+		batchRecipeUpdateRequests1,
 		batchCreateRequestLookup,
 	)
 	if err != nil {
@@ -102,6 +102,7 @@ func (s *BatchService) createRecipeUpdateRequests(
 
 func (s *BatchService) createRecipeUpdateFromBatchUpdate(
 	ctx context.Context,
+	// this will have previous decremented values of recipes
 	bulkUpdateBatchInfo BulkBatchUpdateInfo,
 	// this has converted units
 	batchUpdateRequestLookup map[string]BatchUpdateRequest,
