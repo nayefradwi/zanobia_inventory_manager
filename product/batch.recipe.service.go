@@ -168,6 +168,7 @@ func (s *BatchService) createRecipeUpdateFromBatchUpdate(
 func (s *BatchService) createRecipeUpdateFromBatchCreate(
 	ctx context.Context,
 	bulkUpdateBatchInfo BulkBatchUpdateInfo,
+	// this will have previous decremented values of recipes
 	batchUpdateRequestLookup map[string]BatchUpdateRequest,
 	// this has converted units
 	batchCreateRequest map[string]BatchCreateRequest,
@@ -176,7 +177,6 @@ func (s *BatchService) createRecipeUpdateFromBatchCreate(
 	[]transactions.CreateWarehouseTransactionCommand,
 	error,
 ) {
-	// TODO: create recipe batch update requests from batch create
 	recipeTransactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
 	for _, recipe := range bulkUpdateBatchInfo.RecipeMap {
 		recipeVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[recipe.RecipeVariantName]
