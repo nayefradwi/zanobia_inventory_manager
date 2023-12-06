@@ -141,3 +141,19 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 	}
 	return batches, nil
 }
+
+func (r *BatchRepository) GetBulkBatchUpdateInfo(
+	ctx context.Context,
+	inputs []BatchInput,
+) (BulkBatchUpdateInfo, error) {
+	// TODO: fill
+	return BulkBatchUpdateInfo{}, nil
+}
+
+func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
+	ctx context.Context,
+	inputs []BatchInput,
+) (BulkBatchUpdateInfo, error) {
+	// TODO: fill
+	return BulkBatchUpdateInfo{}, nil
+}

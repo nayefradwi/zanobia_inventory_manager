@@ -25,7 +25,7 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 	})
 }
 
-func (s *BatchService) processBulkBatchIncrement(
+func (s *BatchService) processBulkBatchDecrement(
 	ctx context.Context,
 	bulkBatchUpdateInfo BulkBatchUpdateInfo,
 ) error {

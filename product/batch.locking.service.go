@@ -55,17 +55,3 @@ func (s *BatchService) lockBatchesByIds(ctx context.Context, ids []int) ([]commo
 func (s *BatchService) createBatchLockKey(idOrSku string) string {
 	return "batch:" + idOrSku + ":lock"
 }
-
-func (s *BatchService) unlockBatchesByIds(ctx context.Context, ids []int) {
-	for _, id := range ids {
-		lockKey := s.createBatchLockKey(strconv.Itoa(id))
-		s.lockingService.Release(ctx, common.Lock{Name: lockKey})
-	}
-}
-
-func (s *BatchService) unlockBatchesBySkus(ctx context.Context, skus []string) {
-	for _, sku := range skus {
-		lockKey := s.createBatchLockKey(sku)
-		s.lockingService.Release(ctx, common.Lock{Name: lockKey})
-	}
-}
