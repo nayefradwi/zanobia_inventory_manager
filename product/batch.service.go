@@ -8,7 +8,6 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
-type DecrementRecipeKey struct{}
 type UseMostExpiredKey struct{}
 type IBatchService interface {
 	IncrementBatch(ctx context.Context, batchInput BatchInput) error
