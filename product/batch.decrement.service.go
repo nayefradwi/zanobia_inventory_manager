@@ -74,10 +74,11 @@ func (s *BatchService) createDecrementBatchesUpdateRequest(
 			return nil, nil, common.NewBadRequestFromMessage("insufficient quantity")
 		}
 		batchUpdateRequestLookup[batchInput.Sku] = BatchUpdateRequest{
-			BatchId:  batchInput.Id,
-			NewValue: updateValue,
-			Reason:   batchInput.Reason,
-			Sku:      batchInput.Sku,
+			BatchId:    batchInput.Id,
+			NewValue:   updateValue,
+			Reason:     batchInput.Reason,
+			Sku:        batchInput.Sku,
+			ModifiedBy: convertedBatchInput.Quantity,
 		}
 		transactionCommand := transactions.CreateWarehouseTransactionCommand{
 			BatchId:  *batchBase.Id,

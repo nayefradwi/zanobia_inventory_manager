@@ -22,3 +22,15 @@ type Recipe struct {
 	IngredientCost         float64 `json:"ingredientCost,omitempty"`
 	IngredientStandardUnit *Unit   `json:"ingredientStandardUnit,omitempty"`
 }
+
+func (r Recipe) GetLookupKey() string {
+	return r.ResultVariantSku + "-" + r.RecipeVariantSku
+}
+
+func (r RecipeBase) GetLookupKey() string {
+	return r.ResultVariantSku + "-" + r.RecipeVariantSku
+}
+
+func GetRecipeLookupKey(resultVariantSku string, recipeVariantSku string) string {
+	return resultVariantSku + "-" + recipeVariantSku
+}

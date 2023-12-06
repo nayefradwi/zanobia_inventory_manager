@@ -25,10 +25,11 @@ type BulkBatchUpdateInfo struct {
 }
 
 type BatchUpdateRequest struct {
-	BatchId  *int
-	NewValue float64
-	Reason   string
-	Sku      string
+	BatchId    *int
+	NewValue   float64
+	Reason     string
+	Sku        string
+	ModifiedBy float64
 }
 
 type BatchCreateRequest struct {

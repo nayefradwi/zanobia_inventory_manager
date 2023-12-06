@@ -78,10 +78,11 @@ func (s *BatchService) createIncrementBatchesUpdateRequest(
 		totalCost := batchVariantMetaInfo.Cost * convertedBatchInput.Quantity
 		updateValue := batchBase.Quantity + convertedBatchInput.Quantity
 		batchUpdateRequestLookup[batchInput.Sku] = BatchUpdateRequest{
-			BatchId:  batchInput.Id,
-			NewValue: updateValue,
-			Reason:   batchInput.Reason,
-			Sku:      batchInput.Sku,
+			BatchId:    batchInput.Id,
+			NewValue:   updateValue,
+			Reason:     batchInput.Reason,
+			Sku:        batchInput.Sku,
+			ModifiedBy: convertedBatchInput.Quantity,
 		}
 		transactionCommand := transactions.CreateWarehouseTransactionCommand{
 			BatchId:  *batchBase.Id,
