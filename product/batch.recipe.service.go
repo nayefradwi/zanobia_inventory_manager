@@ -76,26 +76,52 @@ func (s *BatchService) createRecipeUpdateRequests(
 	error,
 ) {
 	// TODO: add recipe batch update requests
+	batchRecipeUpdateRequests1, transactionHistory1, err := s.createRecipeUpdateFromBatchUpdate(
+		ctx,
+		bulkUpdateBatchInfo,
+		batchUpdateRequestLookup,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	batchRecipeUpdateRequests2, transactionHistory2, err := s.createRecipeUpdateFromBatchCreate(
+		ctx,
+		bulkUpdateBatchInfo,
+		batchCreateRequestLookup,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	merged := common.MergeMaps[string, BatchUpdateRequest](
+		batchRecipeUpdateRequests1,
+		batchRecipeUpdateRequests2,
+	)
+	mergedHistory := append(transactionHistory1, transactionHistory2...)
+	return merged, mergedHistory, nil
 }
 
 func (s *BatchService) createRecipeUpdateFromBatchUpdate(
 	ctx context.Context,
-	batchUpdateRequest BatchUpdateRequest,
+	bulkUpdateBatchInfo BulkBatchUpdateInfo,
+	batchUpdateRequest map[string]BatchUpdateRequest,
 ) (
 	map[string]BatchUpdateRequest,
 	[]transactions.CreateWarehouseTransactionCommand,
 	error,
 ) {
 	// TODO: create recipe batch update requests from batch update
+	return nil, nil, nil
 }
 
 func (s *BatchService) createRecipeUpdateFromBatchCreate(
 	ctx context.Context,
-	batchCreateRequest BatchCreateRequest,
+	bulkUpdateBatchInfo BulkBatchUpdateInfo,
+	batchCreateRequest map[string]BatchCreateRequest,
 ) (
 	map[string]BatchUpdateRequest,
 	[]transactions.CreateWarehouseTransactionCommand,
 	error,
 ) {
 	// TODO: create recipe batch update requests from batch create
+	return nil, nil, nil
 }
