@@ -146,8 +146,66 @@ func (r *BatchRepository) GetBulkBatchUpdateInfo(
 	ctx context.Context,
 	inputs []BatchInput,
 ) (BulkBatchUpdateInfo, error) {
-	// TODO: fill
-	return BulkBatchUpdateInfo{}, nil
+	sql := `
+	select 
+		batches.id,
+		batches.warehouse_id,
+		batches.sku,
+		batches.quantity,
+		batches.unit_id,
+		product_variants.standard_unit_id,
+		product_variants.expires_in_days,
+		product_variants.price
+	from batches 
+	inner join product_variants on 
+		product_variants.sku = batches.sku
+	where
+		batches.id = any(ARRAY[1,2])
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	rows, err := op.Query(ctx, sql)
+	if err != nil {
+		log.Printf("Failed to get bulk batch update info: %s", err.Error())
+		return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("Failed to get bulk batch update info")
+	}
+	defer rows.Close()
+	batchBasesLookup := make(map[string]BatchBase)
+	batchVariantMetaInfoLookup := make(map[string]BatchVariantMetaInfo)
+	for rows.Next() {
+		var batch BatchBase
+		var batchVariantMetaInfo BatchVariantMetaInfo
+		err := rows.Scan(
+			&batch.Id, &batch.WarehouseId, &batch.Sku, &batch.Quantity, &batch.UnitId,
+			&batchVariantMetaInfo.UnitId, &batchVariantMetaInfo.ExpiresInDays, &batchVariantMetaInfo.Cost,
+		)
+		if err != nil {
+			log.Printf("Failed to scan bulk batch update info: %s", err.Error())
+			return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("Failed to scan bulk batch update info")
+		}
+		batchBasesLookup[batch.Sku] = batch
+		batchVariantMetaInfoLookup[batch.Sku] = batchVariantMetaInfo
+	}
+	ids := make([]int, 0)
+	skus := make([]string, 0)
+	batchToUpdateLookup := make(map[string]BatchInput)
+	batchToCreateLookup := make(map[string]BatchInput)
+	for _, input := range inputs {
+		if input.Id == nil {
+			batchToCreateLookup[input.Sku] = input
+		} else {
+			batchToUpdateLookup[input.Sku] = input
+		}
+		ids = append(ids, *input.Id)
+		skus = append(skus, input.Sku)
+	}
+	return BulkBatchUpdateInfo{
+		BatchBasesLookup:           batchBasesLookup,
+		BatchVariantMetaInfoLookup: batchVariantMetaInfoLookup,
+		BatchInputMapToUpdate:      batchToUpdateLookup,
+		BatchInputMapToCreate:      batchToCreateLookup,
+		SkuList:                    skus,
+		Ids:                        ids,
+	}, nil
 }
 
 func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
