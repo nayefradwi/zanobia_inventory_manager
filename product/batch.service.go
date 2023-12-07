@@ -112,10 +112,18 @@ func (s *BatchService) processBulkBatchUnitOfWork(
 	ctx context.Context,
 	bulkBatchUpdateUnitOfWork BulkBatchUpdateUnitOfWork,
 ) error {
-	// TODO: fill this
-	// create update sql batches
-	// create create sql batches
-	// create transaction history batches
-	// maybe do all of this in repo
-	return nil
+	pgxBatch, err := s.transactionService.(*transactions.TransactionService).
+		CreateTransactionHistoryBatches(
+			ctx,
+			bulkBatchUpdateUnitOfWork.BatchTransactionHistory,
+		)
+	if err != nil {
+		return err
+	}
+	return s.batchRepo.(*BatchRepository).
+		processBulkBatchUnitOfWork(
+			ctx,
+			bulkBatchUpdateUnitOfWork,
+			pgxBatch,
+		)
 }

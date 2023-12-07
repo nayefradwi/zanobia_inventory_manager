@@ -2,6 +2,8 @@ package transactions
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v4"
 )
 
 type ITransactionService interface {
@@ -71,4 +73,19 @@ func (r *TransactionService) GetTransactionsOfBatch(ctx context.Context, batchId
 
 func (r *TransactionService) GetTransactionsOfWarehouse(ctx context.Context) ([]Transaction, error) {
 	return r.repo.GetTransactionsOfWarehouse(ctx)
+}
+
+func (r *TransactionService) CreateTransactionHistoryBatches(
+	ctx context.Context,
+	transactionCommands []CreateWarehouseTransactionCommand,
+) (*pgx.Batch, error) {
+	batch := &pgx.Batch{}
+	for _, command := range transactionCommands {
+		input, err := ForWarehouseTransactions(ctx, command)
+		if err != nil {
+			return nil, err
+		}
+		r.repo.InsertTransactionToBatch(ctx, input, batch)
+	}
+	return batch, nil
 }

@@ -146,6 +146,19 @@ func (r *BatchRepository) GetBulkBatchUpdateInfo(
 	ctx context.Context,
 	inputs []BatchInput,
 ) (BulkBatchUpdateInfo, error) {
+	ids := make([]int, 0)
+	skus := make([]string, 0)
+	batchToUpdateLookup := make(map[string]BatchInput)
+	batchToCreateLookup := make(map[string]BatchInput)
+	for _, input := range inputs {
+		if input.Id == nil {
+			batchToCreateLookup[input.Sku] = input
+		} else {
+			ids = append(ids, *input.Id)
+			batchToUpdateLookup[input.Sku] = input
+		}
+		skus = append(skus, input.Sku)
+	}
 	sql := `
 	select 
 		batches.id,
@@ -157,13 +170,15 @@ func (r *BatchRepository) GetBulkBatchUpdateInfo(
 		product_variants.expires_in_days,
 		product_variants.price
 	from batches 
-	inner join product_variants on 
+	right join product_variants on 
 		product_variants.sku = batches.sku
 	where
-		batches.id = any(ARRAY[1,2])
+		batches.id = any($1)
+	or
+		product_variants.sku = any($2)
 	`
 	op := common.GetOperator(ctx, r.Pool)
-	rows, err := op.Query(ctx, sql)
+	rows, err := op.Query(ctx, sql, ids, skus)
 	if err != nil {
 		log.Printf("Failed to get bulk batch update info: %s", err.Error())
 		return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("Failed to get bulk batch update info")
@@ -182,22 +197,12 @@ func (r *BatchRepository) GetBulkBatchUpdateInfo(
 			log.Printf("Failed to scan bulk batch update info: %s", err.Error())
 			return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("Failed to scan bulk batch update info")
 		}
-		batchBasesLookup[batch.Sku] = batch
+		if batch.Id != nil {
+			batchBasesLookup[batch.Sku] = batch
+		}
 		batchVariantMetaInfoLookup[batch.Sku] = batchVariantMetaInfo
 	}
-	ids := make([]int, 0)
-	skus := make([]string, 0)
-	batchToUpdateLookup := make(map[string]BatchInput)
-	batchToCreateLookup := make(map[string]BatchInput)
-	for _, input := range inputs {
-		if input.Id == nil {
-			batchToCreateLookup[input.Sku] = input
-		} else {
-			batchToUpdateLookup[input.Sku] = input
-		}
-		ids = append(ids, *input.Id)
-		skus = append(skus, input.Sku)
-	}
+
 	return BulkBatchUpdateInfo{
 		BatchBasesLookup:           batchBasesLookup,
 		BatchVariantMetaInfoLookup: batchVariantMetaInfoLookup,
@@ -214,4 +219,43 @@ func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
 ) (BulkBatchUpdateInfo, error) {
 	// TODO: fill
 	return BulkBatchUpdateInfo{}, nil
+}
+
+func (r *BatchRepository) processBulkBatchUnitOfWork(
+	ctx context.Context,
+	bulkBatchUpdateUnitOfWork BulkBatchUpdateUnitOfWork,
+	transactionsBatch *pgx.Batch,
+) error {
+	// create update sql batches
+	// create create sql batches
+	op := common.GetOperator(ctx, r.Pool)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	for _, batchUpdateRequest := range bulkBatchUpdateUnitOfWork.BatchUpdateRequestLookup {
+		transactionsBatch.Queue(
+			"UPDATE batches SET quantity = $1 WHERE id = $2 and warehouse_id = $3",
+			batchUpdateRequest.NewValue,
+			batchUpdateRequest.BatchId,
+			warehouseId,
+		)
+	}
+	for _, batchCreateRequest := range bulkBatchUpdateUnitOfWork.BatchCreateRequestLookup {
+		transactionsBatch.Queue(
+			"INSERT INTO batches (sku, warehouse_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)",
+			batchCreateRequest.BatchSku,
+			warehouseId,
+			batchCreateRequest.Quantity,
+			batchCreateRequest.UnitId,
+			common.GetUtcDateOnlyStringFromTime(batchCreateRequest.ExpiryDate),
+		)
+	}
+	results := op.SendBatch(ctx, transactionsBatch)
+	defer results.Close()
+	for i := 0; i < transactionsBatch.Len(); i++ {
+		_, err := results.Exec()
+		if err != nil {
+			log.Printf("Failed to process bulk batch unit of work: %s", err.Error())
+			return common.NewBadRequestFromMessage("Failed to process bulk batch unit of work")
+		}
+	}
+	return nil
 }

@@ -19,6 +19,7 @@ type ITransactionRepository interface {
 	GetTransactionsOfSKU(ctx context.Context, sku string) ([]Transaction, error)
 	GetTransactionsOfBatch(ctx context.Context, batchId int) ([]Transaction, error)
 	GetTransactionsOfWarehouse(ctx context.Context) ([]Transaction, error)
+	InsertTransactionToBatch(ctx context.Context, input transactionInput, batch *pgx.Batch)
 }
 
 type TransactionRepository struct {
@@ -195,4 +196,17 @@ func (r *TransactionRepository) parseRows(rows pgx.Rows) ([]Transaction, error) 
 		transactions = append(transactions, transaction)
 	}
 	return transactions, nil
+}
+
+func (r *TransactionRepository) InsertTransactionToBatch(
+	ctx context.Context,
+	input transactionInput,
+	batch *pgx.Batch,
+) {
+	batch.Queue(
+		`INSERT INTO transaction_history (user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, 
+		quantity, unit_id, amount, reason, comment, sku) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		input.UserId, input.BatchId, input.RetailerBatchId, input.WarehouseId, input.RetailerId,
+		input.Quantity, input.UnitId, input.Amount, input.Reason, input.Comment, input.Sku,
+	)
 }

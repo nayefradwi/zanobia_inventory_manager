@@ -15,6 +15,7 @@ type DbOperator interface {
 	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
 	QueryRow(ctx context.Context, sql string, arguments ...interface{}) pgx.Row
 	Query(ctx context.Context, sql string, arguments ...interface{}) (pgx.Rows, error)
+	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
 }
 
 type paginationParamsKey struct{}
