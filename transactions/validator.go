@@ -23,11 +23,10 @@ func ValidateTransactionReason(reason TransactionReason) error {
 func ValidateWarehouseTransactionCommand(command CreateWarehouseTransactionCommand) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
-		common.ValidateId(command.BatchId, "batchId"),
 		common.ValidateAmountPositive(command.Quantity, "quantity"),
 		common.ValidateId(command.UnitId, "unitId"),
 		common.ValidateStringLength(command.Reason, "reason", 3, 50),
-		common.ValidateAmountPositive(command.CostPerQty, "costPerQty"),
+		common.ValidateAmountPositive(command.Cost, "costPerQty"),
 		common.ValidateStringLength(command.Comment, "comment", 0, 255),
 		common.ValidateStringLength(command.Sku, "sku", 10, 36),
 	)
@@ -51,7 +50,7 @@ func ValidateRetailerTransactionCommand(command CreateRetailerTransactionCommand
 		common.ValidateAmountPositive(command.Quantity, "quantity"),
 		common.ValidateId(command.UnitId, "unitId"),
 		common.ValidateStringLength(command.Reason, "reason", 3, 50),
-		common.ValidateAmountPositive(command.CostPerQty, "costPerQty"),
+		common.ValidateAmountPositive(command.Cost, "costPerQty"),
 		common.ValidateStringLength(command.Comment, "comment", 0, 255),
 		common.ValidateStringLength(command.Sku, "sku", 10, 36),
 	)

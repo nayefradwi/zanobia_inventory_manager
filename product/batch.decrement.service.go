@@ -2,74 +2,94 @@ package product
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
-func (s *BatchService) DecrementBatch(ctx context.Context, batchInput BatchInput) error {
-	return s.BulkDecrementBatch(ctx, []BatchInput{batchInput})
+func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {
+	return s.BulkDecrementBatch(ctx, []BatchInput{input})
 }
 
 func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInput) error {
 	if err := ValidateBatchInputsDecrement(inputs); err != nil {
 		return err
 	}
+	bulkBatchUpdateInfo, err := s.batchRepo.GetBulkBatchUpdateInfo(ctx, inputs)
+	if err != nil {
+		common.NewBadRequestFromMessage("failed to process batch decrement")
+	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		return s.bulkDecrementBatchesTransaction(ctx, inputs)
+		return s.processBulkBatchDecrement(ctx, bulkBatchUpdateInfo)
 	})
-
 }
 
-func (s *BatchService) bulkDecrementBatchesTransaction(ctx context.Context, inputs []BatchInput) error {
-	batchUpdateRequest, err := s.lockAndCreateUpdateRequestForDecrementBatches(ctx, inputs)
-	defer s.unlockBatchUpdateRequest(ctx, batchUpdateRequest)
+func (s *BatchService) processBulkBatchDecrement(
+	ctx context.Context,
+	bulkBatchUpdateInfo BulkBatchUpdateInfo,
+) error {
+	bulkBatchUpdateInfo, lockErr := s.lockBatchUpdateRequest(ctx, bulkBatchUpdateInfo)
+	defer s.unlockBatchUpdateRequest(ctx, bulkBatchUpdateInfo)
+	if lockErr != nil {
+		return lockErr
+	}
+	batchUpdateRequestLookup, transactionHistory, err := s.createDecrementBatchesUpdateRequest(ctx, bulkBatchUpdateInfo)
 	if err != nil {
 		return err
 	}
-	if len(batchUpdateRequest.BatchInputMapToUpdate) <= 0 {
-		return common.NewBadRequestFromMessage("no batches to decrement")
+	bulkBatchUpdateUnitOfWork := BulkBatchUpdateUnitOfWork{
+		BatchUpdateRequestLookup: batchUpdateRequestLookup,
+		BatchTransactionHistory:  transactionHistory,
 	}
-	decrementedQuantitis, err := s.bulkDecrementBatches(
-		batchUpdateRequest.BatchBasesLookup,
-		batchUpdateRequest.RecipeBatchInputMap,
-	)
-	if err != nil {
-		return err
-	}
-	log.Printf("decrementedQuantitis: %v", decrementedQuantitis)
-	// TODO: bulkUpdateBatches(ctx, decrementedQuantitis, batchUpdateRequest.BatchInputMapToCreate)
-	// TODO: create transaction history
-	return nil
+	return s.processBulkBatchUnitOfWork(ctx, bulkBatchUpdateUnitOfWork)
 }
 
-func (s *BatchService) lockAndCreateUpdateRequestForDecrementBatches(ctx context.Context, inputs []BatchInput) (BulkBatchUpdateRequest, error) {
-	batchUpdateRequest, err := s.createBulkUpdateRequestWithoutRecipe(ctx, inputs)
-	if err != nil {
-		return BulkBatchUpdateRequest{}, err
-	}
-	if err := s.lockBatchUpdateRequest(ctx, batchUpdateRequest); err != nil {
-		return BulkBatchUpdateRequest{}, err
-	}
-	return batchUpdateRequest, nil
-}
-
-func (s *BatchService) bulkDecrementBatches(
-	batchLookup map[string]BatchBase,
-	batchInputMap map[string]BatchInput,
-) (map[int]float64, error) {
-	batchNewQuantities := make(map[int]float64, len(batchInputMap))
-	for sku, batchInput := range batchInputMap {
-		batchBase, found := batchLookup[sku]
-		if !found {
-			return nil, common.NewBadRequestFromMessage("invalid batch input")
+func (s *BatchService) createDecrementBatchesUpdateRequest(
+	ctx context.Context,
+	bulkUpdateBatchInfo BulkBatchUpdateInfo,
+) (
+	map[string]BatchUpdateRequest,
+	[]transactions.CreateWarehouseTransactionCommand,
+	error,
+) {
+	batchUpdateRequestLookup := make(map[string]BatchUpdateRequest)
+	transactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
+	for _, batchInput := range bulkUpdateBatchInfo.BatchInputMapToUpdate {
+		batchBase, ok := bulkUpdateBatchInfo.BatchBasesLookup[batchInput.Sku]
+		if !ok {
+			return nil, nil, common.NewBadRequestFromMessage("batch to update not found")
 		}
-		newQuantity := batchBase.Quantity - batchInput.Quantity
-		if newQuantity < 0 {
-			return nil, common.NewBadRequestFromMessage("not enough quantity")
+		batchVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[batchInput.Sku]
+		if !ok {
+			return nil, nil, common.NewBadRequestFromMessage("variant meta info not found")
 		}
-		batchNewQuantities[*batchBase.Id] = newQuantity
+		convertedBatchInput, err := s.convertBatchInput(ctx, batchInput, batchVariantMetaInfo)
+		if err != nil {
+			return nil, nil, err
+		}
+		totalCost := batchVariantMetaInfo.Cost * convertedBatchInput.Quantity
+		updateValue := batchBase.Quantity - convertedBatchInput.Quantity
+		if updateValue < 0 {
+			return nil, nil, common.NewBadRequestFromMessage("insufficient quantity")
+		}
+		batchUpdateRequestLookup[batchInput.Sku] = BatchUpdateRequest{
+			BatchId:    batchInput.Id,
+			NewValue:   updateValue,
+			Reason:     batchInput.Reason,
+			Sku:        batchInput.Sku,
+			ModifiedBy: convertedBatchInput.Quantity,
+		}
+		transactionCommand := transactions.CreateWarehouseTransactionCommand{
+			BatchId:  *batchBase.Id,
+			Quantity: convertedBatchInput.Quantity,
+			UnitId:   batchVariantMetaInfo.UnitId,
+			Reason:   batchInput.Reason,
+			Comment:  batchInput.Comment,
+			Cost:     totalCost,
+			Sku:      batchInput.Sku,
+		}
+		transactionHistory = append(transactionHistory, transactionCommand)
 	}
-	return batchNewQuantities, nil
+	return batchUpdateRequestLookup, transactionHistory, nil
 }

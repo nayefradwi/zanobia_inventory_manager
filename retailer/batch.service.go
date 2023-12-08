@@ -128,7 +128,7 @@ func (s *RetailerBatchService) tryToCreateBatch(ctx context.Context, input Retai
 			Reason:          input.Reason,
 			Sku:             input.Sku,
 			RetailerId:      input.RetailerId,
-			CostPerQty:      price,
+			Cost:            price,
 			Comment:         "Created retailer batch",
 		}
 		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)
@@ -153,7 +153,7 @@ func (s *RetailerBatchService) incrementBatch(ctx context.Context, batch Retaile
 			Reason:          input.Reason,
 			Sku:             input.Sku,
 			RetailerId:      *batch.RetailerId,
-			CostPerQty:      price,
+			Cost:            price,
 			Comment:         "Incremented retailer batch",
 		}
 		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)
@@ -205,7 +205,7 @@ func (s *RetailerBatchService) decrementBatch(ctx context.Context, batchBase Ret
 			Reason:          input.Reason,
 			Sku:             batchBase.Sku,
 			RetailerId:      *batchBase.RetailerId,
-			CostPerQty:      input.CostPerQty,
+			Cost:            input.CostPerQty,
 			Comment:         "decremented retailer batch",
 		}
 		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)

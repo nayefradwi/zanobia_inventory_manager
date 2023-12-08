@@ -8,13 +8,14 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
-type DecrementRecipeKey struct{}
 type UseMostExpiredKey struct{}
 type IBatchService interface {
 	IncrementBatch(ctx context.Context, batchInput BatchInput) error
 	DecrementBatch(ctx context.Context, input BatchInput) error
 	BulkIncrementBatch(ctx context.Context, inputs []BatchInput) error
 	BulkDecrementBatch(ctx context.Context, inputs []BatchInput) error
+	IncrementBatchWithRecipe(ctx context.Context, batchInput BatchInput) error
+	BulkIncrementWithRecipeBatch(ctx context.Context, inputs []BatchInput) error
 	GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error)
 	SearchBatchesBySku(ctx context.Context, sku string) (common.PaginatedResponse[Batch], error)
 }
@@ -83,4 +84,46 @@ func (s *BatchService) createBatchesPage(batches []Batch, pageSize int) common.P
 		batches,
 	)
 	return res
+}
+
+func (s *BatchService) convertBatchInput(
+	ctx context.Context,
+	batchInput BatchInput,
+	batchVariantMetaInfo BatchVariantMetaInfo,
+) (
+	BatchInput,
+	error,
+) {
+	convertInput := ConvertUnitInput{
+		ToUnitId:   &batchVariantMetaInfo.UnitId,
+		Quantity:   batchInput.Quantity,
+		FromUnitId: &batchInput.UnitId,
+	}
+	conversionOutput, err := s.unitService.ConvertUnit(ctx, convertInput)
+	if err != nil {
+		return BatchInput{}, err
+	}
+	batchInput.Quantity = conversionOutput.Quantity
+	batchInput.UnitId = *conversionOutput.Unit.Id
+	return batchInput, nil
+}
+
+func (s *BatchService) processBulkBatchUnitOfWork(
+	ctx context.Context,
+	bulkBatchUpdateUnitOfWork BulkBatchUpdateUnitOfWork,
+) error {
+	pgxBatch, err := s.transactionService.(*transactions.TransactionService).
+		CreateTransactionHistoryBatches(
+			ctx,
+			bulkBatchUpdateUnitOfWork.BatchTransactionHistory,
+		)
+	if err != nil {
+		return err
+	}
+	return s.batchRepo.(*BatchRepository).
+		processBulkBatchUnitOfWork(
+			ctx,
+			bulkBatchUpdateUnitOfWork,
+			pgxBatch,
+		)
 }

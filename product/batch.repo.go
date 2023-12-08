@@ -14,13 +14,10 @@ import (
 type IBatchRepository interface {
 	CreateBatch(ctx context.Context, input BatchInput, expiresAt string) (int, error)
 	UpdateBatch(ctx context.Context, base BatchBase) error
-	GetBatchBaseById(ctx context.Context, id *int) (BatchBase, error)
-	GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error)
 	GetBatches(ctx context.Context, params common.PaginationParams) ([]Batch, error)
 	SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]Batch, error)
-	getBatchBasesFromIds(ctx context.Context, ids []int) ([]BatchBase, error)
-	getMostExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error)
-	getLeastExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error)
+	GetBulkBatchUpdateInfo(ctx context.Context, inputs []BatchInput) (BulkBatchUpdateInfo, error)
+	GetBulkBatchUpdateInfoWithRecipe(ctx context.Context, inputs []BatchInput) (BulkBatchUpdateInfo, error)
 }
 
 const baseBatchListingSql = `
@@ -64,37 +61,6 @@ func (r *BatchRepository) UpdateBatch(ctx context.Context, base BatchBase) error
 		return common.NewBadRequestFromMessage("Failed to update batch")
 	}
 	return nil
-}
-
-func (r *BatchRepository) GetBatchBase(ctx context.Context, sku string, expirationDate string) (BatchBase, error) {
-	sql := `SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches WHERE sku = $1 AND expires_at = $2 and warehouse_id = $3`
-	op := common.GetOperator(ctx, r.Pool)
-	warehouseId := warehouse.GetWarehouseId(ctx)
-	row := op.QueryRow(ctx, sql, sku, expirationDate, warehouseId)
-	var batchBase BatchBase
-	err := row.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
-	if err != nil {
-		log.Printf("Failed to get batch base: %s", err.Error())
-		return BatchBase{}, common.NewBadRequestFromMessage("Failed to get batch base")
-	}
-	return batchBase, nil
-}
-
-func (r *BatchRepository) GetBatchBaseById(ctx context.Context, id *int) (BatchBase, error) {
-	if id == nil {
-		return BatchBase{}, common.NewBadRequestFromMessage("Failed to get batch base")
-	}
-	sql := `SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches WHERE id = $1 and warehouse_id = $2`
-	op := common.GetOperator(ctx, r.Pool)
-	warehouseId := warehouse.GetWarehouseId(ctx)
-	row := op.QueryRow(ctx, sql, id, warehouseId)
-	var batchBase BatchBase
-	err := row.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
-	if err != nil {
-		log.Printf("Failed to get batch base: %s", err.Error())
-		return BatchBase{}, common.NewBadRequestFromMessage("Failed to get batch base")
-	}
-	return batchBase, nil
 }
 
 func (r *BatchRepository) GetBatches(ctx context.Context, params common.PaginationParams) ([]Batch, error) {
@@ -176,74 +142,120 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 	return batches, nil
 }
 
-func (r *BatchRepository) getBatchBasesFromIds(ctx context.Context, ids []int) ([]BatchBase, error) {
-	sql := `SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches WHERE id = ANY($1) and warehouse_id = $2`
-	op := common.GetOperator(ctx, r.Pool)
-	warehouseId := warehouse.GetWarehouseId(ctx)
-	rows, err := op.Query(ctx, sql, ids, warehouseId)
-	if err != nil {
-		log.Printf("Failed to get batch bases from ids: %s", err.Error())
-		return nil, common.NewBadRequestFromMessage("Failed to get batch bases from ids")
-	}
-	var batchBases []BatchBase
-	for rows.Next() {
-		var batchBase BatchBase
-		err := rows.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
-		if err != nil {
-			log.Printf("Failed to scan batch bases from ids: %s", err.Error())
-			return nil, common.NewBadRequestFromMessage("Failed to scan batch bases from ids")
+func (r *BatchRepository) GetBulkBatchUpdateInfo(
+	ctx context.Context,
+	inputs []BatchInput,
+) (BulkBatchUpdateInfo, error) {
+	ids := make([]int, 0)
+	skus := make([]string, 0)
+	batchToUpdateLookup := make(map[string]BatchInput)
+	batchToCreateLookup := make(map[string]BatchInput)
+	for _, input := range inputs {
+		if input.Id == nil {
+			batchToCreateLookup[input.Sku] = input
+		} else {
+			ids = append(ids, *input.Id)
+			batchToUpdateLookup[input.Sku] = input
 		}
-		batchBases = append(batchBases, batchBase)
+		skus = append(skus, input.Sku)
 	}
-	return batchBases, nil
-}
-
-func (r *BatchRepository) getMostExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error) {
 	sql := `
-	SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches 
-	WHERE sku = ANY($1) AND expires_at >= NOW() AND warehouse_id = $2 ORDER BY expires_at ASC
+	select 
+		batches.id,
+		batches.warehouse_id,
+		batches.sku,
+		batches.quantity,
+		batches.unit_id,
+		product_variants.standard_unit_id,
+		product_variants.expires_in_days,
+		product_variants.price
+	from batches 
+	right join product_variants on 
+		product_variants.sku = batches.sku
+	where
+		batches.id = any($1)
+	or
+		product_variants.sku = any($2)
 	`
 	op := common.GetOperator(ctx, r.Pool)
-	warehouseId := warehouse.GetWarehouseId(ctx)
-	rows, err := op.Query(ctx, sql, skus, warehouseId)
+	rows, err := op.Query(ctx, sql, ids, skus)
 	if err != nil {
-		log.Printf("Failed to get most expired batch bases from skus: %s", err.Error())
-		return nil, common.NewBadRequestFromMessage("Failed to get most expired batch bases from skus")
+		log.Printf("Failed to get bulk batch update info: %s", err.Error())
+		return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("Failed to get bulk batch update info")
 	}
-	var batchBases []BatchBase
+	defer rows.Close()
+	batchBasesLookup := make(map[string]BatchBase)
+	batchVariantMetaInfoLookup := make(map[string]BatchVariantMetaInfo)
 	for rows.Next() {
-		var batchBase BatchBase
-		err := rows.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
+		var batch BatchBase
+		var batchVariantMetaInfo BatchVariantMetaInfo
+		err := rows.Scan(
+			&batch.Id, &batch.WarehouseId, &batch.Sku, &batch.Quantity, &batch.UnitId,
+			&batchVariantMetaInfo.UnitId, &batchVariantMetaInfo.ExpiresInDays, &batchVariantMetaInfo.Cost,
+		)
 		if err != nil {
-			log.Printf("Failed to scan most expired batch bases from skus: %s", err.Error())
-			return nil, common.NewBadRequestFromMessage("Failed to scan most expired batch bases from skus")
+			log.Printf("Failed to scan bulk batch update info: %s", err.Error())
+			return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("Failed to scan bulk batch update info")
 		}
-		batchBases = append(batchBases, batchBase)
+		if batch.Id != nil {
+			batchBasesLookup[batch.Sku] = batch
+		}
+		batchVariantMetaInfoLookup[batch.Sku] = batchVariantMetaInfo
 	}
-	return batchBases, nil
+
+	return BulkBatchUpdateInfo{
+		BatchBasesLookup:           batchBasesLookup,
+		BatchVariantMetaInfoLookup: batchVariantMetaInfoLookup,
+		BatchInputMapToUpdate:      batchToUpdateLookup,
+		BatchInputMapToCreate:      batchToCreateLookup,
+		SkuList:                    skus,
+		Ids:                        ids,
+	}, nil
 }
 
-func (r *BatchRepository) getLeastExpiredBatchBasesFromSkus(ctx context.Context, skus []string) ([]BatchBase, error) {
-	sql := `
-	SELECT id, warehouse_id, sku, quantity, unit_id, expires_at FROM batches 
-	WHERE sku = ANY($1) AND expires_at >= NOW() AND warehouse_id = $2 ORDER BY expires_at DESC
-	`
+func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
+	ctx context.Context,
+	inputs []BatchInput,
+) (BulkBatchUpdateInfo, error) {
+	// TODO: fill
+	return BulkBatchUpdateInfo{}, nil
+}
+
+func (r *BatchRepository) processBulkBatchUnitOfWork(
+	ctx context.Context,
+	bulkBatchUpdateUnitOfWork BulkBatchUpdateUnitOfWork,
+	transactionsBatch *pgx.Batch,
+) error {
+	// create update sql batches
+	// create create sql batches
 	op := common.GetOperator(ctx, r.Pool)
 	warehouseId := warehouse.GetWarehouseId(ctx)
-	rows, err := op.Query(ctx, sql, skus, warehouseId)
-	if err != nil {
-		log.Printf("Failed to get least expired batch bases from skus: %s", err.Error())
-		return nil, common.NewBadRequestFromMessage("Failed to get least expired batch bases from skus")
+	for _, batchUpdateRequest := range bulkBatchUpdateUnitOfWork.BatchUpdateRequestLookup {
+		transactionsBatch.Queue(
+			"UPDATE batches SET quantity = $1 WHERE id = $2 and warehouse_id = $3",
+			batchUpdateRequest.NewValue,
+			batchUpdateRequest.BatchId,
+			warehouseId,
+		)
 	}
-	var batchBases []BatchBase
-	for rows.Next() {
-		var batchBase BatchBase
-		err := rows.Scan(&batchBase.Id, &batchBase.WarehouseId, &batchBase.Sku, &batchBase.Quantity, &batchBase.UnitId, &batchBase.ExpiresAt)
+	for _, batchCreateRequest := range bulkBatchUpdateUnitOfWork.BatchCreateRequestLookup {
+		transactionsBatch.Queue(
+			"INSERT INTO batches (sku, warehouse_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)",
+			batchCreateRequest.BatchSku,
+			warehouseId,
+			batchCreateRequest.Quantity,
+			batchCreateRequest.UnitId,
+			common.GetUtcDateOnlyStringFromTime(batchCreateRequest.ExpiryDate),
+		)
+	}
+	results := op.SendBatch(ctx, transactionsBatch)
+	defer results.Close()
+	for i := 0; i < transactionsBatch.Len(); i++ {
+		_, err := results.Exec()
 		if err != nil {
-			log.Printf("Failed to scan least expired batch bases from skus: %s", err.Error())
-			return nil, common.NewBadRequestFromMessage("Failed to scan least expired batch bases from skus")
+			log.Printf("Failed to process bulk batch unit of work: %s", err.Error())
+			return common.NewBadRequestFromMessage("Failed to process bulk batch unit of work")
 		}
-		batchBases = append(batchBases, batchBase)
 	}
-	return batchBases, nil
+	return nil
 }

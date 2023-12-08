@@ -1,7 +1,6 @@
 package product
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -22,8 +21,7 @@ func NewBatchController(batchService IBatchService) BatchController {
 
 func (c BatchController) IncrementBatch(w http.ResponseWriter, r *http.Request) {
 	common.ParseBody[BatchInput](w, r.Body, func(input BatchInput) {
-		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, false)
-		err := c.batchService.IncrementBatch(ctx, input)
+		err := c.batchService.IncrementBatch(r.Context(), input)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
 			Writer:  w,
@@ -35,10 +33,9 @@ func (c BatchController) IncrementBatch(w http.ResponseWriter, r *http.Request) 
 func (c BatchController) IncrementBatchWithRecipe(w http.ResponseWriter, r *http.Request) {
 	useMostExpired := r.URL.Query().Get(useMostExpiredKey)
 	common.ParseBody[BatchInput](w, r.Body, func(input BatchInput) {
-		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, true)
-		ctx = common.SetBoolToContext(ctx, UseMostExpiredKey{}, useMostExpired)
+		ctx := common.SetBoolToContext(r.Context(), UseMostExpiredKey{}, useMostExpired)
 		input.Reason = transactions.TransactionReasonTypeProduced
-		err := c.batchService.IncrementBatch(ctx, input)
+		err := c.batchService.IncrementBatchWithRecipe(ctx, input)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
 			Writer:  w,
@@ -60,8 +57,7 @@ func (c BatchController) DecrementBatch(w http.ResponseWriter, r *http.Request) 
 
 func (c BatchController) BulkIncrementBatch(w http.ResponseWriter, r *http.Request) {
 	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
-		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, false)
-		err := c.batchService.BulkIncrementBatch(ctx, inputs)
+		err := c.batchService.BulkIncrementBatch(r.Context(), inputs)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
 			Writer:  w,
@@ -73,12 +69,11 @@ func (c BatchController) BulkIncrementBatch(w http.ResponseWriter, r *http.Reque
 func (c BatchController) BulkIncrementBatchWithRecipe(w http.ResponseWriter, r *http.Request) {
 	useMostExpired := r.URL.Query().Get(useMostExpiredKey)
 	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
-		ctx := context.WithValue(r.Context(), DecrementRecipeKey{}, true)
-		ctx = common.SetBoolToContext(ctx, UseMostExpiredKey{}, useMostExpired)
+		ctx := common.SetBoolToContext(r.Context(), UseMostExpiredKey{}, useMostExpired)
 		for i := range inputs {
 			inputs[i].Reason = transactions.TransactionReasonTypeProduced
 		}
-		err := c.batchService.BulkIncrementBatch(ctx, inputs)
+		err := c.batchService.BulkIncrementWithRecipeBatch(ctx, inputs)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
 			Writer:  w,
