@@ -18,7 +18,7 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 	}
 	bulkBatchUpdateInfo, err := s.batchRepo.GetBulkBatchUpdateInfo(ctx, inputs)
 	if err != nil {
-		common.NewBadRequestFromMessage("failed to process batch decrement")
+		return common.NewBadRequestFromMessage("failed to process batch decrement")
 	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		return s.processBulkBatchDecrement(ctx, bulkBatchUpdateInfo)
