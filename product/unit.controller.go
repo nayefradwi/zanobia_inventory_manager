@@ -47,17 +47,6 @@ func (c UnitController) CreateConversion(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func (c UnitController) CreateConversionFromName(w http.ResponseWriter, r *http.Request) {
-	common.ParseBody[UnitConversionInput](w, r.Body, func(input UnitConversionInput) {
-		err := c.service.CreateConversionFromName(r.Context(), input)
-		common.WriteCreatedResponse(common.EmptyResult{
-			Error:   err,
-			Writer:  w,
-			Message: "Created conversion successfully",
-		})
-	})
-}
-
 func (c UnitController) ConvertUnit(w http.ResponseWriter, r *http.Request) {
 	common.ParseBody[ConvertUnitInput](w, r.Body, func(input ConvertUnitInput) {
 		result, err := c.service.ConvertUnit(r.Context(), input)

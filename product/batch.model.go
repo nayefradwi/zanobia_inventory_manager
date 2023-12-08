@@ -8,12 +8,12 @@ import (
 )
 
 type BatchInput struct {
-	Id         *int    `json:"id,omitempty"`
-	Sku        string  `json:"Sku,omitempty"`
-	Quantity   float64 `json:"quantity"`
-	UnitId     int     `json:"unitId"`
-	Reason     string  `json:"reason,omitempty"`
-	CostPerQty float64
+	Id       *int    `json:"id,omitempty"`
+	Sku      string  `json:"Sku,omitempty"`
+	Quantity float64 `json:"quantity"`
+	UnitId   int     `json:"unitId"`
+	Reason   string  `json:"reason,omitempty"`
+	Comment  string  `json:"comment,omitempty"`
 }
 
 type BatchBase struct {
@@ -42,6 +42,16 @@ func (b BatchBase) SetExpiresAt(expiresAt time.Time) BatchBase {
 	return b
 }
 
+func ValidateBatchInputsIncrement(inputs []BatchInput) error {
+	for _, input := range inputs {
+		validationErr := ValidateBatchInputIncrement(input)
+		if validationErr != nil {
+			return validationErr
+		}
+	}
+	return nil
+}
+
 func ValidateBatchInputIncrement(input BatchInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
@@ -58,6 +68,16 @@ func ValidateBatchInputIncrement(input BatchInput) error {
 	}
 	if len(errors) > 0 {
 		return common.NewValidationError("invalid batch input", errors...)
+	}
+	return nil
+}
+
+func ValidateBatchInputsDecrement(inputs []BatchInput) error {
+	for _, input := range inputs {
+		validationErr := ValidateBatchInputDecrement(input)
+		if validationErr != nil {
+			return validationErr
+		}
 	}
 	return nil
 }
@@ -88,4 +108,14 @@ func (b Batch) GetCursorValue() []string {
 		common.GetUtcDateOnlyStringFromTime(b.ExpiresAt),
 		strconv.Itoa(*b.Id),
 	}
+}
+
+func (b BatchInput) SetUnitId(unitId int) BatchInput {
+	b.UnitId = unitId
+	return b
+}
+
+func (b BatchInput) SetConvertedQuantity(quantity float64) BatchInput {
+	b.Quantity = quantity
+	return b
 }

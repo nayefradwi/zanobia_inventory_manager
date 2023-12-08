@@ -22,6 +22,7 @@ type IProductService interface {
 	UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error
 	DeleteProductVariant(ctx context.Context, id int) error
 	UpdateProductVariantSku(ctx context.Context, input UpdateSkuInput) error
+	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 }
 
 type ProductService struct {
@@ -94,7 +95,7 @@ func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId
 	if productVariant.Id == nil {
 		return ProductVariant{}, common.NewNotFoundError("product variant not found")
 	}
-	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariant(ctx, *productVariant.Id)
+	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariantSku(ctx, productVariant.Sku)
 	if recipeErr != nil {
 		log.Printf("failed to get recipe of product variant: %s", recipeErr.Error())
 	} else if len(recipes) > 0 {
@@ -185,7 +186,6 @@ func (s *ProductService) UpdateProductVariantDetails(ctx context.Context, update
 
 func (s *ProductService) DeleteProductVariant(ctx context.Context, id int) error {
 	return common.RunWithTransaction(ctx, s.repo.(*ProductRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		sku, err := s.repo.(*ProductRepo).GetProductVariantSkuFromId(ctx, id)
 		if err != nil {
 			return err
@@ -220,4 +220,8 @@ func (s *ProductService) UpdateProductVariantSku(ctx context.Context, input Upda
 		return common.NewValidationError("invalid sku", details)
 	}
 	return s.repo.UpdateProductVariantSku(ctx, input.OldSku, input.NewSku)
+}
+
+func (s *ProductService) GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error) {
+	return s.repo.GetOriginalUnitsBySkuList(ctx, skuList)
 }

@@ -1,11 +1,11 @@
 package product
 
 type RecipeBase struct {
-	Id              *int    `json:"id"`
-	ResultVariantId *int    `json:"resultVariantId"`
-	Quantity        float64 `json:"quantity"`
-	UnitId          *int    `json:"unitId"`
-	RecipeVariantId *int    `json:"recipeVariantId"`
+	Id               *int    `json:"id"`
+	ResultVariantSku string  `json:"resultVariantSku"`
+	Quantity         float64 `json:"quantity"`
+	UnitId           *int    `json:"unitId"`
+	RecipeVariantSku string  `json:"recipeVariantSku"`
 }
 
 type Recipe struct {
@@ -21,4 +21,16 @@ type Recipe struct {
 	RecipeVariantSku       string  `json:"recipeVariantSku,omitempty"`
 	IngredientCost         float64 `json:"ingredientCost,omitempty"`
 	IngredientStandardUnit *Unit   `json:"ingredientStandardUnit,omitempty"`
+}
+
+func (r Recipe) GetLookupKey() string {
+	return r.ResultVariantSku + "-" + r.RecipeVariantSku
+}
+
+func (r RecipeBase) GetLookupKey() string {
+	return r.ResultVariantSku + "-" + r.RecipeVariantSku
+}
+
+func GetRecipeLookupKey(resultVariantSku string, recipeVariantSku string) string {
+	return resultVariantSku + "-" + recipeVariantSku
 }

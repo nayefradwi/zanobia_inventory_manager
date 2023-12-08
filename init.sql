@@ -257,8 +257,8 @@ DROP TABLE IF EXISTS batches CASCADE;
 
 CREATE TABLE recipes (
     id SERIAL PRIMARY KEY,
-    result_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
-    recipe_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
+    result_variant_sku VARCHAR(36) NOT NULL REFERENCES product_variants(sku) ON UPDATE CASCADE,
+    recipe_variant_sku VARCHAR(36) NOT NULL REFERENCES product_variants(sku) ON UPDATE CASCADE,
     unit_id INTEGER NOT NULL REFERENCES units(id),
     quantity NUMERIC(12, 4) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -279,7 +279,7 @@ CREATE TABLE batches (
 DROP INDEX IF EXISTS idx_recipe CASCADE;
 DROP INDEX IF EXISTS idx_batch CASCADE;
 
-CREATE UNIQUE INDEX idx_recipe ON recipes(result_variant_id, recipe_variant_id);
+CREATE UNIQUE INDEX idx_recipe ON recipes(result_variant_sku, recipe_variant_sku);
 CREATE UNIQUE INDEX idx_batch ON batches(sku, warehouse_id, expires_at);
 
 -- END RECIPE AND BATCHES TABLES --

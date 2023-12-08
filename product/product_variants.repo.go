@@ -75,7 +75,6 @@ func (r *ProductRepo) GetProductVariant(ctx context.Context, productVariantId in
 
 func (r *ProductRepo) AddProductVariant(ctx context.Context, input ProductVariantInput) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		id, err := r.addProductVariant(ctx, input.ProductVariant.ProductId, input.ProductVariant)
 		if err != nil {
 			return err
@@ -278,32 +277,6 @@ func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int) error {
 	}
 	return nil
 }
-
-// func (r *ProductRepo) UpdateBatchesSku(ctx context.Context, oldSku, newSku string) error {
-// 	sql := `
-// 	update batches set sku = $1 where sku = $2
-// 	`
-// 	op := common.GetOperator(ctx, r.Pool)
-// 	_, err := op.Exec(ctx, sql, newSku, oldSku)
-// 	if err != nil {
-// 		log.Printf("failed to update batches sku: %s", err.Error())
-// 		return common.NewInternalServerError()
-// 	}
-// 	return nil
-// }
-
-// func (r *ProductRepo) UpdateRetailersBatchesSku(ctx context.Context, oldSku, newSku string) error {
-// 	sql := `
-// 	update retailer_batches set sku = $1 where sku = $2
-// 	`
-// 	op := common.GetOperator(ctx, r.Pool)
-// 	_, err := op.Exec(ctx, sql, newSku, oldSku)
-// 	if err != nil {
-// 		log.Printf("failed to update retailer batches sku: %s", err.Error())
-// 		return common.NewInternalServerError()
-// 	}
-// 	return nil
-// }
 
 func (r *ProductRepo) UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error {
 	sql := `

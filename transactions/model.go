@@ -62,13 +62,13 @@ type transactionInput struct {
 }
 
 type CreateWarehouseTransactionCommand struct {
-	BatchId    int
-	Quantity   float64
-	UnitId     int
-	Reason     string
-	CostPerQty float64
-	Comment    string
-	Sku        string
+	BatchId  int
+	Quantity float64
+	UnitId   int
+	Reason   string
+	Cost     float64
+	Comment  string
+	Sku      string
 }
 
 type CreateRetailerTransactionCommand struct {
@@ -77,7 +77,7 @@ type CreateRetailerTransactionCommand struct {
 	Quantity        float64
 	UnitId          int
 	Reason          string
-	CostPerQty      float64
+	Cost            float64
 	Comment         string
 	Sku             string
 }
@@ -88,14 +88,13 @@ func ForWarehouseTransactions(ctx context.Context, command CreateWarehouseTransa
 	}
 	userId := user.GetUserFromContext(ctx).Id
 	warehouseId := warehouse.GetWarehouseId(ctx)
-	amount := command.Quantity * command.CostPerQty
 	return transactionInput{
 		UserId:      &userId,
 		BatchId:     &command.BatchId,
 		WarehouseId: &warehouseId,
 		Quantity:    command.Quantity,
 		UnitId:      &command.UnitId,
-		Amount:      amount,
+		Amount:      command.Cost,
 		Reason:      command.Reason,
 		Comment:     command.Comment,
 		Sku:         command.Sku,
@@ -108,14 +107,13 @@ func ForRetailerTransactions(ctx context.Context, command CreateRetailerTransact
 	}
 	userId := user.GetUserFromContext(ctx).Id
 	warehouseId := warehouse.GetWarehouseId(ctx)
-	amount := command.Quantity * command.CostPerQty
 	return transactionInput{
 		UserId:          &userId,
 		RetailerBatchId: &command.RetailerBatchId,
 		RetailerId:      &command.RetailerId,
 		Quantity:        command.Quantity,
 		UnitId:          &command.UnitId,
-		Amount:          amount,
+		Amount:          command.Cost,
 		Reason:          command.Reason,
 		Comment:         command.Comment,
 		Sku:             command.Sku,

@@ -32,9 +32,8 @@ type IProductRepo interface {
 	DeleteBatches(ctx context.Context, sku string) error
 	DeleteRetailerBatches(ctx context.Context, sku string) error
 	DeleteProductVariant(ctx context.Context, id int) error
-	// UpdateBatchesSku(ctx context.Context, oldSku, newSku string) error
-	// UpdateRetailersBatchesSku(ctx context.Context, oldSku, newSku string) error
 	UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error
+	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 }
 
 type ProductRepo struct {
@@ -47,7 +46,6 @@ func NewProductRepository(dbPool *pgxpool.Pool) IProductRepo {
 
 func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) error {
 	err := common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
-		ctx = common.SetOperator(ctx, tx)
 		return r.createProduct(ctx, product)
 	})
 	return err
@@ -332,4 +330,27 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	}
 	product.Options = options
 	return product, nil
+}
+
+func (r *ProductRepo) GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error) {
+	sql := `select standard_unit_id, sku from product_variants where sku = ANY($1)`
+	op := common.GetOperator(ctx, r.Pool)
+	rows, err := op.Query(ctx, sql, skuList)
+	if err != nil {
+		log.Printf("failed to get original units: %s", err.Error())
+		return nil, common.NewBadRequestFromMessage("Failed to get original units")
+	}
+	defer rows.Close()
+	units := make(map[string]int)
+	for rows.Next() {
+		var unitId int
+		var sku string
+		err := rows.Scan(&unitId, &sku)
+		if err != nil {
+			log.Printf("failed to scan unit: %s", err.Error())
+			return nil, common.NewInternalServerError()
+		}
+		units[sku] = unitId
+	}
+	return units, nil
 }

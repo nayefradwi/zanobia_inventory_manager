@@ -9,11 +9,11 @@ import (
 
 type IRecipeService interface {
 	CreateRecipes(ctx context.Context, recipes []RecipeBase) error
-	GetRecipeOfProductVariant(ctx context.Context, productVariantId int) ([]Recipe, error)
 	AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error
 	DeleteRecipe(ctx context.Context, id int) error
 	GetTotalCostOfRecipes(ctx context.Context, recipes []Recipe) (float64, error)
 	GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error)
+	GetRecipesLookUpMapFromSkus(ctx context.Context, skuList []string) (map[string]Recipe, []string, error)
 }
 
 type RecipeService struct {
@@ -47,10 +47,6 @@ func (s *RecipeService) AddIngredientToRecipe(ctx context.Context, recipe Recipe
 	return s.repo.AddIngredientToRecipe(ctx, recipe)
 }
 
-func (s *RecipeService) GetRecipeOfProductVariant(ctx context.Context, productVariantId int) ([]Recipe, error) {
-	return s.repo.GetRecipeOfProductVariant(ctx, productVariantId)
-}
-
 func (s *RecipeService) DeleteRecipe(ctx context.Context, id int) error {
 	return s.repo.DeleteRecipe(ctx, id)
 }
@@ -76,6 +72,7 @@ func (s *RecipeService) getCostOfRecipe(ctx context.Context, recipe Recipe) (flo
 	if *recipe.Unit.Id == *recipe.IngredientStandardUnit.Id {
 		return recipe.Quantity * recipe.IngredientCost, nil
 	}
+	// convert unit should be cached
 	newQty, err := s.unitService.ConvertUnit(ctx, ConvertUnitInput{
 		FromUnitId: recipe.Unit.Id,
 		ToUnitId:   recipe.IngredientStandardUnit.Id,
@@ -90,4 +87,8 @@ func (s *RecipeService) getCostOfRecipe(ctx context.Context, recipe Recipe) (flo
 
 func (s *RecipeService) GetRecipeOfProductVariantSku(ctx context.Context, sku string) ([]Recipe, error) {
 	return s.repo.GetRecipeOfProductVariantSku(ctx, sku)
+}
+
+func (s *RecipeService) GetRecipesLookUpMapFromSkus(ctx context.Context, skuList []string) (map[string]Recipe, []string, error) {
+	return s.repo.GetRecipesLookUpMapFromSkus(ctx, skuList)
 }

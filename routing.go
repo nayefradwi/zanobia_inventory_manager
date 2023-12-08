@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -127,7 +126,6 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitConversionRouter := chi.NewRouter()
 	unitConversionController := product.NewUnitController(provider.services.unitService)
 	unitConversionRouter.Post("/", unitConversionController.CreateConversion)
-	unitConversionRouter.Post("/from-name", unitConversionController.CreateConversionFromName)
 	unitConversionRouter.Post("/convert", unitConversionController.ConvertUnit)
 	mainRouter.Mount("/unit-conversions", unitConversionRouter)
 }
@@ -157,11 +155,7 @@ func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	batchRouter := chi.NewRouter()
 	batchController := product.NewBatchController(provider.services.batchService)
-	batchRouter.Post("/batch/stock", func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), product.DecrementRecipeKey{}, false)
-		r = r.WithContext(ctx)
-		batchController.IncrementBatch(w, r)
-	})
+	batchRouter.Post("/batch/stock", batchController.IncrementBatch)
 	batchRouter.Delete("/batch/stock", batchController.DecrementBatch)
 	batchRouter.Post("/stock", batchController.BulkIncrementBatch)
 	batchRouter.Delete("/stock", batchController.BulkDecrementBatch)
