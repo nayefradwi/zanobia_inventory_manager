@@ -161,24 +161,42 @@ func (r *BatchRepository) GetBulkBatchUpdateInfo(
 	}
 	sql := `
 	select 
-		batches.id,
-		batches.warehouse_id,
-		batches.sku,
-		batches.quantity,
-		batches.unit_id,
-		product_variants.standard_unit_id,
-		product_variants.expires_in_days,
-		product_variants.price
-	from batches 
-	right join product_variants on 
-		product_variants.sku = batches.sku
+		batches.id as batch_id,
+		batches.warehouse_id as warehouse_id,
+		batches.sku as batch_sku,
+		batches.quantity as batch_qty,
+		batches.unit_id as batch_unit_id,
+		null as pvar_sku,
+		null as pvar_unit,
+		null as pvar_expires_in,
+		null as pvar_price
+	from 
+		batches
 	where
 		batches.id = any($1)
-	or
+	and
+		batches.sku = any($2)
+	and 
+		batches.warehouse_id = $3
+	union all
+	select
+		null as batch_id,
+		null as warehouse_id,
+		null as batch_sku,
+		null as batch_qty,
+		null as batch_unit_id,
+		product_variants.sku as pvar_sku,
+		product_variants.standard_unit_id as pvar_unit,
+		product_variants.expires_in_days as pvar_expires_in,
+		product_variants.price as pvar_price
+	from
+		product_variants
+	where
 		product_variants.sku = any($2)
 	`
 	op := common.GetOperator(ctx, r.Pool)
-	rows, err := op.Query(ctx, sql, ids, skus)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	rows, err := op.Query(ctx, sql, ids, skus, warehouseId)
 	if err != nil {
 		log.Printf("Failed to get bulk batch update info: %s", err.Error())
 		return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("Failed to get bulk batch update info")
@@ -187,22 +205,49 @@ func (r *BatchRepository) GetBulkBatchUpdateInfo(
 	batchBasesLookup := make(map[string]BatchBase)
 	batchVariantMetaInfoLookup := make(map[string]BatchVariantMetaInfo)
 	for rows.Next() {
-		var batch BatchBase
-		var batchVariantMetaInfo BatchVariantMetaInfo
+		var batchId *int
+		var warehouseId *int
+		var batchSku *string
+		var batchQty *float64
+		var batchUnitId *int
+		var metaSku *string
+		var metaUnitId *int
+		var metaExpiresInDays *int
+		var metaCost *float64
 		err := rows.Scan(
-			&batch.Id, &batch.WarehouseId, &batch.Sku, &batch.Quantity, &batch.UnitId,
-			&batchVariantMetaInfo.UnitId, &batchVariantMetaInfo.ExpiresInDays, &batchVariantMetaInfo.Cost,
+			&batchId, &warehouseId, &batchSku, &batchQty, &batchUnitId, &metaSku,
+			&metaUnitId, &metaExpiresInDays, &metaCost,
 		)
 		if err != nil {
 			log.Printf("Failed to scan bulk batch update info: %s", err.Error())
 			return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("Failed to scan bulk batch update info")
 		}
-		if batch.Id != nil {
+		if batchId != nil &&
+			batchSku != nil &&
+			batchQty != nil &&
+			batchUnitId != nil &&
+			warehouseId != nil {
+			batch := BatchBase{
+				Id:          batchId,
+				WarehouseId: warehouseId,
+				Sku:         *batchSku,
+				Quantity:    *batchQty,
+				UnitId:      *batchUnitId,
+			}
 			batchBasesLookup[batch.Sku] = batch
 		}
-		batchVariantMetaInfoLookup[batch.Sku] = batchVariantMetaInfo
+		if metaSku != nil &&
+			metaUnitId != nil &&
+			metaExpiresInDays != nil &&
+			metaCost != nil {
+			batchVariantMetaInfo := BatchVariantMetaInfo{
+				UnitId:        *metaUnitId,
+				ExpiresInDays: *metaExpiresInDays,
+				Cost:          *metaCost,
+			}
+			batchVariantMetaInfoLookup[*metaSku] = batchVariantMetaInfo
+		}
 	}
-
 	return BulkBatchUpdateInfo{
 		BatchBasesLookup:           batchBasesLookup,
 		BatchVariantMetaInfoLookup: batchVariantMetaInfoLookup,

@@ -15,14 +15,15 @@ func (s *BatchService) unlockBatchUpdateRequest(ctx context.Context, batchUpdate
 
 func (s *BatchService) lockBatchUpdateRequest(ctx context.Context, batchUpdateRequest BulkBatchUpdateInfo) (BulkBatchUpdateInfo, error) {
 	idLocks, lockErrForIds := s.lockBatchesByIds(ctx, batchUpdateRequest.Ids)
+	batchUpdateRequest.locks = idLocks
 	if lockErrForIds != nil {
 		return batchUpdateRequest, lockErrForIds
 	}
 	skuLocks, lockErrForSkus := s.lockBatchesBySkus(ctx, batchUpdateRequest.SkuList)
+	batchUpdateRequest.locks = append(batchUpdateRequest.locks, skuLocks...)
 	if lockErrForSkus != nil {
 		return batchUpdateRequest, lockErrForSkus
 	}
-	batchUpdateRequest.locks = append(idLocks, skuLocks...)
 	return batchUpdateRequest, nil
 }
 
@@ -32,7 +33,7 @@ func (s *BatchService) lockBatchesBySkus(ctx context.Context, skus []string) ([]
 		lockKey := s.createBatchLockKey(sku)
 		lock, err := s.lockingService.Acquire(ctx, lockKey)
 		if err != nil {
-			return nil, common.NewBadRequestFromMessage("Failed to acquire lock for sku: " + sku)
+			return locks, common.NewBadRequestFromMessage("Failed to acquire lock for sku: " + sku)
 		}
 		locks[i] = lock
 	}
@@ -45,7 +46,7 @@ func (s *BatchService) lockBatchesByIds(ctx context.Context, ids []int) ([]commo
 		lockKey := s.createBatchLockKey(strconv.Itoa(id))
 		lock, err := s.lockingService.Acquire(ctx, lockKey)
 		if err != nil {
-			return nil, common.NewBadRequestFromMessage("Failed to acquire lock for id: " + strconv.Itoa(id))
+			return locks, common.NewBadRequestFromMessage("Failed to acquire lock for id: " + strconv.Itoa(id))
 		}
 		locks[i] = lock
 	}
