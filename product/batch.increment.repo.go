@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -118,6 +119,7 @@ func (r *BatchRepository) parseBatchBasesLookupFromResults(
 	batchBasesLookup := make(map[string]BatchBase)
 	rows, err := results.Query()
 	if err != nil {
+		log.Printf("Failed to get batch bases: %s", err.Error())
 		return batchBasesLookup, common.NewBadRequestFromMessage("Failed to get batch bases")
 	}
 	defer rows.Close()
@@ -131,6 +133,7 @@ func (r *BatchRepository) parseBatchBasesLookupFromResults(
 			&batchId, &warehouseId, &batchSku, &batchQty, &batchUnitId,
 		)
 		if err != nil {
+			log.Printf("Failed to scan batch bases: %s", err.Error())
 			return batchBasesLookup, common.NewBadRequestFromMessage("Failed to scan batch bases")
 		}
 		if batchId != nil &&
@@ -160,6 +163,7 @@ func (r *BatchRepository) parseBatchVariantMetaInfoLookupFromResults(
 	batchVariantMetaInfoLookup := make(map[string]BatchVariantMetaInfo)
 	rows, err := results.Query()
 	if err != nil {
+		log.Printf("Failed to get batch bases: %s", err.Error())
 		return batchVariantMetaInfoLookup, common.NewBadRequestFromMessage("Failed to get batch bases")
 	}
 	defer rows.Close()
@@ -172,6 +176,7 @@ func (r *BatchRepository) parseBatchVariantMetaInfoLookupFromResults(
 			&metaSku, &metaUnitId, &metaExpiresInDays, &metaCost,
 		)
 		if err != nil {
+			log.Printf("Failed to scan batch bases: %s", err.Error())
 			return batchVariantMetaInfoLookup, common.NewBadRequestFromMessage("Failed to scan batch bases")
 		}
 		if metaSku != nil &&

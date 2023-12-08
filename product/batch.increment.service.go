@@ -106,7 +106,7 @@ func (s *BatchService) createBatchCreateRequest(
 	[]transactions.CreateWarehouseTransactionCommand,
 	error,
 ) {
-	batchCreateRequestLookup := make(map[string]BatchCreateRequest)
+	batchCreateRequestLookup := make(map[string]BatchCreateRequest, 0)
 	transactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
 	for _, batchInput := range bulkUpdateBatchInfo.BatchInputMapToCreate {
 		batchVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[batchInput.Sku]

@@ -8,6 +8,31 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
+/*
+Compare this snippet from product/batch.recipe.service.go:
+psuedo code:
+ 1. get batch info from inputs, this includes batch bases and variant meta info
+    of batches to update and create and recipe batch bases
+    - the variant meta info includes original unit id, cost, and expires in days of the batch variant
+    as well as the recipe variant
+    - the batch bases includes the quantity of the batch variant
+    - the recipe batch bases includes the quantity of the recipe variant
+ 2. create batch update request for batches to update
+    - this includes the new value of the batch variant
+    - this includes the modified by value of the batch variant
+ 3. create batch create request for batches to create
+    - this includes the quantity of the batch variant
+    - this includes the unit id of the batch variant
+ 4. create recipe update request for recipe batches
+    - this includes the new value of the recipe variant
+    which accumulates the modified by value of the recipe variant
+    based on how many times the recipe is used (if 2 batches use the same recipe)
+    - this includes the modified by value of the recipe variant
+    - this includes the unit id of the recipe variant
+ 5. create transaction history for all batches
+ 6. create bulk batch update unit of work
+ 7. process bulk batch update unit of work
+*/
 func (s *BatchService) IncrementBatchWithRecipe(ctx context.Context, batchInput BatchInput) error {
 	return s.BulkIncrementWithRecipeBatch(ctx, []BatchInput{batchInput})
 }
@@ -112,6 +137,9 @@ func (s *BatchService) createRecipeUpdateFromBatchUpdate(
 	error,
 ) {
 	recipeTransactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
+	if len(batchUpdateRequestLookup) == 0 {
+		return batchUpdateRequestLookup, recipeTransactionHistory, nil
+	}
 	for _, recipe := range bulkUpdateBatchInfo.RecipeMap {
 		recipeVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[recipe.RecipeVariantSku]
 		if !ok {
@@ -126,7 +154,7 @@ func (s *BatchService) createRecipeUpdateFromBatchUpdate(
 			Id:       recipeBatchBase.Id,
 			Sku:      recipe.RecipeVariantSku,
 			Quantity: recipe.Quantity,
-			UnitId:   recipeVariantMetaInfo.UnitId,
+			UnitId:   *recipe.Unit.Id,
 			Reason:   transactions.TransactionReasonTypeRecipeUse,
 		}
 		convertedRecipeInput, err := s.convertBatchInput(ctx, recipeBatchInput, recipeVariantMetaInfo)
@@ -178,6 +206,9 @@ func (s *BatchService) createRecipeUpdateFromBatchCreate(
 	error,
 ) {
 	recipeTransactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
+	if len(batchCreateRequest) == 0 {
+		return batchUpdateRequestLookup, recipeTransactionHistory, nil
+	}
 	for _, recipe := range bulkUpdateBatchInfo.RecipeMap {
 		recipeVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[recipe.RecipeVariantSku]
 		if !ok {

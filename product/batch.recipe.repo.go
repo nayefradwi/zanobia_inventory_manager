@@ -2,9 +2,11 @@ package product
 
 import (
 	"context"
+	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 )
 
 func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
@@ -15,6 +17,14 @@ func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
 	ids, skus, batchToUpdateLookup, batchToCreateLookup := r.extractBatchInfoFromInputs(inputs)
 	r.getBatchesBasedOnSkuListAndIds(ctx, pgxBatch, skus, ids)
 	r.getProductMetaInfoAndRecipesFromSkuList(pgxBatch, skus)
+	useMostExpired := common.GetBoolFromContext(ctx, UseMostExpiredKey{})
+	if useMostExpired {
+		log.Printf("Using most expired batch")
+		r.getMostExpiredRecipeBatchBases(ctx, pgxBatch, skus)
+	} else {
+		log.Printf("Using least expired batch")
+		r.getLeastExpiredRecipeBatchBases(ctx, pgxBatch, skus)
+	}
 	op := common.GetOperator(ctx, r.Pool)
 	results := op.SendBatch(ctx, pgxBatch)
 	defer results.Close()
@@ -26,6 +36,14 @@ func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
 	if err != nil {
 		return BulkBatchUpdateInfo{}, err
 	}
+	recipeBatchBasesLookup, err := r.parseBatchBasesLookupFromResults(results)
+	if err != nil {
+		return BulkBatchUpdateInfo{}, err
+	}
+	batchBasesLookup = common.MergeMaps[string, BatchBase](
+		recipeBatchBasesLookup,
+		batchBasesLookup,
+	)
 	return BulkBatchUpdateInfo{
 		BatchBasesLookup:           batchBasesLookup,
 		BatchVariantMetaInfoLookup: batchVariantMetaInfoLookup,
@@ -36,6 +54,7 @@ func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
 		RecipeMap:                  recipeLookup,
 	}, nil
 }
+
 func (r *BatchRepository) getProductMetaInfoAndRecipesFromSkuList(
 	pgxBatch *pgx.Batch,
 	skus []string,
@@ -51,11 +70,15 @@ func (r *BatchRepository) getProductMetaInfoAndRecipesFromSkuList(
 		r.result_variant_sku,
 		r.recipe_variant_sku,
 		r.quantity,
-		r.unit_id
+		r.unit_id,
+		pvar_recipe.standard_unit_id,
+		pvar_recipe.price
 	from
 		product_variants pvar
 	left join 
 		recipes r on r.result_variant_sku = pvar.sku
+	left join 
+		product_variants pvar_recipe on pvar_recipe.sku = r.recipe_variant_sku
 	where
 		pvar.sku = any($1)
 		`,
@@ -89,17 +112,19 @@ func (r *BatchRepository) parseVariantInfoAndRecipe(
 		var recipeRecipeVariantSku *string
 		var recipeQuantity *float64
 		var recipeUnitId *int
+		var recipeStandardUnitId *int
+		var recipeStandardUnitCost *float64
 		err := rows.Scan(
 			&metaSku, &metaUnitId, &metaExpiresInDays, &metaCost,
 			&recipeId, &recipeResultVariantSku, &recipeRecipeVariantSku, &recipeQuantity, &recipeUnitId,
+			&recipeStandardUnitId, &recipeStandardUnitCost,
 		)
 		if err != nil {
+			log.Printf("Failed to scan batch bases: %s", err.Error())
 			return batchVariantMetaInfoLookup,
 				recipeLookup,
 				common.NewBadRequestFromMessage("Failed to scan batch bases")
 		}
-		var recipeCost float64
-		var ingredientUnitId int
 		if metaSku != nil &&
 			metaUnitId != nil &&
 			metaExpiresInDays != nil &&
@@ -110,32 +135,94 @@ func (r *BatchRepository) parseVariantInfoAndRecipe(
 				Cost:          *metaCost,
 			}
 			batchVariantMetaInfoLookup[*metaSku] = batchVariantMetaInfo
-			recipeCost = *metaCost
-			ingredientUnitId = *metaUnitId
 		}
 		if recipeId != nil &&
 			recipeResultVariantSku != nil &&
 			recipeRecipeVariantSku != nil &&
 			recipeQuantity != nil &&
-			recipeUnitId != nil {
+			recipeUnitId != nil &&
+			recipeStandardUnitId != nil &&
+			recipeStandardUnitCost != nil {
 			recipe := Recipe{
 				Id:                     recipeId,
 				ResultVariantSku:       *recipeResultVariantSku,
 				RecipeVariantSku:       *recipeRecipeVariantSku,
 				Quantity:               *recipeQuantity,
 				Unit:                   Unit{Id: recipeUnitId},
-				IngredientCost:         recipeCost,
-				IngredientStandardUnit: &Unit{Id: &ingredientUnitId},
+				IngredientCost:         *recipeStandardUnitCost,
+				IngredientStandardUnit: &Unit{Id: recipeStandardUnitId},
 			}
 			recipeLookup[recipe.GetLookupKey()] = recipe
 			// adding recipe variant meta info to batch variant meta info lookup
 			// to be used for unit conversion when updating recipe variant
 			batchVariantMetaInfoLookup[*recipeRecipeVariantSku] = BatchVariantMetaInfo{
-				UnitId:        *recipeUnitId,
+				UnitId:        *recipeStandardUnitId,
 				ExpiresInDays: *metaExpiresInDays,
-				Cost:          recipeCost,
+				Cost:          *recipeStandardUnitCost,
 			}
 		}
 	}
 	return batchVariantMetaInfoLookup, recipeLookup, nil
+}
+
+func (r *BatchRepository) getMostExpiredRecipeBatchBases(
+	ctx context.Context,
+	pgxBatch *pgx.Batch,
+	skus []string,
+) {
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	pgxBatch.Queue(
+		`
+	select DISTINCT ON (batches.expires_at)
+		batches.id as batch_id,
+		batches.warehouse_id as warehouse_id,
+		batches.sku as batch_sku,
+		batches.quantity as batch_qty,
+		batches.unit_id as batch_unit_id
+	from
+		batches
+	join recipes on
+		recipes.recipe_variant_sku = batches.sku
+	where 
+			recipes.result_variant_sku = any($1)
+		and
+			batches.warehouse_id = $2
+		and
+			expires_at >= NOW()
+	ORDER BY expires_at ASC
+		`,
+		skus,
+		warehouseId,
+	)
+}
+
+func (r *BatchRepository) getLeastExpiredRecipeBatchBases(
+	ctx context.Context,
+	pgxBatch *pgx.Batch,
+	skus []string,
+) {
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	pgxBatch.Queue(
+		`
+	select DISTINCT ON (batches.expires_at)
+		batches.id as batch_id,
+		batches.warehouse_id as warehouse_id,
+		batches.sku as batch_sku,
+		batches.quantity as batch_qty,
+		batches.unit_id as batch_unit_id	
+	from
+		batches
+	join recipes on
+		recipes.recipe_variant_sku = batches.sku
+	where 
+			recipes.result_variant_sku = any($1)
+		and
+			batches.warehouse_id = $2
+		and
+			expires_at >= NOW()
+	ORDER BY expires_at DESC
+		`,
+		skus,
+		warehouseId,
+	)
 }

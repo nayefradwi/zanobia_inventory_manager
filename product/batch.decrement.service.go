@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -18,6 +19,7 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 	}
 	bulkBatchUpdateInfo, err := s.batchRepo.GetBulkBatchUpdateInfo(ctx, inputs)
 	if err != nil {
+		log.Printf("Failed to process batch decrement: %s", err.Error())
 		return common.NewBadRequestFromMessage("failed to process batch decrement")
 	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
