@@ -9,6 +9,22 @@ import (
 )
 
 /*
+incase i need to refactor this code, it does the following in the simplest terms
+1. get all that it needs to update the batch:
+  - the original units of the product variants in the batch and recipes that are used
+   by those batches
+  - the original batch bases of those product variants
+  - the original expiry dates of those product variants
+  - the original cost of those product variants (cost per original unit)
+
+2.  convert all batch inputs to the original units of the product variants
+3. create batches if it needs to
+4. update batches if it needs to
+5. accumalate all recipe decrements and update batch bases of the accumaleted recipe decrements
+   after converting them and accumulating total cost as well
+5  create transaction history
+*/
+/*
 Compare this snippet from product/batch.recipe.service.go:
 psuedo code:
  1. get batch info from inputs, this includes batch bases and variant meta info

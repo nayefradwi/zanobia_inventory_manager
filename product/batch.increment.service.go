@@ -9,6 +9,19 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
+/*
+incase i need to refactor this code, it does the following in the simplest terms
+1. get all that it needs to update the batch:
+  - the original units of the product variants in the batch
+  - the original batch bases of those product variants
+  - the original expiry dates of those product variants
+  - the original cost of those product variants (cost per original unit)
+
+2.  convert all batch inputs to the original units of the product variants
+3. create batches if it needs to
+4. update batches if it needs to
+5  create transaction history
+*/
 func (s *BatchService) IncrementBatch(ctx context.Context, batchInput BatchInput) error {
 	return s.BulkIncrementBatch(ctx, []BatchInput{batchInput})
 }
