@@ -177,7 +177,7 @@ func (r *BatchRepository) getMostExpiredRecipeBatchBases(
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	pgxBatch.Queue(
 		`
-	select DISTINCT ON (batches.expires_at)
+	select DISTINCT ON (batches.sku)
 		batches.id as batch_id,
 		batches.warehouse_id as warehouse_id,
 		batches.sku as batch_sku,
@@ -193,7 +193,7 @@ func (r *BatchRepository) getMostExpiredRecipeBatchBases(
 			batches.warehouse_id = $2
 		and
 			expires_at >= NOW()
-	ORDER BY expires_at ASC
+	ORDER BY batches.sku, batches.expires_at ASC
 		`,
 		skus,
 		warehouseId,
@@ -208,7 +208,7 @@ func (r *BatchRepository) getLeastExpiredRecipeBatchBases(
 	warehouseId := warehouse.GetWarehouseId(ctx)
 	pgxBatch.Queue(
 		`
-	select DISTINCT ON (batches.expires_at)
+	select DISTINCT ON (batches.sku)
 		batches.id as batch_id,
 		batches.warehouse_id as warehouse_id,
 		batches.sku as batch_sku,
@@ -224,7 +224,7 @@ func (r *BatchRepository) getLeastExpiredRecipeBatchBases(
 			batches.warehouse_id = $2
 		and
 			expires_at >= NOW()
-	ORDER BY expires_at DESC
+	ORDER BY batches.sku, batches.expires_at DESC
 		`,
 		skus,
 		warehouseId,
