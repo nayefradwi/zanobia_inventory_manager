@@ -9,7 +9,7 @@ import (
 )
 
 func (s *BatchService) IncrementBatchWithRecipe(ctx context.Context, batchInput BatchInput) error {
-	return s.BulkIncrementBatch(ctx, []BatchInput{batchInput})
+	return s.BulkIncrementWithRecipeBatch(ctx, []BatchInput{batchInput})
 }
 
 func (s *BatchService) BulkIncrementWithRecipeBatch(ctx context.Context, inputs []BatchInput) error {
@@ -113,7 +113,7 @@ func (s *BatchService) createRecipeUpdateFromBatchUpdate(
 ) {
 	recipeTransactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
 	for _, recipe := range bulkUpdateBatchInfo.RecipeMap {
-		recipeVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[recipe.RecipeVariantName]
+		recipeVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[recipe.RecipeVariantSku]
 		if !ok {
 			return nil, nil, common.NewBadRequestFromMessage("variant meta info not found")
 		}
@@ -179,7 +179,7 @@ func (s *BatchService) createRecipeUpdateFromBatchCreate(
 ) {
 	recipeTransactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
 	for _, recipe := range bulkUpdateBatchInfo.RecipeMap {
-		recipeVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[recipe.RecipeVariantName]
+		recipeVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[recipe.RecipeVariantSku]
 		if !ok {
 			return nil, nil, common.NewBadRequestFromMessage("variant meta info not found")
 		}
