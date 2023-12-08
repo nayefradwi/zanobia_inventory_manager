@@ -59,8 +59,12 @@ func (s *BatchService) BulkIncrementWithRecipeBatch(ctx context.Context, inputs 
 	}
 	bulkBatchUpdateInfo, err := s.batchRepo.GetBulkBatchUpdateInfoWithRecipe(ctx, inputs)
 	if err != nil {
+		if apiErr, ok := err.(*common.ApiError); ok {
+			return apiErr
+		}
 		return common.NewBadRequestFromMessage("failed to process batch increment")
 	}
+
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		return s.processBulkBatchIncrementWithRecipe(ctx, bulkBatchUpdateInfo)
 	})

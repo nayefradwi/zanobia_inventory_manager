@@ -15,6 +15,7 @@ func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
 ) (BulkBatchUpdateInfo, error) {
 	pgxBatch := &pgx.Batch{}
 	ids, skus, batchToUpdateLookup, batchToCreateLookup := r.extractBatchInfoFromInputs(inputs)
+	r.getIfInputsIncludesRecipes(pgxBatch, skus)
 	r.getBatchesBasedOnSkuListAndIds(ctx, pgxBatch, skus, ids)
 	r.getProductMetaInfoAndRecipesFromSkuList(pgxBatch, skus)
 	useMostExpired := common.GetBoolFromContext(ctx, UseMostExpiredKey{})
@@ -28,6 +29,9 @@ func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
 	op := common.GetOperator(ctx, r.Pool)
 	results := op.SendBatch(ctx, pgxBatch)
 	defer results.Close()
+	if r.parseIfRecipesIncludedFromResults(results) {
+		return BulkBatchUpdateInfo{}, common.NewBadRequestFromMessage("bulk update with recipes cannot include recipes in inputs")
+	}
 	batchBasesLookup, err := r.parseBatchBasesLookupFromResults(results)
 	if err != nil {
 		return BulkBatchUpdateInfo{}, err
@@ -225,4 +229,44 @@ func (r *BatchRepository) getLeastExpiredRecipeBatchBases(
 		skus,
 		warehouseId,
 	)
+}
+
+func (r *BatchRepository) getIfInputsIncludesRecipes(
+	pgxBatch *pgx.Batch,
+	skus []string,
+) {
+	pgxBatch.Queue(
+		`
+	select 
+		recipes.recipe_variant_sku
+	from
+		recipes
+	where
+		recipes.recipe_variant_sku = any($1)
+		`,
+		skus,
+	)
+}
+
+func (r *BatchRepository) parseIfRecipesIncludedFromResults(
+	results pgx.BatchResults,
+) bool {
+	rows, err := results.Query()
+	if err != nil {
+		log.Printf("Failed to get recipes using skus: %s", err.Error())
+		return true
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var recipeVariantSku *string
+		err := rows.Scan(&recipeVariantSku)
+		if err != nil {
+			log.Printf("Failed to scan recipes: %s", err.Error())
+			return true
+		}
+		if recipeVariantSku != nil {
+			return true
+		}
+	}
+	return false
 }
