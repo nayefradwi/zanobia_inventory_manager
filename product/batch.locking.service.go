@@ -32,7 +32,7 @@ func (s *BatchService) lockBatchesBySkus(ctx context.Context, skus []string) ([]
 		lockKey := s.createBatchLockKey(sku)
 		lock, err := s.lockingService.Acquire(ctx, lockKey)
 		if err != nil {
-			return nil, err
+			return nil, common.NewBadRequestFromMessage("Failed to acquire lock for sku: " + sku)
 		}
 		locks[i] = lock
 	}
@@ -45,7 +45,7 @@ func (s *BatchService) lockBatchesByIds(ctx context.Context, ids []int) ([]commo
 		lockKey := s.createBatchLockKey(strconv.Itoa(id))
 		lock, err := s.lockingService.Acquire(ctx, lockKey)
 		if err != nil {
-			return nil, err
+			return nil, common.NewBadRequestFromMessage("Failed to acquire lock for id: " + strconv.Itoa(id))
 		}
 		locks[i] = lock
 	}
