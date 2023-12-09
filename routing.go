@@ -13,7 +13,8 @@ import (
 )
 
 func RegisterRoutes(provider *ServiceProvider) chi.Router {
-	r := common.NewRouter()
+	baseRouter := common.NewRouter()
+	r := chi.NewRouter()
 	r.Use(warehouse.SetWarehouseIdFromHeader)
 	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)
@@ -25,7 +26,8 @@ func RegisterRoutes(provider *ServiceProvider) chi.Router {
 	registerRetailerRoutes(authorizedRouter, provider)
 	registerTransactionRoutes(authorizedRouter, provider)
 	r.Mount("/", authorizedRouter)
-	return r
+	baseRouter.Mount("/", r)
+	return baseRouter
 }
 
 func registerUserRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {

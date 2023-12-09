@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	PROD = "prod"
-	DEV  = "dev"
+	PROD    = "prod"
+	DEV     = "dev"
+	STAGING = "staging"
 )
 
 var ENV = PROD
@@ -23,14 +24,22 @@ func GetEnvArgument() string {
 
 func LoadEnv() {
 	env := GetEnvArgument()
-	if env == DEV {
-		ENV = DEV
-	}
+	setEnv(env)
 	envFileName := "." + ENV + ".env"
 	log.Printf("loading environment: %s", envFileName)
 	err := godotenv.Load(envFileName)
 	if err != nil {
 		log.Fatalf("failed to load environment: %s", err.Error())
+	}
+}
+
+func setEnv(env string) {
+	if env == DEV {
+		ENV = DEV
+	} else if env == STAGING {
+		ENV = STAGING
+	} else {
+		ENV = PROD
 	}
 }
 
@@ -42,13 +51,17 @@ func IsProd() bool {
 	return ENV == PROD
 }
 
+func IsStaging() bool {
+	return ENV == STAGING
+}
+
 func ConfigEssentials() {
 	LoadEnv()
 	InitializeLogger()
 }
 
 func CleanUp() {
-	if Logger != nil {
-		Logger.Sync()
+	if logger != nil {
+		logger.Sync()
 	}
 }

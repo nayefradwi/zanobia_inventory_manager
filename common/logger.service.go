@@ -1,21 +1,53 @@
 package common
 
-import "go.uber.org/zap"
+import (
+	"context"
 
-var Logger *zap.Logger
+	"go.uber.org/zap"
+)
+
+var logger *zap.Logger
+
+type loggerContextKey struct{}
 
 func InitializeLogger() {
-	if IsProd() {
-		initializeProdLogger()
-	} else {
+	if IsDev() {
 		initializeDevLogger()
+	} else {
+		initializeProdLogger()
 	}
 }
 
 func initializeProdLogger() {
-
+	// TODO: implement
+	// this needs to out put to file and stdout
+	// and also needs to be rotated
+	// and also needs to be sent to a log aggregator (maybe)
 }
 
 func initializeDevLogger() {
-	Logger = zap.Must(zap.NewDevelopment())
+	logger = zap.Must(zap.NewDevelopment())
+}
+
+func GetLogger() *zap.Logger {
+	if logger == nil {
+		InitializeLogger()
+	}
+	return logger
+}
+
+func LoggerFromCtx(ctx context.Context) *zap.Logger {
+	ctxLogger, ok := ctx.Value(loggerContextKey{}).(*zap.Logger)
+	if !ok || ctxLogger == nil {
+		return GetLogger()
+	}
+	return ctxLogger
+}
+
+func SetLoggerToCtx(ctx context.Context, logger *zap.Logger) context.Context {
+	ctxLogger := LoggerFromCtx(ctx)
+	if ctxLogger == logger {
+		return ctx
+	}
+	return context.WithValue(ctx, loggerContextKey{}, logger)
 }
