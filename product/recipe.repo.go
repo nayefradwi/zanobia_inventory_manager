@@ -2,11 +2,11 @@ package product
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type IRecipeRepository interface {
@@ -42,7 +42,7 @@ func (r *RecipeRepository) AddIngredientToRecipe(ctx context.Context, recipe Rec
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, recipe.ResultVariantSku, recipe.RecipeVariantSku, recipe.Quantity, recipe.UnitId)
 	if err != nil {
-		log.Printf("failed to add ingredient to recipe: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to add ingredient to recipe", zap.Error(err))
 		return common.NewBadRequestFromMessage("failed to add ingredient to recipe")
 	}
 	return nil
@@ -53,7 +53,7 @@ func (r *RecipeRepository) DeleteRecipe(ctx context.Context, id int) error {
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id)
 	if err != nil {
-		log.Printf("failed to delete recipe: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to delete recipe", zap.Error(err))
 		return common.NewBadRequestFromMessage("failed to delete recipe")
 	}
 	return nil
@@ -96,7 +96,7 @@ func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku
 	languageCode := common.GetLanguageParam(ctx)
 	rows, err := op.Query(ctx, sql, sku, languageCode)
 	if err != nil {
-		log.Printf("failed to get recipe of product: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get recipe of product", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("failed to get recipe of product")
 	}
 	defer rows.Close()
@@ -112,7 +112,7 @@ func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku
 			&recipeStandardUnit.Name, &recipeStandardUnit.Symbol, &recipeStandardUnit.Id,
 		)
 		if err != nil {
-			log.Printf("failed to scan recipe: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan recipe", zap.Error(err))
 			return nil, common.NewInternalServerError()
 		}
 		recipe.Unit = unit
@@ -133,7 +133,7 @@ func (r *RecipeRepository) GetRecipesLookUpMapFromSkus(ctx context.Context, skuL
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, skuList)
 	if err != nil {
-		log.Printf("failed to get recipes: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get recipes", zap.Error(err))
 		return nil, nil, common.NewInternalServerError()
 	}
 	defer rows.Close()
@@ -154,7 +154,7 @@ func (r *RecipeRepository) GetRecipesLookUpMapFromSkus(ctx context.Context, skuL
 		recipe.Unit = Unit{Id: &unitId}
 		recipe.IngredientStandardUnit = &Unit{Id: &standardUnitID}
 		if err != nil {
-			log.Printf("failed to scan recipe: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan recipe", zap.Error(err))
 			return nil, nil, common.NewInternalServerError()
 		}
 		recipeMap[recipe.RecipeVariantSku] = recipe

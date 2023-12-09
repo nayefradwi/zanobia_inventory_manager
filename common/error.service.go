@@ -20,7 +20,6 @@ func Recover(f http.Handler) http.Handler {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				// log.Printf("internal error in commons package: %v", err)
 				GetLogger().Error(
 					"internal error in commons package",
 					zap.Any("error", err),

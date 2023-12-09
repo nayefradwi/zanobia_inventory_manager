@@ -2,9 +2,9 @@ package product
 
 import (
 	"context"
-	"log"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type IRecipeService interface {
@@ -79,7 +79,7 @@ func (s *RecipeService) getCostOfRecipe(ctx context.Context, recipe Recipe) (flo
 		Quantity:   recipe.Quantity,
 	})
 	if err != nil {
-		log.Printf("failed to convert unit: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to convert unit", zap.Error(err))
 		return 0, err
 	}
 	return newQty.Quantity * recipe.IngredientCost, nil

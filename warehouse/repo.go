@@ -2,10 +2,10 @@ package warehouse
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type IWarehouseRepository interface {
@@ -41,7 +41,7 @@ func (r *WarehouseRepository) GetWarehouses(ctx context.Context, userId int) ([]
 	`
 	rows, err := r.Query(ctx, sql, userId)
 	if err != nil {
-		log.Printf("Failed to get warehouses: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get warehouses", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get warehouses")
 	}
 	defer rows.Close()
@@ -50,7 +50,7 @@ func (r *WarehouseRepository) GetWarehouses(ctx context.Context, userId int) ([]
 		var warehouse Warehouse
 		err := rows.Scan(&warehouse.Id, &warehouse.Name, &warehouse.Lat, &warehouse.Lng)
 		if err != nil {
-			log.Printf("Failed to scan: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("Failed to scan", zap.Error(err))
 			return nil, common.NewBadRequestFromMessage("Failed to get warehouses")
 		}
 		warehouses = append(warehouses, warehouse)
@@ -62,7 +62,7 @@ func (r *WarehouseRepository) AddUserToWarehouse(ctx context.Context, input Ware
 	sql := `INSERT INTO user_warehouses (warehouse_id, user_id) VALUES ($1, $2)`
 	_, err := r.Exec(ctx, sql, input.WarehouseId, input.UserId)
 	if err != nil {
-		log.Printf("Failed to add user to warehouse: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to add user to warehouse", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to add user to warehouse")
 	}
 	return nil
@@ -82,7 +82,7 @@ func (r *WarehouseRepository) GetWarehouseById(ctx context.Context, warehouseId,
 		&warehouse.Lng,
 	)
 	if err != nil {
-		log.Printf("Failed to get warehouse: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get warehouse", zap.Error(err))
 		return warehouse, common.NewBadRequestFromMessage("Failed to get warehouse")
 	}
 	return warehouse, nil
@@ -92,7 +92,7 @@ func (r *WarehouseRepository) UpdateWarehouse(ctx context.Context, warehouse War
 	sql := `UPDATE warehouses SET name = $1, lat = $2, lng = $3 WHERE id = $4`
 	_, err := r.Exec(ctx, sql, warehouse.Name, warehouse.Lat, warehouse.Lng, warehouse.Id)
 	if err != nil {
-		log.Printf("Failed to update warehouse: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to update warehouse", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to update warehouse")
 	}
 	return nil

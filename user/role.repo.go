@@ -2,12 +2,12 @@ package user
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
+	"go.uber.org/zap"
 )
 
 type IRoleRepository interface {
@@ -56,7 +56,7 @@ func (r *RoleRepository) _addPermissionsToRole(ctx context.Context, tx pgx.Tx, r
 	for _, permission := range handles {
 		_, err := tx.Exec(ctx, sql, roleId, permission)
 		if err != nil {
-			log.Printf("failed to add permission to role: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to add permission to role", zap.Error(err))
 			return common.NewBadRequestError("Failed to add permissions to user", zimutils.GetErrorCodeFromError(err))
 		}
 	}

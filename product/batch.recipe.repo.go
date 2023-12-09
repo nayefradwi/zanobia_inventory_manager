@@ -2,11 +2,11 @@ package product
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
+	"go.uber.org/zap"
 )
 
 func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
@@ -20,10 +20,10 @@ func (r *BatchRepository) GetBulkBatchUpdateInfoWithRecipe(
 	r.getProductMetaInfoAndRecipesFromSkuList(pgxBatch, skus)
 	useMostExpired := common.GetBoolFromContext(ctx, UseMostExpiredKey{})
 	if useMostExpired {
-		log.Printf("Using most expired batch")
+		common.GetLogger().Info("Using most expired batch")
 		r.getMostExpiredRecipeBatchBases(ctx, pgxBatch, skus)
 	} else {
-		log.Printf("Using least expired batch")
+		common.GetLogger().Info("Using least expired batch")
 		r.getLeastExpiredRecipeBatchBases(ctx, pgxBatch, skus)
 	}
 	op := common.GetOperator(ctx, r.Pool)
@@ -124,7 +124,7 @@ func (r *BatchRepository) parseVariantInfoAndRecipe(
 			&recipeStandardUnitId, &recipeStandardUnitCost,
 		)
 		if err != nil {
-			log.Printf("Failed to scan batch bases: %s", err.Error())
+			common.GetLogger().Error("Failed to scan batch bases", zap.Error(err))
 			return batchVariantMetaInfoLookup,
 				recipeLookup,
 				common.NewBadRequestFromMessage("Failed to scan batch bases")
@@ -253,7 +253,7 @@ func (r *BatchRepository) parseIfRecipesIncludedFromResults(
 ) bool {
 	rows, err := results.Query()
 	if err != nil {
-		log.Printf("Failed to get recipes using skus: %s", err.Error())
+		common.GetLogger().Error("Failed to get recipes using skus:", zap.Error(err))
 		return true
 	}
 	defer rows.Close()
@@ -261,7 +261,7 @@ func (r *BatchRepository) parseIfRecipesIncludedFromResults(
 		var recipeVariantSku *string
 		err := rows.Scan(&recipeVariantSku)
 		if err != nil {
-			log.Printf("Failed to scan recipes: %s", err.Error())
+			common.GetLogger().Error("Failed to scan recipes", zap.Error(err))
 			return true
 		}
 		if recipeVariantSku != nil {

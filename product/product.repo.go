@@ -2,13 +2,13 @@ package product
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
+	"go.uber.org/zap"
 )
 
 type IProductRepo interface {
@@ -86,7 +86,7 @@ func (r *ProductRepo) addProduct(ctx context.Context, product ProductInput) (int
 	op := common.GetOperator(ctx, r.Pool)
 	err := op.QueryRow(ctx, sql, product.Image, product.CategoryId, product.IsArchived, product.IsIngredient).Scan(&id)
 	if err != nil {
-		log.Printf("failed to create ingredient: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to create ingredient", zap.Error(err))
 		return 0, common.NewBadRequestError("Failed to create ingredient", zimutils.GetErrorCodeFromError(err))
 	}
 	return id, nil
@@ -97,7 +97,7 @@ func (r *ProductRepo) insertTranslation(ctx context.Context, product ProductInpu
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, product.Id, product.Name, product.Description, languageCode)
 	if err != nil {
-		log.Printf("failed to insert translation: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to insert translation", zap.Error(err))
 		return common.NewBadRequestError("Failed to insert translation", zimutils.GetErrorCodeFromError(err))
 	}
 	return nil
@@ -144,7 +144,7 @@ func (r *ProductRepo) insertProductVariant(ctx context.Context, productId *int, 
 		productVariant.ExpiresInDays,
 	).Scan(&id)
 	if err != nil {
-		log.Printf("failed to insert product variant: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to insert product variant", zap.Error(err))
 		return 0, common.NewBadRequestError("Failed to insert product variant", zimutils.GetErrorCodeFromError(err))
 	}
 	return id, nil
@@ -155,7 +155,7 @@ func (r *ProductRepo) insertProductVariantTranslation(ctx context.Context, produ
 	sql := `INSERT INTO product_variant_translations (product_id, product_variant_id, name, language_code) VALUES ($1, $2, $3, $4)`
 	_, err := op.Exec(ctx, sql, productId, productVariant.Id, productVariant.Name, languageCode)
 	if err != nil {
-		log.Printf("failed to insert product variant translation: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to insert product variant translation", zap.Error(err))
 		return common.NewBadRequestError("Failed to insert product variant translation", zimutils.GetErrorCodeFromError(err))
 	}
 	return nil
@@ -179,7 +179,7 @@ func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, produc
 	sql := `INSERT INTO product_variant_values (product_variant_id, product_option_value_id) VALUES ($1, $2)`
 	_, err := op.Exec(ctx, sql, productVariantId, valueId)
 	if err != nil {
-		log.Printf("failed to insert product variant selected value: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to insert product variant selected value", zap.Error(err))
 		return common.NewBadRequestError("Failed to insert product variant selected value", zimutils.GetErrorCodeFromError(err))
 	}
 	return nil
@@ -216,7 +216,7 @@ func (r *ProductRepo) addProductOption(ctx context.Context, productId *int, opti
 	var id int
 	err := op.QueryRow(ctx, sql, productId, option.Name, languageCode).Scan(&id)
 	if err != nil {
-		log.Printf("failed to translate product option: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to translate product option", zap.Error(err))
 		return 0, common.NewBadRequestError("Failed to translate product option", zimutils.GetErrorCodeFromError(err))
 	}
 	return id, nil
@@ -236,7 +236,7 @@ func (r *ProductRepo) addProductOptionValue(ctx context.Context, optionId int, p
 	var id int
 	err := op.QueryRow(ctx, sql, optionId, productOptionValue.Value, languageCode).Scan(&id)
 	if err != nil {
-		log.Printf("failed to translate product option value: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to translate product option value", zap.Error(err))
 		return 0, common.NewBadRequestError("Failed to translate product option value", zimutils.GetErrorCodeFromError(err))
 	}
 	return id, nil
@@ -272,7 +272,7 @@ func (r *ProductRepo) GetProducts(
 		Query(ctx, isArchive, languageCode, isIngredient)
 
 	if err != nil {
-		log.Printf("failed to get products: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get products", zap.Error(err))
 		return nil, common.NewBadRequestError("Failed to get products", zimutils.GetErrorCodeFromError(err))
 	}
 	defer rows.Close()
@@ -283,7 +283,7 @@ func (r *ProductRepo) GetProducts(
 			&product.Description, &product.Image, &product.IsArchived, &product.CategoryId,
 		)
 		if err != nil {
-			log.Printf("failed to scan product: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan product", zap.Error(err))
 			return nil, common.NewInternalServerError()
 		}
 		products = append(products, product)
@@ -304,9 +304,10 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	langCode := common.GetLanguageParam(ctx)
 	rows, err := op.Query(ctx, sql, id, langCode)
 	if err != nil {
-		log.Printf("failed to get product: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get product", zap.Error(err))
 		return Product{}, common.NewBadRequestFromMessage("Failed to get product")
 	}
+
 	defer rows.Close()
 	var product Product
 	options := map[string]ProductOption{}
@@ -318,7 +319,7 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 			&product.CategoryId, &option.Id, &option.Name, &optionValue.Id, &optionValue.Value,
 		)
 		if err != nil {
-			log.Printf("failed to scan product: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan product", zap.Error(err))
 			return Product{}, common.NewInternalServerError()
 		}
 		if _variant, ok := options[option.Name]; ok {
@@ -337,7 +338,7 @@ func (r *ProductRepo) GetOriginalUnitsBySkuList(ctx context.Context, skuList []s
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, skuList)
 	if err != nil {
-		log.Printf("failed to get original units: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get original units", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get original units")
 	}
 	defer rows.Close()
@@ -347,7 +348,7 @@ func (r *ProductRepo) GetOriginalUnitsBySkuList(ctx context.Context, skuList []s
 		var sku string
 		err := rows.Scan(&unitId, &sku)
 		if err != nil {
-			log.Printf("failed to scan unit: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan unit", zap.Error(err))
 			return nil, common.NewInternalServerError()
 		}
 		units[sku] = unitId

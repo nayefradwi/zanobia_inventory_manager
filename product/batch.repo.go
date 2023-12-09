@@ -2,13 +2,13 @@ package product
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
+	"go.uber.org/zap"
 )
 
 type IBatchRepository interface {
@@ -45,7 +45,7 @@ func (r *BatchRepository) CreateBatch(ctx context.Context, input BatchInput, exp
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
-		log.Printf("Failed to create batch: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to create batch", zap.Error(err))
 		return 0, common.NewBadRequestFromMessage("Failed to create batch")
 	}
 	return id, nil
@@ -57,7 +57,7 @@ func (r *BatchRepository) UpdateBatch(ctx context.Context, base BatchBase) error
 	sql := `UPDATE batches SET quantity = $1, updated_at = $2 WHERE id = $3 and warehouse_id = $4`
 	_, err := op.Exec(ctx, sql, base.Quantity, updatedAt, base.Id, base.WarehouseId)
 	if err != nil {
-		log.Printf("Failed to update batch: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to update batch", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to update batch")
 	}
 	return nil
@@ -84,7 +84,7 @@ func (r *BatchRepository) GetBatches(ctx context.Context, params common.Paginati
 		Build().
 		Query(ctx, lang, warehouseId)
 	if err != nil {
-		log.Printf("Failed to get batches: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get batches", zap.Error(err))
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to get batches")
 	}
 	defer rows.Close()
@@ -114,7 +114,7 @@ func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, pa
 		Build().
 		Query(ctx, lang, warehouseId, sku)
 	if err != nil {
-		log.Printf("Failed to search batches: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to search batches", zap.Error(err))
 		return []Batch{}, common.NewBadRequestFromMessage("Failed to search batches")
 	}
 	defer rows.Close()
@@ -134,7 +134,7 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 			&productVariantBase.ProductId, &batch.ProductName,
 		)
 		if err != nil {
-			log.Printf("Failed to scan batches: %s", err.Error())
+			common.GetLogger().Error("Failed to scan batches", zap.Error(err))
 			return []Batch{}, common.NewBadRequestFromMessage("Failed to scan batches")
 		}
 		batch.Unit = unit
@@ -176,7 +176,7 @@ func (r *BatchRepository) processBulkBatchUnitOfWork(
 	for i := 0; i < transactionsBatch.Len(); i++ {
 		_, err := results.Exec()
 		if err != nil {
-			log.Printf("Failed to process bulk batch unit of work: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("Failed to process bulk batch unit of work", zap.Error(err))
 			return common.NewBadRequestFromMessage("Failed to process bulk batch unit of work")
 		}
 	}

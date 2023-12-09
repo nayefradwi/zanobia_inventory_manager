@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
@@ -10,6 +9,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
+	"go.uber.org/zap"
 )
 
 type IUserRepository interface {
@@ -51,7 +51,7 @@ func (r *UserRepository) _createUser(ctx context.Context, tx pgx.Tx, user UserIn
 	var id int
 	err := tx.QueryRow(ctx, sql, user.Email, user.Password, user.FirstName, user.LastName, true).Scan(&id)
 	if err != nil {
-		log.Printf("failed to create user: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to create user", zap.Error(err))
 		return 0, common.NewBadRequestError("Failed to create user", zimutils.GetErrorCodeFromError(err))
 	}
 	return id, nil
@@ -62,7 +62,7 @@ func (r *UserRepository) _addPermissionsToUser(ctx context.Context, tx pgx.Tx, u
 	for _, permission := range handles {
 		_, err := tx.Exec(ctx, sql, userId, permission)
 		if err != nil {
-			log.Printf("failed to add permission to user: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to add permission to user", zap.Error(err))
 			return common.NewBadRequestError("Failed to add permissions to user", zimutils.GetErrorCodeFromError(err))
 		}
 	}
@@ -73,7 +73,7 @@ func (s *UserRepository) GetAllUsers(ctx context.Context) ([]User, error) {
 	sql := "SELECT id, email, first_name, last_name, is_active FROM users"
 	rows, err := s.Query(ctx, sql)
 	if err != nil {
-		log.Printf("failed to get users: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get users", zap.Error(err))
 		return nil, common.NewInternalServerError()
 	}
 	defer rows.Close()
@@ -82,7 +82,7 @@ func (s *UserRepository) GetAllUsers(ctx context.Context) ([]User, error) {
 		var user User
 		err := rows.Scan(&user.Id, &user.Email, &user.FirstName, &user.LastName, &user.IsActive)
 		if err != nil {
-			log.Printf("failed to scan user: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan user", zap.Error(err))
 			return nil, common.NewInternalServerError()
 		}
 		users = append(users, user)
@@ -103,7 +103,7 @@ func (s *UserRepository) GetUserByEmail(ctx context.Context, email string) (User
 	`
 	rows, err := s.Query(ctx, sql, email)
 	if err != nil {
-		log.Printf("failed to get user: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get user", zap.Error(err))
 		return User{}, common.NewInternalServerError()
 	}
 	defer rows.Close()
@@ -123,7 +123,7 @@ func (s *UserRepository) GetUserById(ctx context.Context, id int) (User, error) 
 	`
 	rows, err := s.Query(ctx, sql, id)
 	if err != nil {
-		log.Printf("failed to get user: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get user", zap.Error(err))
 		return User{}, common.NewInternalServerError()
 	}
 	defer rows.Close()
@@ -146,7 +146,7 @@ func createUserFromRows(rows pgx.Rows) (User, error) {
 			&warehouseId, &warehouseName, &warehouseLat, &warehouseLng,
 		)
 		if err != nil {
-			log.Printf("failed to scan user: %s", err.Error())
+			common.LoggerFromCtx(context.Background()).Error("failed to scan user", zap.Error(err))
 			return User{}, common.NewInternalServerError()
 		}
 		if permissionHandle.Status != pgtype.Null {
@@ -180,7 +180,7 @@ func (r *UserRepository) BanUser(ctx context.Context, id int) error {
 	sql := "UPDATE users SET is_active = false WHERE id = $1"
 	_, err := r.Exec(ctx, sql, id)
 	if err != nil {
-		log.Printf("failed to ban user: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to ban user", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil

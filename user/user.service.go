@@ -2,9 +2,9 @@ package user
 
 import (
 	"context"
-	"log"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type IUserService interface {
@@ -40,7 +40,7 @@ func (s *UserService) Create(ctx context.Context, user UserInput) error {
 	}
 	hashPassword, hashError := common.Hash(user.Password)
 	if hashError != nil {
-		log.Printf("failed to hash: %s", hashError.Error())
+		common.LoggerFromCtx(ctx).Error("failed to hash", zap.Error(hashError))
 		return common.NewInternalServerError()
 	}
 	user.Password = hashPassword
@@ -70,6 +70,7 @@ func (s *UserService) LoginUser(ctx context.Context, input UserLoginInput) (comm
 	user, _ := s.Repository.GetUserByEmail(ctx, input.Email)
 	hash := user.Hash
 	if hash == nil || *hash == "" {
+		common.LoggerFromCtx(ctx).Error("User with this email is not found")
 		return common.Token{}, common.NewBadRequestError("User with this email is not found", "user_not_found")
 	}
 	match := common.CompareHash(input.Password, *hash)
@@ -80,7 +81,7 @@ func (s *UserService) LoginUser(ctx context.Context, input UserLoginInput) (comm
 	user.Email = nil
 	userClaim, err := common.StructToMap(user)
 	if err != nil {
-		log.Printf("failed to convert user to map: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to convert user to map", zap.Error(err))
 		return common.Token{}, common.NewInternalServerError()
 	}
 	return common.GenerateAccessToken(userClaim)

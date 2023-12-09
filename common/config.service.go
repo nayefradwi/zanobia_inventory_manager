@@ -1,7 +1,6 @@
 package common
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -30,13 +29,12 @@ func LoadEnv() {
 	GetLogger().Info("Loading environment: " + envFileName)
 	err := godotenv.Load(envFileName)
 	if err != nil {
-		GetLogger().Error(
+		GetLogger().Fatal(
 			"failed to load environment",
 			zap.Error(err),
 			zap.String("env", env),
 			zap.Stack("stack trace"),
 		)
-		log.Fatalf("failed to load environment: %s", err.Error())
 	}
 }
 

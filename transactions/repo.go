@@ -2,12 +2,12 @@ package transactions
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
+	"go.uber.org/zap"
 )
 
 type ITransactionRepository interface {
@@ -37,7 +37,7 @@ func (r *TransactionRepository) CreateTransactionReason(ctx context.Context, rea
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, reason.Name, reason.Description, reason.IsPositive)
 	if err != nil {
-		log.Printf("Failed to create transaction reason: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to create transaction reason", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to create transaction reason")
 	}
 	return nil
@@ -48,7 +48,7 @@ func (r *TransactionRepository) GetTransactionReasons(ctx context.Context) ([]Tr
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql)
 	if err != nil {
-		log.Printf("Failed to get transaction reasons: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get transaction reasons", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transaction reasons")
 	}
 	defer rows.Close()
@@ -57,7 +57,7 @@ func (r *TransactionRepository) GetTransactionReasons(ctx context.Context) ([]Tr
 		reason := TransactionReason{}
 		err := rows.Scan(&reason.Id, &reason.Name, &reason.Description, &reason.IsPositive)
 		if err != nil {
-			log.Printf("Failed to scan transaction reason: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("Failed to scan transaction reason", zap.Error(err))
 			return nil, common.NewBadRequestFromMessage("Failed to get transaction reasons")
 		}
 		reasons = append(reasons, reason)
@@ -76,7 +76,7 @@ func (r *TransactionRepository) InsertTransaction(ctx context.Context, input tra
 		input.Quantity, input.UnitId, input.Amount, input.Reason, input.Comment, input.Sku,
 	)
 	if err != nil {
-		log.Printf("Failed to insert transaction: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to insert transaction", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to insert transaction")
 	}
 	return nil
@@ -94,7 +94,7 @@ func (r *TransactionRepository) GetTransactionsOfRetailer(ctx context.Context, r
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, retailerId)
 	if err != nil {
-		log.Printf("Failed to get transactions of retailer: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get transactions of retailer", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions of retailer")
 	}
 	defer rows.Close()
@@ -113,7 +113,7 @@ func (r *TransactionRepository) GetTransactionsOfRetailerBatch(ctx context.Conte
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, retailerBatchId, retailerId)
 	if err != nil {
-		log.Printf("Failed to get transactions of retailer batch: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get transactions of retailer batch", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions of retailer batch")
 	}
 	defer rows.Close()
@@ -132,7 +132,7 @@ func (r *TransactionRepository) GetTransactionsOfSKU(ctx context.Context, sku st
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, sku, warehouse.GetWarehouseId(ctx))
 	if err != nil {
-		log.Printf("Failed to get transactions for SKU: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get transactions for SKU", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions for SKU")
 	}
 	defer rows.Close()
@@ -151,7 +151,7 @@ func (r *TransactionRepository) GetTransactionsOfBatch(ctx context.Context, batc
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, batchId, warehouse.GetWarehouseId(ctx))
 	if err != nil {
-		log.Printf("Failed to get transactions for batch: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get transactions for batch", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions for batch")
 	}
 	defer rows.Close()
@@ -170,7 +170,7 @@ func (r *TransactionRepository) GetTransactionsOfWarehouse(ctx context.Context) 
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, warehouse.GetWarehouseId(ctx))
 	if err != nil {
-		log.Printf("Failed to get transactions for warehouse: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get transactions for warehouse", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions for warehouse")
 	}
 	defer rows.Close()
@@ -189,7 +189,7 @@ func (r *TransactionRepository) parseRows(rows pgx.Rows) ([]Transaction, error) 
 			&transaction.CreatedAt, &transactionReason.Name, &transactionReason.IsPositive,
 		)
 		if err != nil {
-			log.Printf("Failed to scan transaction: %s", err.Error())
+			common.GetLogger().Error("Failed to scan transaction", zap.Error(err))
 			return nil, common.NewBadRequestFromMessage("Failed to get transactions")
 		}
 		transaction.Reason = transactionReason

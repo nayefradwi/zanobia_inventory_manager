@@ -2,13 +2,13 @@ package retailer
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
+	"go.uber.org/zap"
 )
 
 type IRetailerBatchRepository interface {
@@ -38,7 +38,7 @@ func (r *RetailerBatchRepository) CreateRetailerBatch(ctx context.Context, input
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
-		log.Printf("Failed to create retailer batch: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to create retailer batch", zap.Error(err))
 		return 0, common.NewBadRequestFromMessage("Failed to create retailer batch")
 	}
 	return id, nil
@@ -50,7 +50,7 @@ func (r *RetailerBatchRepository) UpdateRetailerBatch(ctx context.Context, base 
 	sql := `UPDATE retailer_batches SET quantity = $1, updated_at = $2 WHERE id = $3 and retailer_id = $4`
 	_, err := op.Exec(ctx, sql, base.Quantity, updatedAt, base.Id, base.RetailerId)
 	if err != nil {
-		log.Printf("Failed to update retailer batch: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to update retailer batch", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to update retailer batch")
 	}
 	return nil
@@ -66,7 +66,7 @@ func (r *RetailerBatchRepository) GetRetailerBatchBaseById(ctx context.Context, 
 		&retailerBatchBase.UnitId, &retailerBatchBase.ExpiresAt, &retailerBatchBase.RetailerId,
 	)
 	if err != nil {
-		log.Printf("Failed to get retailer batch base: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get retailer batch base", zap.Error(err))
 		return RetailerBatchBase{}, common.NewBadRequestFromMessage("Failed to get retailer batch base")
 	}
 	return retailerBatchBase, nil
@@ -90,7 +90,7 @@ func (r *RetailerBatchRepository) GetRetailerBatchBase(
 		&retailerBatchBase.ExpiresAt, &retailerBatchBase.RetailerId,
 	)
 	if err != nil {
-		log.Printf("Failed to get retailer batch base: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get retailer batch base", zap.Error(err))
 		return RetailerBatchBase{}, common.NewBadRequestFromMessage("Failed to get retailer batch base")
 	}
 	return retailerBatchBase, nil
@@ -115,7 +115,7 @@ func (r *RetailerBatchRepository) GetRetailerBatches(ctx context.Context, retail
 		Build().
 		Query(ctx, lang, retailerId)
 	if err != nil {
-		log.Printf("Failed to get batches: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get batches", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get batches")
 	}
 	defer rows.Close()
@@ -146,7 +146,7 @@ func (r *RetailerBatchRepository) SearchRetailerBatchesBySku(
 		Build().
 		Query(ctx, lang, retailerId, sku)
 	if err != nil {
-		log.Printf("Failed to get retailer batches: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get retailer batches", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get retailer batches")
 	}
 	defer rows.Close()
@@ -178,7 +178,7 @@ func (r *RetailerBatchRepository) parseRetailerBatchRows(rows pgx.Rows) ([]Retai
 			&productVariantBase.ProductId, &retailerBatch.ProductName, &retailerBatch.RetailerId, &retailerBatch.RetailerName,
 		)
 		if err != nil {
-			log.Printf("Failed to scan retailer batches: %s", err.Error())
+			common.GetLogger().Error("Failed to scan retailer batches", zap.Error(err))
 			return []RetailerBatch{}, common.NewBadRequestFromMessage("Failed to scan retailer batches")
 		}
 		retailerBatch.Unit = unit
@@ -193,7 +193,7 @@ func (r *RetailerBatchRepository) DeleteBatchesOfRetailer(ctx context.Context, r
 	sql := `DELETE FROM retailer_batches WHERE retailer_id = $1`
 	_, err := op.Exec(ctx, sql, retailerId)
 	if err != nil {
-		log.Printf("Failed to delete retailer batches: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to delete retailer batches", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to delete retailer batches")
 	}
 	return nil

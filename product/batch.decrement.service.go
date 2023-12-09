@@ -2,11 +2,11 @@ package product
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
+	"go.uber.org/zap"
 )
 
 func (s *BatchService) DecrementBatch(ctx context.Context, input BatchInput) error {
@@ -19,7 +19,7 @@ func (s *BatchService) BulkDecrementBatch(ctx context.Context, inputs []BatchInp
 	}
 	bulkBatchUpdateInfo, err := s.batchRepo.GetBulkBatchUpdateInfo(ctx, inputs)
 	if err != nil {
-		log.Printf("Failed to process batch decrement: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to process batch decrement", zap.Error(err))
 		return common.NewBadRequestFromMessage("failed to process batch decrement")
 	}
 	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {

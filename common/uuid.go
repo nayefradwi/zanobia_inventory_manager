@@ -1,16 +1,16 @@
 package common
 
 import (
-	"log"
 	"strings"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 func GenerateUuid() (string, error) {
 	u, err := uuid.NewRandom()
 	if err != nil {
-		log.Printf("error generating uuid: %v", err)
+		GetLogger().Error("error generating uuid", zap.Error(err))
 		return "", err
 	}
 	uuidStr := strings.ReplaceAll(u.String(), "-", "")

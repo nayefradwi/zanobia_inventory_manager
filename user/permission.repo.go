@@ -2,11 +2,11 @@ package user
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
+	"go.uber.org/zap"
 )
 
 const (
@@ -49,7 +49,7 @@ func (r *PermissionRepository) FindByHandle(ctx context.Context, handle string) 
 	var permission Permission
 	err := row.Scan(&permission.Id, &permission.Handle, &permission.Name, &permission.Description, &permission.IsSecret)
 	if err != nil {
-		log.Printf("failed to find permission by handle: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to find permission by handle", zap.Error(err))
 		return Permission{}, common.NewNotFoundError("permission not found")
 	}
 	return permission, nil
@@ -58,7 +58,7 @@ func (r *PermissionRepository) FindByHandle(ctx context.Context, handle string) 
 func (r *PermissionRepository) AddAll(ctx context.Context, permissions []Permission) error {
 	tx, err := r.Begin(ctx)
 	if err != nil {
-		log.Printf("failed to start transaction: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to start transaction", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	defer tx.Rollback(ctx)
@@ -66,7 +66,7 @@ func (r *PermissionRepository) AddAll(ctx context.Context, permissions []Permiss
 	for _, p := range permissions {
 		_, err := tx.Exec(ctx, sql, p.Handle, p.Name, p.Description, p.IsSecret)
 		if err != nil {
-			log.Printf("failed to add permission: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to add permission", zap.Error(err))
 			return common.NewBadRequestError("failed to add permissions", zimutils.GetErrorCodeFromError(err))
 		}
 	}
@@ -81,7 +81,7 @@ func (r *PermissionRepository) CreatePermssion(ctx context.Context, permission P
 	sql := "INSERT INTO permissions (handle, name, description, is_secret) VALUES ($1, $2, $3, $4)"
 	c, err := r.Exec(ctx, sql, permission.Handle, permission.Name, permission.Description, permission.IsSecret)
 	if err != nil {
-		log.Printf("failed to add permission: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to add permission", zap.Error(err))
 		return common.NewBadRequestError("failed to add permissions", zimutils.GetErrorCodeFromError(err))
 	}
 	if c.RowsAffected() == 0 {
@@ -94,7 +94,7 @@ func (r *PermissionRepository) GetAllPermissions(ctx context.Context) ([]Permiss
 	sql := "SELECT id, handle, name, description, is_secret FROM permissions where is_secret = false"
 	rows, err := r.Query(ctx, sql)
 	if err != nil {
-		log.Printf("failed to get all permissions: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get all permissions", zap.Error(err))
 		return nil, common.NewInternalServerError()
 	}
 	defer rows.Close()
@@ -103,7 +103,7 @@ func (r *PermissionRepository) GetAllPermissions(ctx context.Context) ([]Permiss
 		var permission Permission
 		err := rows.Scan(&permission.Id, &permission.Handle, &permission.Name, &permission.Description, &permission.IsSecret)
 		if err != nil {
-			log.Printf("failed to get all permissions: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to get all permissions", zap.Error(err))
 			return nil, common.NewInternalServerError()
 		}
 		permissions = append(permissions, permission)

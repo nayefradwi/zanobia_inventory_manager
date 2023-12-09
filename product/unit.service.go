@@ -2,10 +2,10 @@ package product
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type IUnitService interface {
@@ -48,7 +48,10 @@ func (s *UnitService) CreateUnit(ctx context.Context, unit Unit) error {
 		return err
 	}
 	unit.Id = &id
-	log.Printf("adding unit to cached map: %s", unit.Name)
+	common.LoggerFromCtx(ctx).Info(
+		"adding unit to cached map",
+		zap.String("unit_string", unit.Name),
+	)
 	s.unitsMap[id] = unit
 	return nil
 }
@@ -76,7 +79,10 @@ func (s *UnitService) CreateConversion(ctx context.Context, conversion UnitConve
 		return err
 	}
 	key := s.GetUnitConversionKey(*conversion.ToUnitId, *conversion.FromUnitId)
-	log.Printf("adding unit conversion to cached map: %s", key)
+	common.LoggerFromCtx(ctx).Info(
+		"adding unit conversion to cached map",
+		zap.String("key", key),
+	)
 	s.unitConversionsMap[key] = conversion
 	return nil
 }
@@ -108,7 +114,7 @@ func (s *UnitService) convertUsingMap(ctx context.Context, input ConvertUnitInpu
 	if !ok {
 		return s.convertUsingDatabase(ctx, input)
 	}
-	log.Printf("converting using cached unit conversions map")
+	common.LoggerFromCtx(ctx).Info("converting using cached unit conversions map")
 	newQty := input.Quantity * unitConversion.ConversionFactor
 	newUnit, err := s.GetUnitById(ctx, unitConversion.ToUnitId)
 	if err != nil {
@@ -118,7 +124,7 @@ func (s *UnitService) convertUsingMap(ctx context.Context, input ConvertUnitInpu
 }
 
 func (s *UnitService) convertUsingDatabase(ctx context.Context, input ConvertUnitInput) (ConvertUnitOutput, error) {
-	log.Printf("converting using database; cache miss")
+	common.LoggerFromCtx(ctx).Info("converting using database; cache miss")
 	unitConversion, err := s.repo.GetUnitConversionByUnitId(ctx, input.ToUnitId, input.FromUnitId)
 	if err != nil {
 		return ConvertUnitOutput{}, err
@@ -142,10 +148,13 @@ func (s *UnitService) GetUnitById(ctx context.Context, id *int) (Unit, error) {
 	}
 	unit := s.unitsMap[*id]
 	if unit.Id != nil {
-		log.Printf("returning unit from cached map: %s", unit.Name)
+		common.LoggerFromCtx(ctx).Info(
+			"unit found in cached map",
+			zap.String("unit_string", unit.Name),
+		)
 		return unit, nil
 	}
-	log.Printf("unit not found in cached map, fetching from database")
+	common.LoggerFromCtx(ctx).Info("unit not found in cached map, fetching from database")
 	unit, err := s.repo.GetUnitById(ctx, id)
 	if err != nil {
 		return Unit{}, err
@@ -165,7 +174,10 @@ func (s *UnitService) SetupUnitConversionsMap(ctx context.Context) error {
 		unitConversionsMap[key] = unitConversion
 	}
 	s.unitConversionsMap = unitConversionsMap
-	log.Printf("unit conversions map: %v", s.unitConversionsMap)
+	common.LoggerFromCtx(ctx).Info(
+		"unit conversions map setup",
+		zap.Any("unit_conversions_map", s.unitConversionsMap),
+	)
 	return nil
 }
 
@@ -179,6 +191,9 @@ func (s *UnitService) SetupUnitsMap(ctx context.Context) error {
 		unitsMap[*unit.Id] = unit
 	}
 	s.unitsMap = unitsMap
-	log.Printf("units map: %v", s.unitsMap)
+	common.LoggerFromCtx(ctx).Info(
+		"units map setup",
+		zap.Any("units_map", s.unitsMap),
+	)
 	return nil
 }

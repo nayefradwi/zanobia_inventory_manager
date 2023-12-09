@@ -2,12 +2,12 @@ package product
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
+	"go.uber.org/zap"
 )
 
 func (r *ProductRepo) GetProductVariantsOfProduct(ctx context.Context, productId int) ([]ProductVariant, error) {
@@ -21,7 +21,7 @@ func (r *ProductRepo) GetProductVariantsOfProduct(ctx context.Context, productId
 	langCode := common.GetLanguageParam(ctx)
 	rows, err := op.Query(ctx, sql, productId, langCode)
 	if err != nil {
-		log.Printf("failed to get product variants: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get product variants", zap.Error(err))
 		return []ProductVariant{}, common.NewBadRequestFromMessage("Failed to get product variants")
 	}
 	defer rows.Close()
@@ -33,7 +33,7 @@ func (r *ProductRepo) GetProductVariantsOfProduct(ctx context.Context, productId
 			&productVariant.Image, &productVariant.Price, &productVariant.IsArchived, &productVariant.IsDefault,
 		)
 		if err != nil {
-			log.Printf("failed to scan product variant: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan product variant", zap.Error(err))
 			return []ProductVariant{}, common.NewInternalServerError()
 		}
 		productVariants = append(productVariants, productVariant)
@@ -66,7 +66,7 @@ func (r *ProductRepo) GetProductVariant(ctx context.Context, productVariantId in
 		&productVariant.ExpiresInDays, &unit.Id, &unit.Name, &unit.Symbol, &productVariant.ProductName,
 	)
 	if err != nil {
-		log.Printf("failed to scan product variant: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to scan product variant", zap.Error(err))
 		return ProductVariant{}, common.NewBadRequestError("failed to get product variant", zimutils.GetErrorCodeFromError(err))
 	}
 	productVariant.StandardUnit = &unit
@@ -94,7 +94,7 @@ func (r *ProductRepo) GetUnitIdOfProductVariantBySku(ctx context.Context, sku st
 	var unitId int
 	err := row.Scan(&unitId)
 	if err != nil {
-		log.Printf("failed to scan unit id: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to scan unit id", zap.Error(err))
 		return 0, common.NewBadRequestError("failed to get unit id", zimutils.GetErrorCodeFromError(err))
 	}
 	return unitId, nil
@@ -110,7 +110,7 @@ func (r *ProductRepo) GetProductVariantExpirationDateAndCost(ctx context.Context
 	var price float64
 	err := row.Scan(&expiresInDays, &price)
 	if err != nil {
-		log.Printf("failed to scan expires in days: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to scan expires in days", zap.Error(err))
 		return time.Time{}, 0, common.NewBadRequestError("failed to get expires in days", zimutils.GetErrorCodeFromError(err))
 	}
 	return time.Now().AddDate(0, 0, expiresInDays), price, nil
@@ -122,7 +122,7 @@ func (r *ProductRepo) GetProductOptions(ctx context.Context, productId int) ([]P
 	langCode := common.GetLanguageParam(ctx)
 	rows, err := op.Query(ctx, sql, productId, langCode)
 	if err != nil {
-		log.Printf("failed to get product options: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get product options", zap.Error(err))
 		return []ProductOption{}, common.NewBadRequestFromMessage("Failed to get product options")
 	}
 	defer rows.Close()
@@ -131,7 +131,7 @@ func (r *ProductRepo) GetProductOptions(ctx context.Context, productId int) ([]P
 		var productOption ProductOption
 		err := rows.Scan(&productOption.Id)
 		if err != nil {
-			log.Printf("failed to scan product option: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan product option", zap.Error(err))
 			return []ProductOption{}, common.NewInternalServerError()
 		}
 		productOptions = append(productOptions, productOption)
@@ -150,7 +150,7 @@ func (r *ProductRepo) GetProductSelectedValues(ctx context.Context, productId in
 	langCode := common.GetLanguageParam(ctx)
 	rows, err := op.Query(ctx, sql, productId, langCode, optionValueIds)
 	if err != nil {
-		log.Printf("failed to get product selected values: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get product selected values", zap.Error(err))
 		return map[string]ProductOptionValue{}, common.NewBadRequestFromMessage("Failed to get product selected values")
 	}
 	defer rows.Close()
@@ -160,7 +160,7 @@ func (r *ProductRepo) GetProductSelectedValues(ctx context.Context, productId in
 		var optionName string
 		err := rows.Scan(&productOptionValue.Id, &productOptionValue.Value, &optionName)
 		if err != nil {
-			log.Printf("failed to scan product option value: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan product option value", zap.Error(err))
 			return map[string]ProductOptionValue{}, common.NewInternalServerError()
 		}
 		productOptionValues[optionName] = productOptionValue
@@ -179,7 +179,7 @@ func (r *ProductRepo) UpdateProductVariantDetails(ctx context.Context, update Pr
 		update.IsArchived, update.Id,
 	)
 	if err != nil {
-		log.Printf("failed to update product variant details: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to update product variant details", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil
@@ -194,7 +194,7 @@ func (r *ProductRepo) GetProductVariantSkuFromId(ctx context.Context, id int) (s
 	var sku string
 	err := row.Scan(&sku)
 	if err != nil {
-		log.Printf("failed to scan product variant sku: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to scan product variant sku", zap.Error(err))
 		return "", common.NewInternalServerError()
 	}
 	return sku, nil
@@ -207,7 +207,7 @@ func (r *ProductRepo) DeleteProductVariantTranslations(ctx context.Context, id i
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id)
 	if err != nil {
-		log.Printf("failed to delete product variant translations: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to delete product variant translations", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil
@@ -220,7 +220,7 @@ func (r *ProductRepo) DeleteProductVariantValues(ctx context.Context, id int) er
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id)
 	if err != nil {
-		log.Printf("failed to delete product variant values: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to delete product variant values", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil
@@ -233,7 +233,7 @@ func (r *ProductRepo) DeleteRecipes(ctx context.Context, id int) error {
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id)
 	if err != nil {
-		log.Printf("failed to delete recipes: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to delete recipes", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil
@@ -246,7 +246,7 @@ func (r *ProductRepo) DeleteBatches(ctx context.Context, sku string) error {
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, sku)
 	if err != nil {
-		log.Printf("failed to delete batches: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to delete batches", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil
@@ -259,7 +259,7 @@ func (r *ProductRepo) DeleteRetailerBatches(ctx context.Context, sku string) err
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, sku)
 	if err != nil {
-		log.Printf("failed to delete retail batches: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to delete retail batches", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil
@@ -272,7 +272,7 @@ func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int) error {
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id)
 	if err != nil {
-		log.Printf("failed to delete product variant: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to delete product variant", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil
@@ -285,7 +285,7 @@ func (r *ProductRepo) UpdateProductVariantSku(ctx context.Context, oldSku, newSk
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, newSku, oldSku)
 	if err != nil {
-		log.Printf("failed to update product variant sku: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to update product variant sku", zap.Error(err))
 		return common.NewInternalServerError()
 	}
 	return nil

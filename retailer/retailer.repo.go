@@ -2,11 +2,11 @@ package retailer
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type IRetailerRepository interface {
@@ -56,7 +56,7 @@ func (r *RetailerRepo) insertRetailer(ctx context.Context, retailer Retailer) (i
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
-		log.Printf("Failed to create retailer: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to create retailer", zap.Error(err))
 		return 0, common.NewBadRequestFromMessage("Failed to create retailer")
 	}
 	return id, nil
@@ -67,7 +67,7 @@ func (r *RetailerRepo) translateRetialer(ctx context.Context, id int, retailer R
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id, languageCode, retailer.Name)
 	if err != nil {
-		log.Printf("Failed to create retailer translation: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to create retailer translation", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to create retailer translation")
 	}
 	return nil
@@ -115,7 +115,7 @@ func (r *RetailerRepo) insertRetailerContactInfo(ctx context.Context, retailerId
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
-		log.Printf("Failed to create retailer contact info: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to create retailer contact info", zap.Error(err))
 		return 0, common.NewBadRequestFromMessage("Failed to create retailer contact info")
 	}
 	return id, nil
@@ -126,7 +126,7 @@ func (r *RetailerRepo) translateRetailerContactInfo(ctx context.Context, id int,
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, id, languageCode, contact.Name, contact.Position)
 	if err != nil {
-		log.Printf("Failed to create retailer contact info translation: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to create retailer contact info translation", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to create retailer contact info translation")
 	}
 	return nil
@@ -149,7 +149,7 @@ func (r *RetailerRepo) GetRetailers(ctx context.Context, params common.Paginatio
 		Build().
 		Query(ctx, langCode)
 	if err != nil {
-		log.Printf("Failed to get retailers: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get retailers", zap.Error(err))
 		return []Retailer{}, common.NewBadRequestFromMessage("Failed to get retailers")
 	}
 	defer rows.Close()
@@ -158,7 +158,7 @@ func (r *RetailerRepo) GetRetailers(ctx context.Context, params common.Paginatio
 		var retailer Retailer
 		err := rows.Scan(&retailer.Id, &retailer.Lat, &retailer.Lng, &retailer.Name)
 		if err != nil {
-			log.Printf("Failed to get retailers: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("Failed to get retailers", zap.Error(err))
 			return []Retailer{}, common.NewBadRequestFromMessage("Failed to get retailers")
 		}
 		retailers = append(retailers, retailer)
@@ -180,7 +180,7 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 	langCode := common.GetLanguageParam(ctx)
 	rows, err := op.Query(ctx, sql, retailerId, langCode)
 	if err != nil {
-		log.Printf("Failed to get retailer: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to get retailer", zap.Error(err))
 		return Retailer{}, common.NewBadRequestFromMessage("Failed to get retailer")
 	}
 	defer rows.Close()
@@ -197,7 +197,7 @@ func (r *RetailerRepo) GetRetailer(ctx context.Context, retailerId int) (Retaile
 			&contact.Id,
 		)
 		if err != nil {
-			log.Printf("Failed to get retailer: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("Failed to get retailer", zap.Error(err))
 			return Retailer{}, common.NewBadRequestFromMessage("Failed to get retailer")
 		}
 		if contactEmail != nil {
@@ -229,7 +229,7 @@ func (r *RetailerRepo) removeRetailerContactInfo(ctx context.Context, contactInf
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, contactInfoId)
 	if err != nil {
-		log.Printf("Failed to remove retailer contact info: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to remove retailer contact info", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to remove retailer contact info")
 	}
 	return nil
@@ -240,7 +240,7 @@ func (r *RetailerRepo) removeRetailerContactInfoTranslation(ctx context.Context,
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, contactInfoId)
 	if err != nil {
-		log.Printf("Failed to remove retailer contact info translation: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to remove retailer contact info translation", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to remove retailer contact info translation")
 	}
 	return nil
@@ -251,7 +251,7 @@ func (r *RetailerRepo) RemoveRetailer(ctx context.Context, retailerId int) error
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, retailerId)
 	if err != nil {
-		log.Printf("Failed to remove retailer: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to remove retailer", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to remove retailer")
 	}
 	return nil
@@ -262,7 +262,7 @@ func (r *RetailerRepo) RemoveRetailerTranslations(ctx context.Context, retailerI
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, retailerId)
 	if err != nil {
-		log.Printf("Failed to remove retailer translations: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to remove retailer translations", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to remove retailer translations")
 	}
 	return nil
@@ -285,7 +285,7 @@ func (r *RetailerRepo) updateRetailerLatLng(ctx context.Context, retailerId int,
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, lat, lng, retailerId)
 	if err != nil {
-		log.Printf("Failed to update retailer: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to update retailer", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to update retailer")
 	}
 	return nil
@@ -296,7 +296,7 @@ func (r *RetailerRepo) updateRetailerName(ctx context.Context, retailerId int, n
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, name, retailerId)
 	if err != nil {
-		log.Printf("Failed to update retailer: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to update retailer", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to update retailer")
 	}
 	return nil
@@ -317,7 +317,7 @@ func (r RetailerRepo) removeAllContactsOfRetailer(ctx context.Context, retailerI
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, retailerId)
 	if err != nil {
-		log.Printf("Failed to remove retailer contact info: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to remove retailer contact info", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to remove retailer contact info")
 	}
 	return nil
@@ -332,7 +332,7 @@ func (r RetailerRepo) removeAllContactInfoTranslationsOfRetailer(ctx context.Con
 	op := common.GetOperator(ctx, r.Pool)
 	_, err := op.Exec(ctx, sql, retailerId)
 	if err != nil {
-		log.Printf("Failed to remove retailer contact info translation: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("Failed to remove retailer contact info translation", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to remove retailer contact info translation")
 	}
 	return nil

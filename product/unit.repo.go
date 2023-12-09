@@ -2,12 +2,12 @@ package product
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
+	"go.uber.org/zap"
 )
 
 type IUnitRepository interface {
@@ -56,7 +56,7 @@ func (r *UnitRepository) insertTranslation(ctx context.Context, unit Unit, langu
 	op := common.GetOperator(ctx, r.Pool)
 	c, err := op.Exec(ctx, sql, unit.Id, unit.Name, unit.Symbol, languageCode)
 	if err != nil {
-		log.Printf("failed to translate unit: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to translate unit", zap.Error(err))
 		return common.NewBadRequestError("Failed to translate unit", zimutils.GetErrorCodeFromError(err))
 	}
 	if c.RowsAffected() == 0 {
@@ -72,7 +72,7 @@ func (r *UnitRepository) addUnit(ctx context.Context) (int, error) {
 	var id int
 	err := row.Scan(&id)
 	if err != nil {
-		log.Printf("failed to scan unit: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to scan unit", zap.Error(err))
 		return 0, common.NewInternalServerError()
 	}
 	return id, nil
@@ -83,7 +83,7 @@ func (r *UnitRepository) GetAllUnits(ctx context.Context) ([]Unit, error) {
 	languageCode := common.GetLanguageParam(ctx)
 	rows, err := r.Query(ctx, sql, languageCode)
 	if err != nil {
-		log.Printf("failed to get units: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get units", zap.Error(err))
 		return nil, common.NewInternalServerError()
 	}
 	defer rows.Close()
@@ -92,7 +92,7 @@ func (r *UnitRepository) GetAllUnits(ctx context.Context) ([]Unit, error) {
 		var unit Unit
 		err := rows.Scan(&unit.Id, &unit.Name, &unit.Symbol)
 		if err != nil {
-			log.Printf("failed to scan unit: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan unit", zap.Error(err))
 			return nil, common.NewInternalServerError()
 		}
 		units = append(units, unit)
@@ -107,7 +107,7 @@ func (r *UnitRepository) GetUnitFromName(ctx context.Context, name string) (Unit
 	var unit Unit
 	err := row.Scan(&unit.Id, &unit.Name, &unit.Symbol)
 	if err != nil {
-		log.Printf("failed to scan unit: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to scan unit", zap.Error(err))
 		return Unit{}, common.NewBadRequestError("Failed to get unit", zimutils.GetErrorCodeFromError(err))
 	}
 	if unit.Id == nil {
@@ -120,7 +120,7 @@ func (r *UnitRepository) AddUnitConversion(ctx context.Context, conversion UnitC
 	sql := `INSERT INTO unit_conversions (to_unit_id, from_unit_id, conversion_factor) VALUES ($1, $2, $3)`
 	c, err := r.Exec(ctx, sql, conversion.ToUnitId, conversion.FromUnitId, conversion.ConversionFactor)
 	if err != nil {
-		log.Printf("failed to create unit conversion: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to create unit conversion", zap.Error(err))
 		return common.NewBadRequestError("Failed to create unit conversion", zimutils.GetErrorCodeFromError(err))
 	}
 	if c.RowsAffected() == 0 {
@@ -136,7 +136,7 @@ func (r *UnitRepository) GetUnitById(ctx context.Context, id *int) (Unit, error)
 	var unit Unit
 	err := row.Scan(&unit.Id, &unit.Name, &unit.Symbol)
 	if err != nil {
-		log.Printf("failed to scan unit: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to scan unit", zap.Error(err))
 		return Unit{}, common.NewBadRequestError("Failed to get unit", zimutils.GetErrorCodeFromError(err))
 	}
 	if unit.Id == nil {
@@ -152,7 +152,7 @@ func (r *UnitRepository) GetUnitConversionByUnitId(ctx context.Context, toUnitId
 	var conversion UnitConversion
 	err := row.Scan(&conversion.Id, &conversion.ToUnitId, &conversion.FromUnitId, &conversion.ConversionFactor)
 	if err != nil {
-		log.Printf("failed to scan unit conversion: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to scan unit conversion", zap.Error(err))
 		return UnitConversion{}, common.NewBadRequestError("Failed to get unit conversion", zimutils.GetErrorCodeFromError(err))
 	}
 	if conversion.Id == nil {
@@ -166,7 +166,7 @@ func (r *UnitRepository) GetUnitConversions(ctx context.Context) ([]UnitConversi
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql)
 	if err != nil {
-		log.Printf("failed to get unit conversions: %s", err.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get unit conversions", zap.Error(err))
 		return nil, common.NewInternalServerError()
 	}
 	defer rows.Close()
@@ -175,7 +175,7 @@ func (r *UnitRepository) GetUnitConversions(ctx context.Context) ([]UnitConversi
 		var conversion UnitConversion
 		err := rows.Scan(&conversion.Id, &conversion.ToUnitId, &conversion.FromUnitId, &conversion.ConversionFactor)
 		if err != nil {
-			log.Printf("failed to scan unit conversion: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to scan unit conversion", zap.Error(err))
 			return nil, common.NewInternalServerError()
 		}
 		conversions = append(conversions, conversion)

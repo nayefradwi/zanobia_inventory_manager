@@ -2,11 +2,11 @@ package product
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type IProductService interface {
@@ -97,12 +97,12 @@ func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId
 	}
 	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariantSku(ctx, productVariant.Sku)
 	if recipeErr != nil {
-		log.Printf("failed to get recipe of product variant: %s", recipeErr.Error())
+		common.LoggerFromCtx(ctx).Error("failed to get recipe of product variant", zap.Error(recipeErr))
 	} else if len(recipes) > 0 {
 		productVariant.Recipes = recipes
 		TotalCost, err := s.recipeService.GetTotalCostOfRecipes(ctx, recipes)
 		if err != nil {
-			log.Printf("failed to get total cost of recipes: %s", err.Error())
+			common.LoggerFromCtx(ctx).Error("failed to get total cost of recipes", zap.Error(err))
 		} else {
 			productVariant.TotalCost = TotalCost
 		}
