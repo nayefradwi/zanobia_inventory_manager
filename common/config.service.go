@@ -62,7 +62,6 @@ func IsStaging() bool {
 
 func ConfigEssentials() {
 	LoadEnv()
-	InitializeLogger()
 }
 
 func CleanUp() {

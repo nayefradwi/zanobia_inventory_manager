@@ -11,7 +11,7 @@ import (
 
 var logger *zap.Logger
 var rollingLogger *lumberjack.Logger = &lumberjack.Logger{
-	Filename:   "/var/logs/server.log",
+	Filename:   "server.log",
 	MaxSize:    100,
 	MaxBackups: 3,
 	MaxAge:     30,
