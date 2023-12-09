@@ -3,10 +3,10 @@ package common
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 const (
@@ -42,7 +42,7 @@ func (s *RedisLockService) Acquire(ctx context.Context, name string) (Lock, erro
 }
 
 func (s *RedisLockService) CustomeDurationAcquire(ctx context.Context, name string, expiresAt, timeout time.Duration) (Lock, error) {
-	log.Printf("Acquiring lock: %s", name)
+	GetLogger().Debug("Acquiring lock", zap.String("name", name))
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	ch := make(chan Lock)
@@ -59,13 +59,13 @@ func (s *RedisLockService) acquire(ctx context.Context, ch chan Lock, name strin
 	defer ctx.Done()
 	err := s.waitForLock(ctx, name)
 	if err != nil {
-		log.Printf("failed to acquire lock: %s", err.Error())
+		GetLogger().Error("failed to wait for lock", zap.Error(err))
 		ch <- Lock{}
 		return
 	}
 	_, lockErr := s.client.SetEx(ctx, name, name, expiresAt).Result()
 	if lockErr != nil {
-		log.Printf("failed to set lock: %s", lockErr.Error())
+		GetLogger().Error("failed to set lock", zap.Error(lockErr))
 		ch <- Lock{}
 	}
 	ch <- Lock{Name: name, ExpiresAt: expiresAt}
@@ -102,10 +102,10 @@ func (s *RedisLockService) handleLockResult(lock Lock) (Lock, error) {
 }
 
 func (s *RedisLockService) Release(ctx context.Context, lock Lock) error {
-	log.Printf("Releasing lock: %s", lock.Name)
+	GetLogger().Debug("Releasing lock", zap.String("name", lock.Name))
 	_, err := s.client.Del(ctx, lock.Name).Result()
 	if err != nil {
-		log.Printf("failed to Release lock: %s", err.Error())
+		GetLogger().Error("failed to Release lock", zap.Error(err))
 		return errors.New("failed to Release lock")
 	}
 	return nil

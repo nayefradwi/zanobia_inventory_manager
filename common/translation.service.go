@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 var acceptedLang = map[string]bool{DefaultLang: true, "ar": true}
@@ -42,6 +44,10 @@ func GetTranslatedBody[T any](w http.ResponseWriter, body io.ReadCloser, onSucce
 		if acceptedLang[translation.LanguageCode] {
 			onSuccess(translation)
 		} else {
+			GetLogger().Warn(
+				"language code is not supported",
+				zap.String("languageCode", translation.LanguageCode),
+			)
 			WriteResponseFromError(w, NewValidationError("languageCode", ErrorDetails{
 				Message: "language code is not supported",
 				Field:   "",

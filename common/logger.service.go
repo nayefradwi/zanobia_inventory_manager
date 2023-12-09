@@ -16,6 +16,9 @@ func InitializeLogger() {
 	} else {
 		initializeProdLogger()
 	}
+	if logger != nil {
+		logger.Info("logger initialized")
+	}
 }
 
 func initializeProdLogger() {

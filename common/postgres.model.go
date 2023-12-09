@@ -3,12 +3,12 @@ package common
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
+	"go.uber.org/zap"
 )
 
 type DbOperator interface {
@@ -246,8 +246,7 @@ func (sql PaginationQuery) CreatePaginationQuery() string {
 
 func (q PaginationQuery) Query(ctx context.Context, arguments ...interface{}) (pgx.Rows, error) {
 	sql := q.CreatePaginationQuery()
-	// TODO: remove this or use logger
-	log.Print(sql)
+	GetLogger().Debug("pagination query", zap.String("sql", sql))
 	if q.CursorValue == "" {
 		return q.Op.Query(ctx, sql, arguments...)
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type UserMiddleware struct {
@@ -39,6 +40,12 @@ func (m *UserMiddleware) SetUserFromHeader(next http.Handler) http.Handler {
 			common.WriteResponseFromError(w, err)
 			return
 		}
+		logger := common.LoggerFromCtx(ctx)
+		logger = logger.With(
+			zap.Int("userId", user.Id),
+			zap.String("name", user.FirstName+" "+user.LastName),
+		)
+		ctx = common.SetLoggerToCtx(ctx, logger)
 		ctx = context.WithValue(ctx, common.UserKey{}, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

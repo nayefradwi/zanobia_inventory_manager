@@ -3,8 +3,9 @@ package common
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 type EmptyResult struct {
@@ -25,10 +26,11 @@ func ParseBody[T any](w http.ResponseWriter, body io.ReadCloser, onSuccess Succe
 	var data T
 	err := json.NewDecoder(body).Decode(&data)
 	if err != nil {
-		log.Printf("failed to parse body: %s", err.Error())
+		GetLogger().Error("failed to parse body", zap.Error(err))
 		WriteResponseFromError(w, NewInternalServerError())
 		return
 	}
+	GetLogger().Info("successfully parsed body", zap.Any("data", data))
 	onSuccess(data)
 }
 
@@ -57,6 +59,7 @@ func WriteResponse[T any](result Result[T]) {
 		WriteResponseFromError(result.Writer, result.Error)
 		return
 	}
+	GetLogger().Info("successfully wrote response", zap.Any("data", result.Data))
 	json.NewEncoder(result.Writer).Encode(result.Data)
 }
 
@@ -80,11 +83,13 @@ func writeResponse(result EmptyResult, status int) {
 	body := make(map[string]interface{})
 	body["message"] = result.Message
 	body["status"] = status
+	GetLogger().Info("successfully wrote response", zap.Any("data", body))
 	json.NewEncoder(result.Writer).Encode(body)
 }
 
 func WriteResponseFromError(w http.ResponseWriter, e error) {
 	defer handleInternalError(w)
+	GetLogger().Error("responding with error", zap.Error(e))
 	if apiError, ok := e.(*ApiError); ok {
 		w.WriteHeader(apiError.Status)
 		w.Write(apiError.GenerateResponse())
@@ -94,7 +99,7 @@ func WriteResponseFromError(w http.ResponseWriter, e error) {
 func handleInternalError(w http.ResponseWriter) {
 	err := recover()
 	if err != nil {
-		log.Printf("internal error in commons package: %v", err)
+		GetLogger().Error("internal server error", zap.Any("error", err), zap.Stack("stack trace"))
 		err := NewInternalServerError()
 		response := err.GenerateResponse()
 		w.WriteHeader(err.Status)

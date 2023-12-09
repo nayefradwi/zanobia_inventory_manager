@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 const (
@@ -26,9 +27,15 @@ func LoadEnv() {
 	env := GetEnvArgument()
 	setEnv(env)
 	envFileName := "." + ENV + ".env"
-	log.Printf("loading environment: %s", envFileName)
+	GetLogger().Info("Loading environment: " + envFileName)
 	err := godotenv.Load(envFileName)
 	if err != nil {
+		GetLogger().Error(
+			"failed to load environment",
+			zap.Error(err),
+			zap.String("env", env),
+			zap.Stack("stack trace"),
+		)
 		log.Fatalf("failed to load environment: %s", err.Error())
 	}
 }
