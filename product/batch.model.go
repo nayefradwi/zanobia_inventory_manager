@@ -43,6 +43,14 @@ func (b BatchBase) SetExpiresAt(expiresAt time.Time) BatchBase {
 }
 
 func ValidateBatchInputsIncrement(inputs []BatchInput) error {
+	if len(inputs) == 0 {
+		return common.NewValidationError(
+			"invalid batch input",
+			common.ErrorDetails{
+				Message: "batch input cannot be empty",
+			},
+		)
+	}
 	for _, input := range inputs {
 		validationErr := ValidateBatchInputIncrement(input)
 		if validationErr != nil {
@@ -73,6 +81,14 @@ func ValidateBatchInputIncrement(input BatchInput) error {
 }
 
 func ValidateBatchInputsDecrement(inputs []BatchInput) error {
+	if len(inputs) == 0 {
+		return common.NewValidationError(
+			"invalid batch input",
+			common.ErrorDetails{
+				Message: "batch input cannot be empty",
+			},
+		)
+	}
 	for _, input := range inputs {
 		validationErr := ValidateBatchInputDecrement(input)
 		if validationErr != nil {

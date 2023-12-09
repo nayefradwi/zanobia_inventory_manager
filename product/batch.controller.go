@@ -57,6 +57,14 @@ func (c BatchController) DecrementBatch(w http.ResponseWriter, r *http.Request) 
 
 func (c BatchController) BulkIncrementBatch(w http.ResponseWriter, r *http.Request) {
 	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
+		if len(inputs) > 100 {
+			common.WriteEmptyResponse(common.EmptyResult{
+				Error:   common.NewBadRequestFromMessage("batch input cannot be more than 100"),
+				Writer:  w,
+				Message: "Batch increment failed",
+			})
+			return
+		}
 		err := c.batchService.BulkIncrementBatch(r.Context(), inputs)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
@@ -69,6 +77,14 @@ func (c BatchController) BulkIncrementBatch(w http.ResponseWriter, r *http.Reque
 func (c BatchController) BulkIncrementBatchWithRecipe(w http.ResponseWriter, r *http.Request) {
 	useMostExpired := r.URL.Query().Get(useMostExpiredKey)
 	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
+		if len(inputs) > 25 {
+			common.WriteEmptyResponse(common.EmptyResult{
+				Error:   common.NewBadRequestFromMessage("batch input cannot be more than 25"),
+				Writer:  w,
+				Message: "Batch increment with recipe failed",
+			})
+			return
+		}
 		ctx := common.SetBoolToContext(r.Context(), UseMostExpiredKey{}, useMostExpired)
 		for i := range inputs {
 			inputs[i].Reason = transactions.TransactionReasonTypeProduced
@@ -84,6 +100,14 @@ func (c BatchController) BulkIncrementBatchWithRecipe(w http.ResponseWriter, r *
 
 func (c BatchController) BulkDecrementBatch(w http.ResponseWriter, r *http.Request) {
 	common.ParseBody[[]BatchInput](w, r.Body, func(inputs []BatchInput) {
+		if len(inputs) > 100 {
+			common.WriteEmptyResponse(common.EmptyResult{
+				Error:   common.NewBadRequestFromMessage("batch input cannot be more than 100"),
+				Writer:  w,
+				Message: "Batch decrement failed",
+			})
+			return
+		}
 		err := c.batchService.BulkDecrementBatch(r.Context(), inputs)
 		common.WriteEmptyResponse(common.EmptyResult{
 			Error:   err,
