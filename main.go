@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 )
@@ -14,22 +14,10 @@ var RegisteredServiceProvider *ServiceProvider
 var RegisteredApiConfig ApiConfig
 
 func main() {
-	env := getEnvArgument()
-	RegisteredApiConfig = LoadEnv(env)
-	RegisteredServiceProvider = &ServiceProvider{}
-	RegisteredServiceProvider.initiate(RegisteredApiConfig)
-	r := RegisterRoutes(RegisteredServiceProvider)
-	setUserIdExtractor()
+	r := setUp()
 	defer cleanUp()
 	log.Printf("listening on: %s", RegisteredApiConfig.Host)
 	http.ListenAndServe(RegisteredApiConfig.Host, r)
-}
-
-func getEnvArgument() string {
-	if len(os.Args) > 1 {
-		return os.Args[1]
-	}
-	return PROD
 }
 
 func setUserIdExtractor() {
@@ -39,4 +27,14 @@ func setUserIdExtractor() {
 		}
 		return 0
 	})
+}
+
+func setUp() chi.Router {
+	common.ConfigEssentials()
+	RegisteredApiConfig = LoadEnv()
+	RegisteredServiceProvider = &ServiceProvider{}
+	RegisteredServiceProvider.initiate(RegisteredApiConfig)
+	setUserIdExtractor()
+	r := RegisterRoutes(RegisteredServiceProvider)
+	return r
 }

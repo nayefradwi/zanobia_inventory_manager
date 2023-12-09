@@ -147,4 +147,5 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 func cleanUp() {
 	connections.dbPool.Close()
 	connections.redisClient.Close()
+	common.CleanUp()
 }

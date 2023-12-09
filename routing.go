@@ -1,13 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/retailer"
@@ -17,27 +13,8 @@ import (
 )
 
 func RegisterRoutes(provider *ServiceProvider) chi.Router {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(cors.Handler(cors.Options{
-		// TODO change when in production
-		AllowedOrigins: []string{"https://*", "http://*"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{
-			"Accept",
-			"Authorization",
-			"Content-Type",
-			"X-CSRF-Token",
-			"X-Warehouse-Id",
-		},
-		ExposedHeaders: []string{"Link"},
-	}))
-	r.Use(common.Recover)
-	r.Use(common.JsonResponseMiddleware)
-	r.Use(common.SetLanguageMiddleware)
-	r.Use(common.SetPaginatedDataMiddleware)
+	r := common.NewRouter()
 	r.Use(warehouse.SetWarehouseIdFromHeader)
-	r.Get("/health-check", healthCheck)
 	registerUserRoutes(r, provider)
 	registerPermissionRoutes(r, provider)
 	authorizedRouter, _ := createSecureRouter(provider)
@@ -232,12 +209,6 @@ func registerTransactionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	transactionRouter.Get("/batch/{id}", transactionController.GetTransactionsOfBatch)
 	transactionRouter.Get("/warehouse", transactionController.GetTransactionsOfMyWarehouse)
 	mainRouter.Mount("/transactions", transactionRouter)
-}
-
-func healthCheck(w http.ResponseWriter, r *http.Request) {
-	ok, _ := json.Marshal(map[string]interface{}{"status": "ok"})
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(ok)
 }
 
 func createSecureRouter(provider *ServiceProvider) (*chi.Mux, user.UserMiddleware) {
