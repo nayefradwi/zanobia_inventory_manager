@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 )
 
 type UpdateSkuInput struct {
@@ -85,10 +86,10 @@ type ProductVariantBase struct {
 
 type ProductVariant struct {
 	ProductVariantBase
-	ProductName  string   `json:"productName"`
-	TotalCost    float64  `json:"totalCost,omitempty"`
-	Recipes      []Recipe `json:"recipes,omitempty"`
-	StandardUnit *Unit    `json:"standardUnit,omitempty"`
+	ProductName  string     `json:"productName"`
+	TotalCost    float64    `json:"totalCost,omitempty"`
+	Recipes      []Recipe   `json:"recipes,omitempty"`
+	StandardUnit *unit.Unit `json:"standardUnit,omitempty"`
 }
 
 type ProductVariantUpdate struct {

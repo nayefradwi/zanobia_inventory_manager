@@ -365,7 +365,7 @@ CREATE TABLE transaction_history (
     user_id INTEGER NOT NULL,
     batch_id INTEGER,
     retailer_batch_id INTEGER,
-    warehouse_id INTEGER NOT NULL,
+    warehouse_id INTEGER,
     retailer_id INTEGER,
     quantity NUMERIC(12, 4) NOT NULL,
     unit_id INTEGER NOT NULL REFERENCES units(id),

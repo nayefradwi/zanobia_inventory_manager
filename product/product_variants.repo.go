@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	zimutils "github.com/nayefradwi/zanobia_inventory_manager/zim_utils"
 	"go.uber.org/zap"
 )
@@ -58,7 +59,7 @@ func (r *ProductRepo) GetProductVariant(ctx context.Context, productVariantId in
 	langCode := common.GetLanguageParam(ctx)
 	row := op.QueryRow(ctx, sql, productVariantId, langCode)
 	var productVariant ProductVariant
-	var unit Unit
+	var unit unit.Unit
 	err := row.Scan(
 		&productVariant.Id, &productVariant.ProductId, &productVariant.Name, &productVariant.Sku,
 		&productVariant.Image, &productVariant.Price, &productVariant.WidthInCm, &productVariant.HeightInCm,

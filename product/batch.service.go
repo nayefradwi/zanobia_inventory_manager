@@ -6,6 +6,7 @@ import (
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 )
 
 type UseMostExpiredKey struct{}
@@ -24,7 +25,7 @@ type BatchService struct {
 	batchRepo          IBatchRepository
 	productService     IProductService
 	lockingService     common.IDistributedLockingService
-	unitService        IUnitService
+	unitService        unit.IUnitService
 	recipeService      IRecipeService
 	transactionService transactions.ITransactionService
 }
@@ -33,7 +34,7 @@ func NewBatchService(
 	batchRepo IBatchRepository,
 	productService IProductService,
 	lockingService common.IDistributedLockingService,
-	unitService IUnitService,
+	unitService unit.IUnitService,
 	recipeService IRecipeService,
 	transactionService transactions.ITransactionService,
 ) *BatchService {
@@ -94,7 +95,7 @@ func (s *BatchService) convertBatchInput(
 	BatchInput,
 	error,
 ) {
-	convertInput := ConvertUnitInput{
+	convertInput := unit.ConvertUnitInput{
 		ToUnitId:   &batchVariantMetaInfo.UnitId,
 		Quantity:   batchInput.Quantity,
 		FromUnitId: &batchInput.UnitId,

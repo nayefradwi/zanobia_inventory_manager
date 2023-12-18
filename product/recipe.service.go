@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"go.uber.org/zap"
 )
 
@@ -18,10 +19,10 @@ type IRecipeService interface {
 
 type RecipeService struct {
 	repo        IRecipeRepository
-	unitService IUnitService
+	unitService unit.IUnitService
 }
 
-func NewRecipeService(repo IRecipeRepository, unitService IUnitService) IRecipeService {
+func NewRecipeService(repo IRecipeRepository, unitService unit.IUnitService) IRecipeService {
 	return &RecipeService{
 		repo,
 		unitService,
@@ -73,7 +74,7 @@ func (s *RecipeService) getCostOfRecipe(ctx context.Context, recipe Recipe) (flo
 		return recipe.Quantity * recipe.IngredientCost, nil
 	}
 	// convert unit should be cached
-	newQty, err := s.unitService.ConvertUnit(ctx, ConvertUnitInput{
+	newQty, err := s.unitService.ConvertUnit(ctx, unit.ConvertUnitInput{
 		FromUnitId: recipe.Unit.Id,
 		ToUnitId:   recipe.IngredientStandardUnit.Id,
 		Quantity:   recipe.Quantity,

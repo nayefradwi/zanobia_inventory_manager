@@ -22,6 +22,14 @@ type ITransactionRepository interface {
 	InsertTransactionToBatch(ctx context.Context, input transactionInput, batch *pgx.Batch)
 }
 
+const baseSelectTransactionHistorySql = `
+SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, quantity, unit_id, 
+	amount, comment, sku, transaction_history.created_at, name, is_positive
+FROM transaction_history
+JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
+JOIN unit_translations on transaction_history.unit_id = unit_translations.unit_id
+`
+
 type TransactionRepository struct {
 	*pgxpool.Pool
 }
@@ -83,16 +91,12 @@ func (r *TransactionRepository) InsertTransaction(ctx context.Context, input tra
 }
 
 func (r *TransactionRepository) GetTransactionsOfRetailer(ctx context.Context, retailerId int) ([]Transaction, error) {
-	sql := `
-	SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, quantity, unit_id, 
-	amount, comment, sku, transaction_history.created_at, name, is_positive
-	FROM transaction_history
-	JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
-	WHERE retailer_id = $1
+	sql := getTransactionHistoryWithCondition(`
+	WHERE retailer_id = $1 AND unit_translations.language_code = $2
 	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
-`
+`)
 	op := common.GetOperator(ctx, r.Pool)
-	rows, err := op.Query(ctx, sql, retailerId)
+	rows, err := op.Query(ctx, sql, retailerId, common.GetLanguageParam(ctx))
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("Failed to get transactions of retailer", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions of retailer")
@@ -102,16 +106,12 @@ func (r *TransactionRepository) GetTransactionsOfRetailer(ctx context.Context, r
 }
 
 func (r *TransactionRepository) GetTransactionsOfRetailerBatch(ctx context.Context, retailerId, retailerBatchId int) ([]Transaction, error) {
-	sql := `
-	SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, quantity, unit_id, 
-	amount, comment, sku, transaction_history.created_at, name, is_positive
-	FROM transaction_history
-	JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
-	WHERE retailer_batch_id = $1 AND retailer_id = $2
+	sql := getTransactionHistoryWithCondition(`	
+	WHERE retailer_batch_id = $1 AND retailer_id = $2 AND unit_translations.language_code = $3
 	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
-`
+`)
 	op := common.GetOperator(ctx, r.Pool)
-	rows, err := op.Query(ctx, sql, retailerBatchId, retailerId)
+	rows, err := op.Query(ctx, sql, retailerBatchId, retailerId, common.GetLanguageParam(ctx))
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("Failed to get transactions of retailer batch", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions of retailer batch")
@@ -121,16 +121,12 @@ func (r *TransactionRepository) GetTransactionsOfRetailerBatch(ctx context.Conte
 }
 
 func (r *TransactionRepository) GetTransactionsOfSKU(ctx context.Context, sku string) ([]Transaction, error) {
-	sql := `
-	SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, quantity, unit_id, 
-	amount, comment, sku, transaction_history.created_at, name, is_positive
-	FROM transaction_history
-	JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
-	WHERE sku = $1 AND (warehouse_id = $2 OR warehouse_id IS NULL)
+	sql := getTransactionHistoryWithCondition(`	
+	WHERE sku = $1 AND (warehouse_id = $2 OR warehouse_id IS NULL) AND unit_translations.language_code = $3
 	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
-`
+`)
 	op := common.GetOperator(ctx, r.Pool)
-	rows, err := op.Query(ctx, sql, sku, warehouse.GetWarehouseId(ctx))
+	rows, err := op.Query(ctx, sql, sku, warehouse.GetWarehouseId(ctx), common.GetLanguageParam(ctx))
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("Failed to get transactions for SKU", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions for SKU")
@@ -140,16 +136,12 @@ func (r *TransactionRepository) GetTransactionsOfSKU(ctx context.Context, sku st
 }
 
 func (r *TransactionRepository) GetTransactionsOfBatch(ctx context.Context, batchId int) ([]Transaction, error) {
-	sql := `
-	SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, quantity, unit_id, 
-	amount, comment, sku, transaction_history.created_at, name, is_positive
-	FROM transaction_history
-	JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
-	WHERE batch_id = $1 AND warehouse_id = $2
+	sql := getTransactionHistoryWithCondition(`	
+	WHERE batch_id = $1 AND warehouse_id = $2  AND unit_translations.language_code = $3
 	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
-`
+`)
 	op := common.GetOperator(ctx, r.Pool)
-	rows, err := op.Query(ctx, sql, batchId, warehouse.GetWarehouseId(ctx))
+	rows, err := op.Query(ctx, sql, batchId, warehouse.GetWarehouseId(ctx), common.GetLanguageParam(ctx))
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("Failed to get transactions for batch", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions for batch")
@@ -159,16 +151,12 @@ func (r *TransactionRepository) GetTransactionsOfBatch(ctx context.Context, batc
 }
 
 func (r *TransactionRepository) GetTransactionsOfWarehouse(ctx context.Context) ([]Transaction, error) {
-	sql := `
-	SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, quantity, unit_id, 
-	amount, comment, sku, transaction_history.created_at, name, is_positive
-	FROM transaction_history
-	JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
-	WHERE warehouse_id = $1
+	sql := getTransactionHistoryWithCondition(`WHERE warehouse_id = $1 AND unit_translations.language_code = $2
 	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
-`
+`,
+	)
 	op := common.GetOperator(ctx, r.Pool)
-	rows, err := op.Query(ctx, sql, warehouse.GetWarehouseId(ctx))
+	rows, err := op.Query(ctx, sql, warehouse.GetWarehouseId(ctx), common.GetLanguageParam(ctx))
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("Failed to get transactions for warehouse", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get transactions for warehouse")
@@ -196,6 +184,10 @@ func (r *TransactionRepository) parseRows(rows pgx.Rows) ([]Transaction, error) 
 		transactions = append(transactions, transaction)
 	}
 	return transactions, nil
+}
+
+func getTransactionHistoryWithCondition(condition string) string {
+	return baseSelectTransactionHistorySql + " " + condition
 }
 
 func (r *TransactionRepository) InsertTransactionToBatch(

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 )
 
 type BatchInput struct {
@@ -28,7 +29,7 @@ type BatchBase struct {
 type Batch struct {
 	BatchBase
 	ProductVariantBase *ProductVariantBase `json:"productVariant,omitempty"`
-	Unit               Unit                `json:"unit"`
+	Unit               unit.Unit           `json:"unit"`
 	ProductName        string              `json:"productName"`
 	IsIngredient       bool                `json:"isIngredient"`
 }

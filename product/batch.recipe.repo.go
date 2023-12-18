@@ -5,6 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 	"go.uber.org/zap"
 )
@@ -152,9 +153,9 @@ func (r *BatchRepository) parseVariantInfoAndRecipe(
 				ResultVariantSku:       *recipeResultVariantSku,
 				RecipeVariantSku:       *recipeRecipeVariantSku,
 				Quantity:               *recipeQuantity,
-				Unit:                   Unit{Id: recipeUnitId},
+				Unit:                   unit.Unit{Id: recipeUnitId},
 				IngredientCost:         *recipeStandardUnitCost,
-				IngredientStandardUnit: &Unit{Id: recipeStandardUnitId},
+				IngredientStandardUnit: &unit.Unit{Id: recipeStandardUnitId},
 			}
 			recipeLookup[recipe.GetLookupKey()] = recipe
 			// adding recipe variant meta info to batch variant meta info lookup

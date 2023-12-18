@@ -8,6 +8,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 )
 
 type IRetailerBatchService interface {
@@ -26,7 +27,7 @@ type RetailerBatchService struct {
 	repo               IRetailerBatchRepository
 	productService     product.IProductService
 	lockingService     common.IDistributedLockingService
-	unitService        product.IUnitService
+	unitService        unit.IUnitService
 	transactionService transactions.ITransactionService
 	batchService       product.IBatchService
 }
@@ -35,7 +36,7 @@ func NewRetailerBatchService(
 	repo IRetailerBatchRepository,
 	productService product.IProductService,
 	lockingService common.IDistributedLockingService,
-	unitService product.IUnitService,
+	unitService unit.IUnitService,
 	transactionService transactions.ITransactionService,
 	batchService product.IBatchService,
 ) *RetailerBatchService {
@@ -77,7 +78,7 @@ func (s *RetailerBatchService) convertUnit(ctx context.Context, unitId int, inpu
 	if unitId == input.UnitId {
 		return input.Quantity, nil
 	}
-	out, err := s.unitService.ConvertUnit(ctx, product.ConvertUnitInput{
+	out, err := s.unitService.ConvertUnit(ctx, unit.ConvertUnitInput{
 		ToUnitId:   &unitId,
 		FromUnitId: &input.UnitId,
 		Quantity:   input.Quantity,

@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"go.uber.org/zap"
 )
 
@@ -103,7 +104,7 @@ func (r *RecipeRepository) GetRecipeOfProductVariantSku(ctx context.Context, sku
 	recipes := make([]Recipe, 0)
 	for rows.Next() {
 		var recipe Recipe
-		var unit, recipeStandardUnit Unit
+		var unit, recipeStandardUnit unit.Unit
 		var productName string
 		err := rows.Scan(
 			&recipe.Id, &recipe.Quantity, &recipe.ResultVariantId, &recipe.ResultVariantSku, &recipe.ResultVariantName,
@@ -151,8 +152,8 @@ func (r *RecipeRepository) GetRecipesLookUpMapFromSkus(ctx context.Context, skuL
 			&standardUnitID,
 			&recipe.IngredientCost,
 		)
-		recipe.Unit = Unit{Id: &unitId}
-		recipe.IngredientStandardUnit = &Unit{Id: &standardUnitID}
+		recipe.Unit = unit.Unit{Id: &unitId}
+		recipe.IngredientStandardUnit = &unit.Unit{Id: &standardUnitID}
 		if err != nil {
 			common.LoggerFromCtx(ctx).Error("failed to scan recipe", zap.Error(err))
 			return nil, nil, common.NewInternalServerError()

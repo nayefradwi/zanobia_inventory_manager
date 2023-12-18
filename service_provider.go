@@ -8,6 +8,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/retailer"
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 	"github.com/redis/go-redis/v9"
@@ -23,7 +24,7 @@ type systemRepositories struct {
 	userRepository          user.IUserRepository
 	permissionRepository    user.IPermissionRepository
 	roleRepository          user.IRoleRepository
-	unitRepository          product.IUnitRepository
+	unitRepository          unit.IUnitRepository
 	warehouseRepository     warehouse.IWarehouseRepository
 	productRepository       product.IProductRepo
 	recipeRepository        product.IRecipeRepository
@@ -37,7 +38,7 @@ type systemServices struct {
 	userService          user.IUserService
 	permissionService    user.IPermissionService
 	roleService          user.IRoleService
-	unitService          product.IUnitService
+	unitService          unit.IUnitService
 	warehouseService     warehouse.IWarehouseService
 	lockingService       common.IDistributedLockingService
 	productService       product.IProductService
@@ -71,7 +72,7 @@ func (s *ServiceProvider) registerRepositories(connections systemConnections) sy
 	userRepo := user.NewUserRepository(connections.dbPool)
 	permssionRepo := user.NewPermissionRepository(connections.dbPool)
 	roleRepo := user.NewRoleRepository(connections.dbPool)
-	unitRepo := product.NewUnitRepository(connections.dbPool)
+	unitRepo := unit.NewUnitRepository(connections.dbPool)
 	warehouseRepo := warehouse.NewWarehouseRepository(connections.dbPool)
 	productRepo := product.NewProductRepository(connections.dbPool)
 	recipeRepo := product.NewRecipeRepository(connections.dbPool)
@@ -104,7 +105,7 @@ func (s *ServiceProvider) registerServices(repositories systemRepositories) {
 	userService := user.NewUserService(userServiceInput)
 	permissionService := user.NewPermissionService(repositories.permissionRepository)
 	roleService := user.NewRoleService(repositories.roleRepository)
-	unitService := product.NewUnitService(repositories.unitRepository)
+	unitService := unit.NewUnitService(repositories.unitRepository)
 	unitService.SetupUnitsMap(context.Background())
 	unitService.SetupUnitConversionsMap(context.Background())
 	warehouseService := warehouse.NewWarehouseService(repositories.warehouseRepository)

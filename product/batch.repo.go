@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 	"go.uber.org/zap"
 )
@@ -127,7 +128,7 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 	for rows.Next() {
 		var batch Batch
 		var productVariantBase ProductVariantBase
-		var unit Unit
+		var unit unit.Unit
 		err := rows.Scan(
 			&batch.Id, &batch.Sku, &batch.Quantity, &batch.ExpiresAt,
 			&unit.Id, &unit.Name, &unit.Symbol,

@@ -1,4 +1,4 @@
-package product
+package unit
 
 type Unit struct {
 	Id     *int   `json:"id,omitempty"`

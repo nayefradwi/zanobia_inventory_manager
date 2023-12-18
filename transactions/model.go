@@ -40,6 +40,8 @@ type Transaction struct {
 	RetailerId      *int              `json:"retailerId,omitempty"`
 	Quantity        float64           `json:"quantity"`
 	UnitId          *int              `json:"unitId,omitempty"`
+	UnitName        string            `json:"unitName,omitempty"`
+	UnitSymbol      string            `json:"unitSymbol,omitempty"`
 	Amount          float64           `json:"amount,omitempty"`
 	Reason          TransactionReason `json:"reason,omitempty"`
 	Comment         string            `json:"comment,omitempty"`

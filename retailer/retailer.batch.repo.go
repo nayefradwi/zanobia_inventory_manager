@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"go.uber.org/zap"
 )
 
@@ -170,7 +171,7 @@ func (r *RetailerBatchRepository) parseRetailerBatchRows(rows pgx.Rows) ([]Retai
 	for rows.Next() {
 		var retailerBatch RetailerBatch
 		var productVariantBase product.ProductVariantBase
-		var unit product.Unit
+		var unit unit.Unit
 		err := rows.Scan(
 			&retailerBatch.Id, &retailerBatch.Sku, &retailerBatch.Quantity, &retailerBatch.ExpiresAt,
 			&unit.Id, &unit.Name, &unit.Symbol,

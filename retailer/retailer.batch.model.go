@@ -6,6 +6,7 @@ import (
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 )
 
 type RetailerBatchInput struct {
@@ -40,7 +41,7 @@ type RetailerBatchBase struct {
 type RetailerBatch struct {
 	RetailerBatchBase
 	ProductVariantBase *(product.ProductVariantBase) `json:"productVariant,omitempty"`
-	Unit               product.Unit                  `json:"unit"`
+	Unit               unit.Unit                     `json:"unit"`
 	ProductName        string                        `json:"productName"`
 	RetailerName       string                        `json:"retailerName"`
 }

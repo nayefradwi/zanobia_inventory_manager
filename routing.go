@@ -8,6 +8,7 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/retailer"
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 )
@@ -92,7 +93,7 @@ func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 
 func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitRouter := chi.NewRouter()
-	unitController := product.NewUnitController(provider.services.unitService)
+	unitController := unit.NewUnitController(provider.services.unitService)
 	unitRouter.Post("/", unitController.CreateUnit)
 	unitRouter.Get("/{id}", unitController.GetUnitById)
 	unitRouter.Get("/", unitController.GetAllUnits)
@@ -103,7 +104,7 @@ func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 
 func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitConversionRouter := chi.NewRouter()
-	unitConversionController := product.NewUnitController(provider.services.unitService)
+	unitConversionController := unit.NewUnitController(provider.services.unitService)
 	unitConversionRouter.Post("/", unitConversionController.CreateConversion)
 	unitConversionRouter.Post("/convert", unitConversionController.ConvertUnit)
 	mainRouter.Mount("/unit-conversions", unitConversionRouter)
