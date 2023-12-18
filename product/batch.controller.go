@@ -139,3 +139,15 @@ func (c BatchController) SearchBatchesBySku(w http.ResponseWriter, r *http.Reque
 		},
 	)
 }
+
+func (c BatchController) GetBatchById(w http.ResponseWriter, r *http.Request) {
+	id := common.GetIntURLParam(r, "id")
+	batch, err := c.batchService.GetBatchById(r.Context(), id)
+	common.WriteResponse[Batch](
+		common.Result[Batch]{
+			Error:  err,
+			Writer: w,
+			Data:   batch,
+		},
+	)
+}

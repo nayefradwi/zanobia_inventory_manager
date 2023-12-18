@@ -2,9 +2,7 @@ package retailer
 
 import (
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -30,8 +28,7 @@ func (c RetailerController) CreateRetailer(w http.ResponseWriter, r *http.Reques
 }
 
 func (c RetailerController) AddRetailerContacts(w http.ResponseWriter, r *http.Request) {
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	common.ParseBody[[]RetailerContact](w, r.Body, func(contacts []RetailerContact) {
 		err := c.service.AddRetailerContacts(r.Context(), id, contacts)
 		common.WriteCreatedResponse(common.EmptyResult{
@@ -43,8 +40,7 @@ func (c RetailerController) AddRetailerContacts(w http.ResponseWriter, r *http.R
 }
 
 func (c RetailerController) AddRetailerContactInfo(w http.ResponseWriter, r *http.Request) {
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	common.ParseBody[RetailerContact](w, r.Body, func(contact RetailerContact) {
 		err := c.service.AddRetailerContactInfo(r.Context(), id, contact)
 		common.WriteCreatedResponse(common.EmptyResult{
@@ -65,8 +61,7 @@ func (c RetailerController) GetRetailers(w http.ResponseWriter, r *http.Request)
 }
 
 func (c RetailerController) GetRetailer(w http.ResponseWriter, r *http.Request) {
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	retailer, err := c.service.GetRetailer(r.Context(), id)
 	common.WriteResponse[Retailer](common.Result[Retailer]{
 		Error:  err,
@@ -76,8 +71,7 @@ func (c RetailerController) GetRetailer(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c RetailerController) RemoveRetailerContactInfo(w http.ResponseWriter, r *http.Request) {
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	err := c.service.RemoveRetailerContactInfo(r.Context(), id)
 	common.WriteEmptyResponse(common.EmptyResult{
 		Error:   err,
@@ -87,8 +81,7 @@ func (c RetailerController) RemoveRetailerContactInfo(w http.ResponseWriter, r *
 }
 
 func (c RetailerController) RemoveRetailer(w http.ResponseWriter, r *http.Request) {
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	err := c.service.RemoveRetailer(r.Context(), id)
 	common.WriteEmptyResponse(common.EmptyResult{
 		Error:   err,

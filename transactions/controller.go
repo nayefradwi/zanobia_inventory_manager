@@ -2,7 +2,6 @@ package transactions
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
@@ -39,8 +38,7 @@ func (c TransactionController) GetTransactionReasons(w http.ResponseWriter, r *h
 }
 
 func (c TransactionController) GetTransactionsOfBatch(w http.ResponseWriter, r *http.Request) {
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	transactions, err := c.service.GetTransactionsOfBatch(r.Context(), id)
 	common.WriteResponse[[]Transaction](common.Result[[]Transaction]{
 		Writer: w,
@@ -60,8 +58,7 @@ func (c TransactionController) GetTransactionsOfSku(w http.ResponseWriter, r *ht
 }
 
 func (c TransactionController) GetTransactionsOfRetailer(w http.ResponseWriter, r *http.Request) {
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	transactions, err := c.service.GetTransactionsOfRetailer(r.Context(), id)
 	common.WriteResponse[[]Transaction](common.Result[[]Transaction]{
 		Writer: w,
@@ -71,9 +68,8 @@ func (c TransactionController) GetTransactionsOfRetailer(w http.ResponseWriter, 
 }
 
 func (c TransactionController) GetTransactionsOfRetailerBatch(w http.ResponseWriter, r *http.Request) {
-	idVal, batchIdVal := chi.URLParam(r, "id"), chi.URLParam(r, "batchId")
-	id, _ := strconv.Atoi(idVal)
-	batchId, _ := strconv.Atoi(batchIdVal)
+	id := common.GetIntURLParam(r, "id")
+	batchId := common.GetIntURLParam(r, "batchId")
 	transactions, err := c.service.GetTransactionsOfRetailerBatch(r.Context(), id, batchId)
 	common.WriteResponse[[]Transaction](common.Result[[]Transaction]{
 		Writer: w,

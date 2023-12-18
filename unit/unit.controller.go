@@ -2,9 +2,7 @@ package unit
 
 import (
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -59,8 +57,7 @@ func (c UnitController) ConvertUnit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c UnitController) GetUnitById(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idStr)
+	id := common.GetIntURLParam(r, "id")
 	unit, err := c.service.GetUnitById(r.Context(), &id)
 	common.WriteResponse[Unit](
 		common.Result[Unit]{

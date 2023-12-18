@@ -19,6 +19,7 @@ type IBatchRepository interface {
 	SearchBatchesBySku(ctx context.Context, sku string, params common.PaginationParams) ([]Batch, error)
 	GetBulkBatchUpdateInfo(ctx context.Context, inputs []BatchInput) (BulkBatchUpdateInfo, error)
 	GetBulkBatchUpdateInfoWithRecipe(ctx context.Context, inputs []BatchInput) (BulkBatchUpdateInfo, error)
+	GetBatchById(ctx context.Context, id int) (Batch, error)
 }
 
 const baseBatchListingSql = `
@@ -183,4 +184,28 @@ func (r *BatchRepository) processBulkBatchUnitOfWork(
 		}
 	}
 	return nil
+}
+
+func (r *BatchRepository) GetBatchById(ctx context.Context, batchId int) (Batch, error) {
+	sql := baseBatchListingSql + " WHERE b.id = $1 AND b.warehouse_id = $2 AND pvartx.language_code = $3"
+	op := common.GetOperator(ctx, r.Pool)
+	lang := common.GetLanguageParam(ctx)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	row := op.QueryRow(ctx, sql, batchId, warehouseId, lang)
+	var batch Batch
+	var productVariantBase ProductVariantBase
+	var unit unit.Unit
+	err := row.Scan(
+		&batch.Id, &batch.Sku, &batch.Quantity, &batch.ExpiresAt,
+		&unit.Id, &unit.Name, &unit.Symbol,
+		&productVariantBase.Name, &productVariantBase.Id, &productVariantBase.Price,
+		&productVariantBase.ProductId, &batch.ProductName, &batch.IsIngredient,
+	)
+	if err != nil {
+		common.LoggerFromCtx(ctx).Error("Failed to get batch by id", zap.Error(err))
+		return Batch{}, common.NewBadRequestFromMessage("Failed to get batch by id")
+	}
+	batch.Unit = unit
+	batch.ProductVariantBase = &productVariantBase
+	return batch, nil
 }

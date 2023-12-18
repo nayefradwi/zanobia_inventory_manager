@@ -2,9 +2,7 @@ package product
 
 import (
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -52,8 +50,7 @@ func (c ProductController) GetProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c ProductController) GetProduct(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idParam)
+	id := common.GetIntURLParam(r, "id")
 	product, err := c.service.GetProduct(r.Context(), id)
 	common.WriteResponse(common.Result[Product]{
 		Error:  err,
@@ -63,8 +60,7 @@ func (c ProductController) GetProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c ProductController) GetProductVariant(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idParam)
+	id := common.GetIntURLParam(r, "id")
 	variant, err := c.service.GetProductVariant(r.Context(), id)
 	common.WriteResponse(common.Result[ProductVariant]{
 		Error:  err,
@@ -107,8 +103,7 @@ func (c ProductController) UpdateProductVariantDetails(w http.ResponseWriter, r 
 }
 
 func (c ProductController) DeleteProductVariant(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idParam)
+	id := common.GetIntURLParam(r, "id")
 	err := c.service.DeleteProductVariant(r.Context(), id)
 	common.WriteEmptyResponse(
 		common.EmptyResult{

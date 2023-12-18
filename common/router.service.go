@@ -3,10 +3,12 @@ package common
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"go.uber.org/zap"
 )
 
 func NewRouter() *chi.Mux {
@@ -38,4 +40,13 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 	ok, _ := json.Marshal(map[string]interface{}{"status": "ok"})
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(ok)
+}
+
+func GetIntURLParam(r *http.Request, key string) int {
+	val := chi.URLParam(r, key)
+	intVal, err := strconv.Atoi(val)
+	if err != nil {
+		GetLogger().Warn("Failed to parse int url param", zap.String("error", err.Error()))
+	}
+	return intVal
 }

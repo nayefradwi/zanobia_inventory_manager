@@ -2,9 +2,7 @@ package retailer
 
 import (
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -63,8 +61,7 @@ func (c RetailerBatchController) BulkDecrementBatch(w http.ResponseWriter, r *ht
 }
 
 func (c RetailerBatchController) GetBatches(w http.ResponseWriter, r *http.Request) {
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	batchesPage, err := c.service.GetBatches(r.Context(), id)
 	common.WriteResponse[common.PaginatedResponse[RetailerBatch]](
 		common.Result[common.PaginatedResponse[RetailerBatch]]{
@@ -77,8 +74,7 @@ func (c RetailerBatchController) GetBatches(w http.ResponseWriter, r *http.Reque
 
 func (c RetailerBatchController) SearchBatchesBySku(w http.ResponseWriter, r *http.Request) {
 	sku := r.URL.Query().Get("sku")
-	idVal := chi.URLParam(r, "id")
-	id, _ := strconv.Atoi(idVal)
+	id := common.GetIntURLParam(r, "id")
 	batchesPage, err := c.service.SearchBatchesBySku(r.Context(), id, sku)
 	common.WriteResponse[common.PaginatedResponse[RetailerBatch]](
 		common.Result[common.PaginatedResponse[RetailerBatch]]{

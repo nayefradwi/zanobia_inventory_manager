@@ -143,6 +143,7 @@ func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	batchRouter.Post("/stock/with-recipe", batchController.BulkIncrementBatchWithRecipe)
 	batchRouter.Get("/", batchController.GetBatches)
 	batchRouter.Get("/search", batchController.SearchBatchesBySku)
+	batchRouter.Get("/{id}", batchController.GetBatchById)
 	mainRouter.Mount("/batches", batchRouter)
 }
 

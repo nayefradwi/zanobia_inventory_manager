@@ -19,6 +19,7 @@ type IBatchService interface {
 	BulkIncrementWithRecipeBatch(ctx context.Context, inputs []BatchInput) error
 	GetBatches(ctx context.Context) (common.PaginatedResponse[Batch], error)
 	SearchBatchesBySku(ctx context.Context, sku string) (common.PaginatedResponse[Batch], error)
+	GetBatchById(ctx context.Context, id int) (Batch, error)
 }
 
 type BatchService struct {
@@ -71,6 +72,10 @@ func (s *BatchService) SearchBatchesBySku(ctx context.Context, sku string) (comm
 		return common.PaginatedResponse[Batch]{}, err
 	}
 	return s.createBatchesPage(batches, paginationParam.PageSize), nil
+}
+
+func (s *BatchService) GetBatchById(ctx context.Context, id int) (Batch, error) {
+	return s.batchRepo.GetBatchById(ctx, id)
 }
 
 func (s *BatchService) createBatchesPage(batches []Batch, pageSize int) common.PaginatedResponse[Batch] {
