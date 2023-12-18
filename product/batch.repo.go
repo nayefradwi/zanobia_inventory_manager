@@ -22,10 +22,11 @@ type IBatchRepository interface {
 
 const baseBatchListingSql = `
 select b.id, b.sku, b.quantity, b.expires_at, utx.unit_id, utx.name, utx.symbol,
-pvartx.name, pvar.id, pvar.price, pvar.product_id, ptx.name from batches b
+pvartx.name, pvar.id, pvar.price, pvar.product_id, ptx.name, p.is_ingredient from batches b
 join unit_translations utx on utx.unit_id = b.unit_id
 join product_variants pvar on pvar.sku = b.sku
 join product_translations ptx on ptx.product_id = pvar.product_id
+join products p on p.id = pvar.product_id
 join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
 `
 
@@ -131,7 +132,7 @@ func (r *BatchRepository) parseBatchRows(rows pgx.Rows) ([]Batch, error) {
 			&batch.Id, &batch.Sku, &batch.Quantity, &batch.ExpiresAt,
 			&unit.Id, &unit.Name, &unit.Symbol,
 			&productVariantBase.Name, &productVariantBase.Id, &productVariantBase.Price,
-			&productVariantBase.ProductId, &batch.ProductName,
+			&productVariantBase.ProductId, &batch.ProductName, &batch.IsIngredient,
 		)
 		if err != nil {
 			common.GetLogger().Error("Failed to scan batches", zap.Error(err))

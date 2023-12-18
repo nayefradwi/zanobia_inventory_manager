@@ -30,6 +30,7 @@ type Batch struct {
 	ProductVariantBase *ProductVariantBase `json:"productVariant,omitempty"`
 	Unit               Unit                `json:"unit"`
 	ProductName        string              `json:"productName"`
+	IsIngredient       bool                `json:"isIngredient"`
 }
 
 func (b BatchBase) SetQuantity(quantity float64) BatchBase {
