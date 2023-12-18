@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 )
@@ -39,9 +40,7 @@ type Transaction struct {
 	WarehouseId     *int              `json:"warehouseId,omitempty"`
 	RetailerId      *int              `json:"retailerId,omitempty"`
 	Quantity        float64           `json:"quantity"`
-	UnitId          *int              `json:"unitId,omitempty"`
-	UnitName        string            `json:"unitName,omitempty"`
-	UnitSymbol      string            `json:"unitSymbol,omitempty"`
+	Unit            *unit.Unit        `json:"unit,omitempty"`
 	Amount          float64           `json:"amount,omitempty"`
 	Reason          TransactionReason `json:"reason,omitempty"`
 	Comment         string            `json:"comment,omitempty"`

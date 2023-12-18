@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"github.com/nayefradwi/zanobia_inventory_manager/unit"
 	"github.com/nayefradwi/zanobia_inventory_manager/warehouse"
 	"go.uber.org/zap"
 )
@@ -23,8 +24,8 @@ type ITransactionRepository interface {
 }
 
 const baseSelectTransactionHistorySql = `
-SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, quantity, unit_id, 
-	amount, comment, sku, transaction_history.created_at, name, is_positive
+SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_id, retailer_id, quantity, unit_translations.unit_id, 
+	amount, comment, sku, transaction_history.created_at, transaction_history_reasons.name, is_positive, unit_translations.name, unit_translations.symbol
 FROM transaction_history
 JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
 JOIN unit_translations on transaction_history.unit_id = unit_translations.unit_id
@@ -170,17 +171,25 @@ func (r *TransactionRepository) parseRows(rows pgx.Rows) ([]Transaction, error) 
 	for rows.Next() {
 		transaction := Transaction{}
 		transactionReason := TransactionReason{}
+		var unitId int
+		var unitName, unitSymbol string
 		err := rows.Scan(&transaction.Id, &transaction.UserId, &transaction.BatchId,
 			&transaction.RetailerBatchId, &transaction.WarehouseId, &transaction.RetailerId,
-			&transaction.Quantity, &transaction.UnitId, &transaction.Amount,
+			&transaction.Quantity, &unitId, &transaction.Amount,
 			&transaction.Comment, &transaction.Sku,
 			&transaction.CreatedAt, &transactionReason.Name, &transactionReason.IsPositive,
+			&unitName, &unitSymbol,
 		)
 		if err != nil {
 			common.GetLogger().Error("Failed to scan transaction", zap.Error(err))
 			return nil, common.NewBadRequestFromMessage("Failed to get transactions")
 		}
 		transaction.Reason = transactionReason
+		transaction.Unit = &unit.Unit{
+			Id:     &unitId,
+			Name:   unitName,
+			Symbol: unitSymbol,
+		}
 		transactions = append(transactions, transaction)
 	}
 	return transactions, nil
