@@ -72,7 +72,7 @@ func (r *BatchRepository) GetBatches(ctx context.Context, params common.Paginati
 	lang := common.GetLanguageParam(ctx)
 	sqlBuilder := common.NewPaginationQueryBuilder(
 		baseBatchListingSql,
-		[]string{"b.expires_at DESC", "b.id DESC"},
+		[]string{"b.expires_at ASC", "b.id ASC"},
 	)
 	rows, err := sqlBuilder.
 		WithOperator(op).
@@ -83,7 +83,7 @@ func (r *BatchRepository) GetBatches(ctx context.Context, params common.Paginati
 		}).
 		WithParams(params).
 		WithCursorKeys([]string{"b.expires_at", "b.id"}).
-		WithCompareSymbols("<", "<=", ">").
+		WithCompareSymbols(">", ">=", "<").
 		Build().
 		Query(ctx, lang, warehouseId)
 	if err != nil {
@@ -100,7 +100,7 @@ func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, pa
 	lang := common.GetLanguageParam(ctx)
 	sqlBuilder := common.NewPaginationQueryBuilder(
 		baseBatchListingSql,
-		[]string{"b.expires_at DESC", "b.id DESC"},
+		[]string{"b.expires_at ASC", "b.id ASC"},
 	)
 	rows, err := sqlBuilder.
 		WithOperator(op).
@@ -113,7 +113,7 @@ func (r *BatchRepository) SearchBatchesBySku(ctx context.Context, sku string, pa
 		}).
 		WithParams(params).
 		WithCursorKeys([]string{"b.expires_at", "b.id"}).
-		WithCompareSymbols("<", "<=", ">").
+		WithCompareSymbols(">", ">=", "<").
 		Build().
 		Query(ctx, lang, warehouseId, sku)
 	if err != nil {

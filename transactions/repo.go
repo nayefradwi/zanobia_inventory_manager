@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -29,6 +30,8 @@ SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_i
 FROM transaction_history
 JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
 JOIN unit_translations on transaction_history.unit_id = unit_translations.unit_id
+%s
+ORDER BY transaction_history.created_at DESC
 `
 
 type TransactionRepository struct {
@@ -196,7 +199,7 @@ func (r *TransactionRepository) parseRows(rows pgx.Rows) ([]Transaction, error) 
 }
 
 func getTransactionHistoryWithCondition(condition string) string {
-	return baseSelectTransactionHistorySql + " " + condition
+	return fmt.Sprintf(baseSelectTransactionHistorySql, condition)
 }
 
 func (r *TransactionRepository) InsertTransactionToBatch(
