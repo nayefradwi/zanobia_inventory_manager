@@ -30,8 +30,7 @@ SELECT transaction_history.id, user_id, batch_id, retailer_batch_id, warehouse_i
 FROM transaction_history
 JOIN transaction_history_reasons ON transaction_history.reason = transaction_history_reasons.name
 JOIN unit_translations on transaction_history.unit_id = unit_translations.unit_id
-%s
-ORDER BY transaction_history.created_at DESC
+%s ORDER BY transaction_history.created_at DESC
 `
 
 type TransactionRepository struct {
@@ -97,7 +96,7 @@ func (r *TransactionRepository) InsertTransaction(ctx context.Context, input tra
 func (r *TransactionRepository) GetTransactionsOfRetailer(ctx context.Context, retailerId int) ([]Transaction, error) {
 	sql := getTransactionHistoryWithCondition(`
 	WHERE retailer_id = $1 AND unit_translations.language_code = $2
-	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
+	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days'
 `)
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, retailerId, common.GetLanguageParam(ctx))
@@ -112,7 +111,7 @@ func (r *TransactionRepository) GetTransactionsOfRetailer(ctx context.Context, r
 func (r *TransactionRepository) GetTransactionsOfRetailerBatch(ctx context.Context, retailerId, retailerBatchId int) ([]Transaction, error) {
 	sql := getTransactionHistoryWithCondition(`	
 	WHERE retailer_batch_id = $1 AND retailer_id = $2 AND unit_translations.language_code = $3
-	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
+	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days'
 `)
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, retailerBatchId, retailerId, common.GetLanguageParam(ctx))
@@ -127,7 +126,7 @@ func (r *TransactionRepository) GetTransactionsOfRetailerBatch(ctx context.Conte
 func (r *TransactionRepository) GetTransactionsOfSKU(ctx context.Context, sku string) ([]Transaction, error) {
 	sql := getTransactionHistoryWithCondition(`	
 	WHERE sku = $1 AND (warehouse_id = $2 OR warehouse_id IS NULL) AND unit_translations.language_code = $3
-	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
+	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days'
 `)
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, sku, warehouse.GetWarehouseId(ctx), common.GetLanguageParam(ctx))
@@ -142,7 +141,7 @@ func (r *TransactionRepository) GetTransactionsOfSKU(ctx context.Context, sku st
 func (r *TransactionRepository) GetTransactionsOfBatch(ctx context.Context, batchId int) ([]Transaction, error) {
 	sql := getTransactionHistoryWithCondition(`	
 	WHERE batch_id = $1 AND warehouse_id = $2  AND unit_translations.language_code = $3
-	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
+	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days'
 `)
 	op := common.GetOperator(ctx, r.Pool)
 	rows, err := op.Query(ctx, sql, batchId, warehouse.GetWarehouseId(ctx), common.GetLanguageParam(ctx))
@@ -156,7 +155,7 @@ func (r *TransactionRepository) GetTransactionsOfBatch(ctx context.Context, batc
 
 func (r *TransactionRepository) GetTransactionsOfWarehouse(ctx context.Context) ([]Transaction, error) {
 	sql := getTransactionHistoryWithCondition(`WHERE warehouse_id = $1 AND unit_translations.language_code = $2
-	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days';
+	AND transaction_history.created_at >= CURRENT_DATE - INTERVAL '30 days'
 `,
 	)
 	op := common.GetOperator(ctx, r.Pool)
