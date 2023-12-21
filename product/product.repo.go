@@ -295,8 +295,8 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	sql := `
 	select p.id, ptx.name, ptx.description, p.image, p.is_archived, p.category_id, popt.id,
 	popt.name, pvl.id, pvl.value from products p
-	join product_options popt on popt.product_id = p.id
-	join product_option_values pvl on pvl.product_option_id = popt.id
+	left join product_options popt on popt.product_id = p.id
+	left join product_option_values pvl on pvl.product_option_id = popt.id
 	join product_translations ptx on ptx.product_id = p.id
 	where p.id = $1 and ptx.language_code = $2;
 	`
@@ -312,15 +312,28 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	var product Product
 	options := map[string]ProductOption{}
 	for rows.Next() {
-		var option ProductOption
-		var optionValue ProductOptionValue
+		// var option *ProductOption
+		// var optionValue *ProductOptionValue
+		var optionId, optionValueId *int
+		var optionName, optionValueName *string
 		err := rows.Scan(
 			&product.Id, &product.Name, &product.Description, &product.Image, &product.IsArchived,
-			&product.CategoryId, &option.Id, &option.Name, &optionValue.Id, &optionValue.Value,
+			&product.CategoryId, &optionId, &optionName, &optionValueId, &optionValueName,
 		)
 		if err != nil {
 			common.LoggerFromCtx(ctx).Error("failed to scan product", zap.Error(err))
 			return Product{}, common.NewInternalServerError()
+		}
+		if optionId == nil || optionValueId == nil {
+			continue
+		}
+		option := ProductOption{
+			Id:   optionId,
+			Name: *optionName,
+		}
+		optionValue := ProductOptionValue{
+			Id:    optionValueId,
+			Value: *optionValueName,
 		}
 		if _variant, ok := options[option.Name]; ok {
 			option.Values = append(_variant.Values, optionValue)
