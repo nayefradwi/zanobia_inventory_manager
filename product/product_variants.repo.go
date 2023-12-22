@@ -287,7 +287,7 @@ func (r *ProductRepo) UpdateProductVariantSku(ctx context.Context, oldSku, newSk
 	_, err := op.Exec(ctx, sql, newSku, oldSku)
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("failed to update product variant sku", zap.Error(err))
-		return common.NewInternalServerError()
+		return common.NewBadRequestFromMessage("Failed to update product variant sku")
 	}
 	return nil
 }
