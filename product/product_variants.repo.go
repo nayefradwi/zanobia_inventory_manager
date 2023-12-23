@@ -48,11 +48,12 @@ func (r *ProductRepo) GetProductVariant(ctx context.Context, productVariantId in
 	select pvar.id, pvar.product_id, pvartx.name, pvar.sku, pvar.image, pvar.price,
 	pvar.width_in_cm, pvar.height_in_cm, pvar.depth_in_cm, pvar.weight_in_g,
 	pvar.is_archived, pvar.is_default, pvar.expires_in_days, 
-	utx.unit_id, utx.name, utx.symbol, ptx.name product_name
+	utx.unit_id, utx.name, utx.symbol, ptx.name product_name, p.is_ingredient
 	from product_variants pvar 
 	join product_variant_translations pvartx on pvar.id = pvartx.product_variant_id
 	join unit_translations utx on utx.unit_id = pvar.standard_unit_id
 	join product_translations ptx on ptx.product_id = pvar.product_id
+	join products p on p.id = pvar.product_id
 	where pvar.id = $1 and pvartx.language_code = $2
 	`
 	op := common.GetOperator(ctx, r.Pool)
@@ -65,6 +66,7 @@ func (r *ProductRepo) GetProductVariant(ctx context.Context, productVariantId in
 		&productVariant.Image, &productVariant.Price, &productVariant.WidthInCm, &productVariant.HeightInCm,
 		&productVariant.DepthInCm, &productVariant.WeightInG, &productVariant.IsArchived, &productVariant.IsDefault,
 		&productVariant.ExpiresInDays, &unit.Id, &unit.Name, &unit.Symbol, &productVariant.ProductName,
+		&productVariant.IsIngredient,
 	)
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("failed to scan product variant", zap.Error(err))

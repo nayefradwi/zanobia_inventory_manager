@@ -87,6 +87,7 @@ type ProductVariantBase struct {
 type ProductVariant struct {
 	ProductVariantBase
 	ProductName  string     `json:"productName"`
+	IsIngredient bool       `json:"isIngredient"`
 	TotalCost    float64    `json:"totalCost,omitempty"`
 	Recipes      []Recipe   `json:"recipes,omitempty"`
 	StandardUnit *unit.Unit `json:"standardUnit,omitempty"`
