@@ -205,7 +205,7 @@ func (r *ProductRepo) GetProductVariantSkuAndIsDefaultFromId(ctx context.Context
 }
 
 func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int, sku string) error {
-	batch := r.CreateDeleteProductVariantBatch(id, sku)
+	batch := r.createDeleteProductVariantBatch(id, sku)
 	op := common.GetOperator(ctx, r.Pool)
 	results := op.SendBatch(ctx, batch)
 	defer results.Close()
@@ -242,15 +242,19 @@ func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int, sku stri
 	return nil
 }
 
-func (r *ProductRepo) CreateDeleteProductVariantBatch(id int, sku string) *pgx.Batch {
+func (r *ProductRepo) createDeleteProductVariantBatch(id int, sku string) *pgx.Batch {
 	batch := &pgx.Batch{}
+	r.addToDeleteVariantQueriesToBatch(batch, id, sku)
+	return batch
+}
+
+func (r *ProductRepo) addToDeleteVariantQueriesToBatch(batch *pgx.Batch, id int, sku string) {
 	batch.Queue("delete from product_variant_translations where product_variant_id = $1", id)
 	batch.Queue("delete from product_variant_values where product_variant_id = $1", id)
 	batch.Queue("delete from recipes where recipe_variant_sku = $1 OR result_variant_sku = $1", sku)
 	batch.Queue("delete from batches where sku = $1", sku)
 	batch.Queue("delete from retailer_batches where sku = $1", sku)
 	batch.Queue("delete from product_variants where id = $1 RETURNING is_default", id)
-	return batch
 }
 
 func (r *ProductRepo) UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error {

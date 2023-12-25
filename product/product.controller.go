@@ -124,3 +124,15 @@ func (c ProductController) UpdateProductVariantSku(w http.ResponseWriter, r *htt
 		})
 	})
 }
+
+func (c ProductController) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	id := common.GetIntURLParam(r, "id")
+	err := c.service.DeleteProduct(r.Context(), id)
+	common.WriteEmptyResponse(
+		common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product deleted successfully",
+		},
+	)
+}

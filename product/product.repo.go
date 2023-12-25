@@ -29,6 +29,7 @@ type IProductRepo interface {
 	DeleteProductVariant(ctx context.Context, id int, sku string) error
 	UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
+	DeleteProduct(ctx context.Context, product Product) error
 }
 
 type ProductRepo struct {
@@ -362,4 +363,36 @@ func (r *ProductRepo) GetOriginalUnitsBySkuList(ctx context.Context, skuList []s
 		units[sku] = unitId
 	}
 	return units, nil
+}
+
+func (r *ProductRepo) DeleteProduct(ctx context.Context, product Product) error {
+	batch := r.CreateDeleteProductBatch(ctx, product)
+	op := common.GetOperator(ctx, r.Pool)
+	results := op.SendBatch(ctx, batch)
+	defer results.Close()
+	for i := 0; i < batch.Len(); i++ {
+		if _, err := results.Exec(); err != nil {
+			common.LoggerFromCtx(ctx).Error("failed to delete product", zap.Error(err))
+			return common.NewBadRequestFromMessage("Failed to delete product")
+		}
+	}
+	return nil
+}
+
+func (r *ProductRepo) CreateDeleteProductBatch(ctx context.Context, product Product) *pgx.Batch {
+	batch := &pgx.Batch{}
+	batch.Queue("DELETE FROM product_translations WHERE product_id = $1", product.Id)
+	for _, variant := range product.ProductVariants {
+		r.addToDeleteVariantQueriesToBatch(batch, *variant.Id, variant.Sku)
+	}
+	batch.Queue(`
+		DELETE FROM product_option_values
+		USING product_options
+		WHERE product_option_values.product_option_id = product_options.id 
+		AND product_options.product_id = $1;`,
+		product.Id,
+	)
+	batch.Queue("DELETE FROM product_options WHERE product_id = $1", product.Id)
+	batch.Queue("DELETE FROM products WHERE id = $1", product.Id)
+	return batch
 }

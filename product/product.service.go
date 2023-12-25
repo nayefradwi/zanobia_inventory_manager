@@ -23,6 +23,7 @@ type IProductService interface {
 	DeleteProductVariant(ctx context.Context, id int) error
 	UpdateProductVariantSku(ctx context.Context, input UpdateSkuInput) error
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
+	DeleteProduct(ctx context.Context, id int) error
 }
 
 type ProductService struct {
@@ -212,4 +213,20 @@ func (s *ProductService) UpdateProductVariantSku(ctx context.Context, input Upda
 
 func (s *ProductService) GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error) {
 	return s.repo.GetOriginalUnitsBySkuList(ctx, skuList)
+}
+
+func (s *ProductService) DeleteProduct(ctx context.Context, id int) error {
+	return common.RunWithTransaction(ctx, s.repo.(*ProductRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		product, err := s.GetProduct(ctx, id)
+		if err != nil {
+			return err
+		}
+		if len(product.ProductVariants) == 0 {
+			return common.NewBadRequestFromMessage("cannot failed to get product variants")
+		}
+		if err := s.repo.DeleteProduct(ctx, product); err != nil {
+			return err
+		}
+		return nil
+	})
 }
