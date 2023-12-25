@@ -204,17 +204,42 @@ func (r *ProductRepo) GetProductVariantSkuFromId(ctx context.Context, id int) (s
 }
 
 func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int, sku string) error {
-	sql := `
-	delete from product_variant_translations where product_variant_id = $1
-	delete from product_variant_values where product_variant_id = $1
-	delete from recipes where recipe_variant_id = $1 OR result_variant_id = $1;
-	delete from batches where sku = $1;
-	delete from retailer_batches where sku = $1;
-	delete from product_variants where id = $1 RETURNING is_default;
-	`
+	batch := &pgx.Batch{}
+	batch.Queue("delete from product_variant_translations where product_variant_id = $1", id)
+	batch.Queue("delete from product_variant_values where product_variant_id = $1", id)
+	batch.Queue("delete from recipes where recipe_variant_id = $1 OR result_variant_id = $1", id)
+	batch.Queue("delete from batches where sku = $1", sku)
+	batch.Queue("delete from retailer_batches where sku = $1", sku)
+	batch.Queue("delete from product_variants where id = $1 RETURNING is_default", id)
 	op := common.GetOperator(ctx, r.Pool)
+	results := op.SendBatch(ctx, batch)
+	_, deleteVariantTransationsErr := results.Exec()
+	if deleteVariantTransationsErr != nil {
+		common.LoggerFromCtx(ctx).Error("failed to delete product variant translations", zap.Error(deleteVariantTransationsErr))
+		return common.NewBadRequestFromMessage("Failed to delete product variant translations")
+	}
+	_, deleteVariantValuesErr := results.Exec()
+	if deleteVariantValuesErr != nil {
+		common.LoggerFromCtx(ctx).Error("failed to delete product variant values", zap.Error(deleteVariantValuesErr))
+		return common.NewBadRequestFromMessage("Failed to delete product variant values")
+	}
+	_, deleteRecipesErr := results.Exec()
+	if deleteRecipesErr != nil {
+		common.LoggerFromCtx(ctx).Error("failed to delete recipes", zap.Error(deleteRecipesErr))
+		return common.NewBadRequestFromMessage("Failed to delete recipes")
+	}
+	_, deleteBatchesErr := results.Exec()
+	if deleteBatchesErr != nil {
+		common.LoggerFromCtx(ctx).Error("failed to delete batches", zap.Error(deleteBatchesErr))
+		return common.NewBadRequestFromMessage("Failed to delete batches")
+	}
+	_, deleteRetailerBatchesErr := results.Exec()
+	if deleteRetailerBatchesErr != nil {
+		common.LoggerFromCtx(ctx).Error("failed to delete retailer batches", zap.Error(deleteRetailerBatchesErr))
+		return common.NewBadRequestFromMessage("Failed to delete retailer batches")
+	}
 	var isDefault bool
-	err := op.QueryRow(ctx, sql, id).Scan(&isDefault)
+	err := results.QueryRow().Scan(&isDefault)
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("failed to delete product variant", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to delete product variant")
