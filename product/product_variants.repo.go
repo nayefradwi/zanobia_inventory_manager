@@ -203,80 +203,24 @@ func (r *ProductRepo) GetProductVariantSkuFromId(ctx context.Context, id int) (s
 	return sku, nil
 }
 
-func (r *ProductRepo) DeleteProductVariantTranslations(ctx context.Context, id int) error {
+func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int, sku string) error {
 	sql := `
 	delete from product_variant_translations where product_variant_id = $1
-	`
-	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, id)
-	if err != nil {
-		common.LoggerFromCtx(ctx).Error("failed to delete product variant translations", zap.Error(err))
-		return common.NewInternalServerError()
-	}
-	return nil
-}
-
-func (r *ProductRepo) DeleteProductVariantValues(ctx context.Context, id int) error {
-	sql := `
 	delete from product_variant_values where product_variant_id = $1
+	delete from recipes where recipe_variant_id = $1 OR result_variant_id = $1;
+	delete from batches where sku = $1;
+	delete from retailer_batches where sku = $1;
+	delete from product_variants where id = $1 RETURNING is_default;
 	`
 	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, id)
-	if err != nil {
-		common.LoggerFromCtx(ctx).Error("failed to delete product variant values", zap.Error(err))
-		return common.NewInternalServerError()
-	}
-	return nil
-}
-
-func (r *ProductRepo) DeleteRecipes(ctx context.Context, id int) error {
-	sql := `
-	delete from recipes where recipe_variant_id = $1 OR result_variant_id = $1
-	`
-	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, id)
-	if err != nil {
-		common.LoggerFromCtx(ctx).Error("failed to delete recipes", zap.Error(err))
-		return common.NewInternalServerError()
-	}
-	return nil
-}
-
-func (r *ProductRepo) DeleteBatches(ctx context.Context, sku string) error {
-	sql := `
-	delete from batches where sku = $1
-	`
-	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, sku)
-	if err != nil {
-		common.LoggerFromCtx(ctx).Error("failed to delete batches", zap.Error(err))
-		return common.NewInternalServerError()
-	}
-	return nil
-}
-
-func (r *ProductRepo) DeleteRetailerBatches(ctx context.Context, sku string) error {
-	sql := `
-	delete from retailer_batches where sku = $1
-	`
-	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, sku)
-	if err != nil {
-		common.LoggerFromCtx(ctx).Error("failed to delete retail batches", zap.Error(err))
-		return common.NewInternalServerError()
-	}
-	return nil
-}
-
-func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int) error {
-	sql := `
-	delete from product_variants where id = $1
-	`
-	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, id)
+	var isDefault bool
+	err := op.QueryRow(ctx, sql, id).Scan(&isDefault)
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("failed to delete product variant", zap.Error(err))
-		return common.NewInternalServerError()
+		return common.NewBadRequestFromMessage("Failed to delete product variant")
+	}
+	if isDefault {
+		return common.NewBadRequestFromMessage("Cannot delete default product variant")
 	}
 	return nil
 }

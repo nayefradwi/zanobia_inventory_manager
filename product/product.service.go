@@ -193,22 +193,7 @@ func (s *ProductService) DeleteProductVariant(ctx context.Context, id int) error
 		if sku == "" {
 			return common.NewNotFoundError("product variant not found")
 		}
-		if err := s.repo.DeleteProductVariantTranslations(ctx, id); err != nil {
-			return err
-		}
-		if err := s.repo.DeleteProductVariantValues(ctx, id); err != nil {
-			return err
-		}
-		if err := s.repo.DeleteRecipes(ctx, id); err != nil {
-			return err
-		}
-		if err := s.repo.DeleteBatches(ctx, sku); err != nil {
-			return err
-		}
-		if err := s.repo.DeleteRetailerBatches(ctx, sku); err != nil {
-			return err
-		}
-		if err := s.repo.DeleteProductVariant(ctx, id); err != nil {
+		if err := s.repo.DeleteProductVariant(ctx, id, sku); err != nil {
 			return err
 		}
 		return nil
