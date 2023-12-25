@@ -186,12 +186,15 @@ func (s *ProductService) UpdateProductVariantDetails(ctx context.Context, update
 
 func (s *ProductService) DeleteProductVariant(ctx context.Context, id int) error {
 	return common.RunWithTransaction(ctx, s.repo.(*ProductRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		sku, err := s.repo.(*ProductRepo).GetProductVariantSkuFromId(ctx, id)
+		sku, isDefault, err := s.repo.(*ProductRepo).GetProductVariantSkuAndIsDefaultFromId(ctx, id)
 		if err != nil {
 			return err
 		}
 		if sku == "" {
 			return common.NewNotFoundError("product variant not found")
+		}
+		if isDefault {
+			return common.NewBadRequestFromMessage("cannot delete default variant")
 		}
 		if err := s.repo.DeleteProductVariant(ctx, id, sku); err != nil {
 			return err

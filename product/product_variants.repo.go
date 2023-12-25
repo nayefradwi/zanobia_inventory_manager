@@ -188,31 +188,27 @@ func (r *ProductRepo) UpdateProductVariantDetails(ctx context.Context, update Pr
 	return nil
 }
 
-func (r *ProductRepo) GetProductVariantSkuFromId(ctx context.Context, id int) (string, error) {
+func (r *ProductRepo) GetProductVariantSkuAndIsDefaultFromId(ctx context.Context, id int) (string, bool, error) {
 	sql := `
-	select sku from product_variants where id = $1
+	select sku, is_default from product_variants where id = $1
 	`
 	op := common.GetOperator(ctx, r.Pool)
 	row := op.QueryRow(ctx, sql, id)
 	var sku string
-	err := row.Scan(&sku)
+	var isDefault bool
+	err := row.Scan(&sku, &isDefault)
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("failed to scan product variant sku", zap.Error(err))
-		return "", common.NewInternalServerError()
+		return "", false, common.NewInternalServerError()
 	}
-	return sku, nil
+	return sku, isDefault, nil
 }
 
 func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int, sku string) error {
-	batch := &pgx.Batch{}
-	batch.Queue("delete from product_variant_translations where product_variant_id = $1", id)
-	batch.Queue("delete from product_variant_values where product_variant_id = $1", id)
-	batch.Queue("delete from recipes where recipe_variant_sku = $1 OR result_variant_sku = $1", sku)
-	batch.Queue("delete from batches where sku = $1", sku)
-	batch.Queue("delete from retailer_batches where sku = $1", sku)
-	batch.Queue("delete from product_variants where id = $1 RETURNING is_default", id)
+	batch := r.CreateDeleteProductVariantBatch(id, sku)
 	op := common.GetOperator(ctx, r.Pool)
 	results := op.SendBatch(ctx, batch)
+	defer results.Close()
 	_, deleteVariantTransationsErr := results.Exec()
 	if deleteVariantTransationsErr != nil {
 		common.LoggerFromCtx(ctx).Error("failed to delete product variant translations", zap.Error(deleteVariantTransationsErr))
@@ -238,16 +234,23 @@ func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int, sku stri
 		common.LoggerFromCtx(ctx).Error("failed to delete retailer batches", zap.Error(deleteRetailerBatchesErr))
 		return common.NewBadRequestFromMessage("Failed to delete retailer batches")
 	}
-	var isDefault bool
-	err := results.QueryRow().Scan(&isDefault)
-	if err != nil {
-		common.LoggerFromCtx(ctx).Error("failed to delete product variant", zap.Error(err))
+	_, deleteErr := results.Exec()
+	if deleteErr != nil {
+		common.LoggerFromCtx(ctx).Error("failed to delete product variant", zap.Error(deleteErr))
 		return common.NewBadRequestFromMessage("Failed to delete product variant")
 	}
-	if isDefault {
-		return common.NewBadRequestFromMessage("Cannot delete default product variant")
-	}
 	return nil
+}
+
+func (r *ProductRepo) CreateDeleteProductVariantBatch(id int, sku string) *pgx.Batch {
+	batch := &pgx.Batch{}
+	batch.Queue("delete from product_variant_translations where product_variant_id = $1", id)
+	batch.Queue("delete from product_variant_values where product_variant_id = $1", id)
+	batch.Queue("delete from recipes where recipe_variant_sku = $1 OR result_variant_sku = $1", sku)
+	batch.Queue("delete from batches where sku = $1", sku)
+	batch.Queue("delete from retailer_batches where sku = $1", sku)
+	batch.Queue("delete from product_variants where id = $1 RETURNING is_default", id)
+	return batch
 }
 
 func (r *ProductRepo) UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error {

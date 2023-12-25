@@ -25,7 +25,7 @@ type IProductRepo interface {
 	GetProductSelectedValues(ctx context.Context, productId int, optionValueIds []int) (map[string]ProductOptionValue, error)
 	InsertProductOptionValue(ctx context.Context, optionId int, optionValue ProductOptionValue) (int, error)
 	UpdateProductVariantDetails(ctx context.Context, update ProductVariantUpdate) error
-	GetProductVariantSkuFromId(ctx context.Context, id int) (string, error)
+	GetProductVariantSkuAndIsDefaultFromId(ctx context.Context, id int) (string, bool, error)
 	DeleteProductVariant(ctx context.Context, id int, sku string) error
 	UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
