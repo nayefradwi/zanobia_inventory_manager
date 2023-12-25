@@ -207,7 +207,7 @@ func (r *ProductRepo) DeleteProductVariant(ctx context.Context, id int, sku stri
 	batch := &pgx.Batch{}
 	batch.Queue("delete from product_variant_translations where product_variant_id = $1", id)
 	batch.Queue("delete from product_variant_values where product_variant_id = $1", id)
-	batch.Queue("delete from recipes where recipe_variant_id = $1 OR result_variant_id = $1", id)
+	batch.Queue("delete from recipes where recipe_variant_sku = $1 OR result_variant_sku = $1", sku)
 	batch.Queue("delete from batches where sku = $1", sku)
 	batch.Queue("delete from retailer_batches where sku = $1", sku)
 	batch.Queue("delete from product_variants where id = $1 RETURNING is_default", id)
