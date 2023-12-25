@@ -30,6 +30,7 @@ type IProductRepo interface {
 	UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 	DeleteProduct(ctx context.Context, product Product) error
+	ArchiveProduct(ctx context.Context, id int) error
 }
 
 type ProductRepo struct {
@@ -366,7 +367,7 @@ func (r *ProductRepo) GetOriginalUnitsBySkuList(ctx context.Context, skuList []s
 }
 
 func (r *ProductRepo) DeleteProduct(ctx context.Context, product Product) error {
-	batch := r.CreateDeleteProductBatch(ctx, product)
+	batch := r.createDeleteProductBatch(ctx, product)
 	op := common.GetOperator(ctx, r.Pool)
 	results := op.SendBatch(ctx, batch)
 	defer results.Close()
@@ -379,7 +380,7 @@ func (r *ProductRepo) DeleteProduct(ctx context.Context, product Product) error 
 	return nil
 }
 
-func (r *ProductRepo) CreateDeleteProductBatch(ctx context.Context, product Product) *pgx.Batch {
+func (r *ProductRepo) createDeleteProductBatch(ctx context.Context, product Product) *pgx.Batch {
 	batch := &pgx.Batch{}
 	batch.Queue("DELETE FROM product_translations WHERE product_id = $1", product.Id)
 	for _, variant := range product.ProductVariants {
@@ -394,5 +395,26 @@ func (r *ProductRepo) CreateDeleteProductBatch(ctx context.Context, product Prod
 	)
 	batch.Queue("DELETE FROM product_options WHERE product_id = $1", product.Id)
 	batch.Queue("DELETE FROM products WHERE id = $1", product.Id)
+	return batch
+}
+
+func (r *ProductRepo) ArchiveProduct(ctx context.Context, id int) error {
+	batch := r.createArchiveProductBatch(ctx, id)
+	op := common.GetOperator(ctx, r.Pool)
+	results := op.SendBatch(ctx, batch)
+	defer results.Close()
+	for i := 0; i < batch.Len(); i++ {
+		if _, err := results.Exec(); err != nil {
+			common.LoggerFromCtx(ctx).Error("failed to archive product", zap.Error(err))
+			return common.NewBadRequestFromMessage("Failed to archive product")
+		}
+	}
+	return nil
+}
+
+func (r *ProductRepo) createArchiveProductBatch(ctx context.Context, id int) *pgx.Batch {
+	batch := &pgx.Batch{}
+	batch.Queue("UPDATE products SET is_archived = true WHERE id = $1", id)
+	batch.Queue("UPDATE product_variants SET is_archived = true WHERE product_id = $1", id)
 	return batch
 }

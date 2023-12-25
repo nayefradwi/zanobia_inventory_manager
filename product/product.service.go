@@ -24,6 +24,7 @@ type IProductService interface {
 	UpdateProductVariantSku(ctx context.Context, input UpdateSkuInput) error
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 	DeleteProduct(ctx context.Context, id int) error
+	ArchiveProduct(ctx context.Context, id int) error
 }
 
 type ProductService struct {
@@ -225,6 +226,15 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id int) error {
 			return common.NewBadRequestFromMessage("cannot failed to get product variants")
 		}
 		if err := s.repo.DeleteProduct(ctx, product); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (s *ProductService) ArchiveProduct(ctx context.Context, id int) error {
+	return common.RunWithTransaction(ctx, s.repo.(*ProductRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
+		if err := s.repo.ArchiveProduct(ctx, id); err != nil {
 			return err
 		}
 		return nil

@@ -86,6 +86,7 @@ func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productRouter.Get("/", productController.GetProducts)
 	productRouter.Get("/{id}", productController.GetProduct)
 	productRouter.Delete("/{id}", productController.DeleteProduct)
+	productRouter.Put("/{id}/archive", productController.ArchiveProduct)
 	productRouter.Post("/translation", productController.TranslateProduct)
 	registerUnitRoutes(productRouter, provider)
 	registerProductVariantRoutes(productRouter, provider)
