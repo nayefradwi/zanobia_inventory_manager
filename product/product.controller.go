@@ -139,7 +139,7 @@ func (c ProductController) DeleteProduct(w http.ResponseWriter, r *http.Request)
 
 func (c ProductController) ArchiveProduct(w http.ResponseWriter, r *http.Request) {
 	id := common.GetIntURLParam(r, "id")
-	err := c.service.ArchiveProduct(r.Context(), id)
+	err := c.service.UpdateProductArchiveStatus(r.Context(), id, true)
 	common.WriteEmptyResponse(
 		common.EmptyResult{
 			Error:   err,
@@ -151,12 +151,36 @@ func (c ProductController) ArchiveProduct(w http.ResponseWriter, r *http.Request
 
 func (c ProductController) ArchiveProductVariant(w http.ResponseWriter, r *http.Request) {
 	id := common.GetIntURLParam(r, "id")
-	err := c.service.ArchiveProductVariant(r.Context(), id)
+	err := c.service.UpdateProductVariantArchiveStatus(r.Context(), id, true)
 	common.WriteEmptyResponse(
 		common.EmptyResult{
 			Error:   err,
 			Writer:  w,
-			Message: "Product archived successfully",
+			Message: "Product variant archived successfully",
+		},
+	)
+}
+
+func (c ProductController) UnarchiveProduct(w http.ResponseWriter, r *http.Request) {
+	id := common.GetIntURLParam(r, "id")
+	err := c.service.UpdateProductArchiveStatus(r.Context(), id, false)
+	common.WriteEmptyResponse(
+		common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product unarchived successfully",
+		},
+	)
+}
+
+func (c ProductController) UnarchiveProductVariant(w http.ResponseWriter, r *http.Request) {
+	id := common.GetIntURLParam(r, "id")
+	err := c.service.UpdateProductVariantArchiveStatus(r.Context(), id, false)
+	common.WriteEmptyResponse(
+		common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product variant unarchived successfully",
 		},
 	)
 }

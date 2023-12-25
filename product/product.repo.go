@@ -30,8 +30,8 @@ type IProductRepo interface {
 	UpdateProductVariantSku(ctx context.Context, oldSku, newSku string) error
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 	DeleteProduct(ctx context.Context, product Product) error
-	ArchiveProduct(ctx context.Context, id int) error
-	ArchiveProductVariant(ctx context.Context, id int) error
+	UpdateProductArchiveStatus(ctx context.Context, id int, isArchived bool) error
+	UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchived bool) error
 }
 
 type ProductRepo struct {
@@ -399,8 +399,8 @@ func (r *ProductRepo) createDeleteProductBatch(ctx context.Context, product Prod
 	return batch
 }
 
-func (r *ProductRepo) ArchiveProduct(ctx context.Context, id int) error {
-	batch := r.createArchiveProductBatch(ctx, id)
+func (r *ProductRepo) UpdateProductArchiveStatus(ctx context.Context, id int, isArchive bool) error {
+	batch := r.createArchiveProductBatch(ctx, id, isArchive)
 	op := common.GetOperator(ctx, r.Pool)
 	results := op.SendBatch(ctx, batch)
 	defer results.Close()
@@ -413,9 +413,9 @@ func (r *ProductRepo) ArchiveProduct(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *ProductRepo) createArchiveProductBatch(ctx context.Context, id int) *pgx.Batch {
+func (r *ProductRepo) createArchiveProductBatch(ctx context.Context, id int, isArchive bool) *pgx.Batch {
 	batch := &pgx.Batch{}
-	batch.Queue("UPDATE products SET is_archived = true WHERE id = $1", id)
-	batch.Queue("UPDATE product_variants SET is_archived = true WHERE product_id = $1", id)
+	batch.Queue("UPDATE products SET is_archived = $1 WHERE id = $2", isArchive, id)
+	batch.Queue("UPDATE product_variants SET is_archived = $1 WHERE product_id = $2", isArchive, id)
 	return batch
 }

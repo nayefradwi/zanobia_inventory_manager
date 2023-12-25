@@ -24,8 +24,8 @@ type IProductService interface {
 	UpdateProductVariantSku(ctx context.Context, input UpdateSkuInput) error
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 	DeleteProduct(ctx context.Context, id int) error
-	ArchiveProduct(ctx context.Context, id int) error
-	ArchiveProductVariant(ctx context.Context, id int) error
+	UpdateProductArchiveStatus(ctx context.Context, id int, isArchive bool) error
+	UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchive bool) error
 }
 
 type ProductService struct {
@@ -230,16 +230,16 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id int) error {
 	})
 }
 
-func (s *ProductService) ArchiveProduct(ctx context.Context, id int) error {
+func (s *ProductService) UpdateProductArchiveStatus(ctx context.Context, id int, isArchive bool) error {
 	return common.RunWithTransaction(ctx, s.repo.(*ProductRepo).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		if err := s.repo.ArchiveProduct(ctx, id); err != nil {
+		if err := s.repo.UpdateProductArchiveStatus(ctx, id, isArchive); err != nil {
 			return err
 		}
 		return nil
 	})
 }
 
-func (s *ProductService) ArchiveProductVariant(ctx context.Context, id int) error {
+func (s *ProductService) UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchive bool) error {
 	_, isDefault, err := s.repo.GetProductVariantSkuAndIsDefaultFromId(ctx, id)
 	if err != nil {
 		return err
@@ -247,5 +247,5 @@ func (s *ProductService) ArchiveProductVariant(ctx context.Context, id int) erro
 	if isDefault {
 		return common.NewBadRequestFromMessage("cannot archive default variant")
 	}
-	return s.repo.ArchiveProductVariant(ctx, id)
+	return s.repo.UpdateProductVariantArchiveStatus(ctx, id, isArchive)
 }

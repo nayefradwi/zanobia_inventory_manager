@@ -270,10 +270,10 @@ func (r *ProductRepo) UpdateProductVariantSku(ctx context.Context, oldSku, newSk
 	return nil
 }
 
-func (r *ProductRepo) ArchiveProductVariant(ctx context.Context, id int) error {
-	sql := `update product_variants set is_archived = true where id = $1`
+func (r *ProductRepo) UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchived bool) error {
+	sql := `update product_variants set is_archived = $1 where id = $2`
 	op := common.GetOperator(ctx, r.Pool)
-	_, err := op.Exec(ctx, sql, id)
+	_, err := op.Exec(ctx, sql, isArchived, id)
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("failed to archive product variant", zap.Error(err))
 		return common.NewBadRequestFromMessage("Failed to archive product variant")
