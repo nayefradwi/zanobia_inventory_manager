@@ -31,6 +31,7 @@ type IProductRepo interface {
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 	DeleteProduct(ctx context.Context, product Product) error
 	ArchiveProduct(ctx context.Context, id int) error
+	ArchiveProductVariant(ctx context.Context, id int) error
 }
 
 type ProductRepo struct {

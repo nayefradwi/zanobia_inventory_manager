@@ -148,3 +148,15 @@ func (c ProductController) ArchiveProduct(w http.ResponseWriter, r *http.Request
 		},
 	)
 }
+
+func (c ProductController) ArchiveProductVariant(w http.ResponseWriter, r *http.Request) {
+	id := common.GetIntURLParam(r, "id")
+	err := c.service.ArchiveProductVariant(r.Context(), id)
+	common.WriteEmptyResponse(
+		common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product archived successfully",
+		},
+	)
+}

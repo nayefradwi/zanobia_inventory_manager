@@ -25,6 +25,7 @@ type IProductService interface {
 	GetOriginalUnitsBySkuList(ctx context.Context, skuList []string) (map[string]int, error)
 	DeleteProduct(ctx context.Context, id int) error
 	ArchiveProduct(ctx context.Context, id int) error
+	ArchiveProductVariant(ctx context.Context, id int) error
 }
 
 type ProductService struct {
@@ -239,4 +240,15 @@ func (s *ProductService) ArchiveProduct(ctx context.Context, id int) error {
 		}
 		return nil
 	})
+}
+
+func (s *ProductService) ArchiveProductVariant(ctx context.Context, id int) error {
+	_, isDefault, err := s.repo.GetProductVariantSkuAndIsDefaultFromId(ctx, id)
+	if err != nil {
+		return err
+	}
+	if isDefault {
+		return common.NewBadRequestFromMessage("cannot archive default variant")
+	}
+	return s.repo.ArchiveProductVariant(ctx, id)
 }
