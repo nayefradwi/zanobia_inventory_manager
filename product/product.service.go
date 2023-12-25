@@ -223,9 +223,6 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id int) error {
 		if err != nil {
 			return err
 		}
-		if len(product.ProductVariants) == 0 {
-			return common.NewBadRequestFromMessage("cannot failed to get product variants")
-		}
 		if err := s.repo.DeleteProduct(ctx, product); err != nil {
 			return err
 		}
