@@ -45,7 +45,6 @@ func ValidateWarehouseTransactionCommand(command CreateWarehouseTransactionComma
 func ValidateRetailerTransactionCommand(command CreateRetailerTransactionCommand) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
-		common.ValidateId(command.RetailerBatchId, "retailerBatchId"),
 		common.ValidateId(command.RetailerId, "retailerId"),
 		common.ValidateAmountPositive(command.Quantity, "quantity"),
 		common.ValidateId(command.UnitId, "unitId"),
