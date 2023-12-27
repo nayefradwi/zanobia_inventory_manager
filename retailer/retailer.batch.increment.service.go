@@ -6,4 +6,8 @@ func (s *RetailerBatchService) IncrementBatch(ctx context.Context, batchInput Re
 	return s.BulkIncrementBatch(ctx, []RetailerBatchInput{batchInput})
 }
 
-func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error
+func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
+	if err := ValidateBatchInputsIncrement(inputs); err != nil {
+		return err
+	}
+}

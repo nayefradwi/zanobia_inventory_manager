@@ -56,9 +56,28 @@ func (b RetailerBatchBase) SetExpiresAt(expiresAt time.Time) RetailerBatchBase {
 	return b
 }
 
+func ValidateBatchInputsIncrement(inputs []RetailerBatchInput) error {
+	if len(inputs) == 0 {
+		return common.NewValidationError(
+			"invalid batch input",
+			common.ErrorDetails{
+				Message: "batch input cannot be empty",
+			},
+		)
+	}
+	for _, input := range inputs {
+		validationErr := ValidateBatchInputIncrement(input)
+		if validationErr != nil {
+			return validationErr
+		}
+	}
+	return nil
+}
+
 func ValidateBatchInputIncrement(input RetailerBatchInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
+		common.ValidateIdPtr(input.RetailerId, "retailerId"),
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
@@ -71,7 +90,25 @@ func ValidateBatchInputIncrement(input RetailerBatchInput) error {
 		}
 	}
 	if len(errors) > 0 {
-		return common.NewValidationError("invalid retailer batch input", errors...)
+		return common.NewValidationError("invalid batch input", errors...)
+	}
+	return nil
+}
+
+func ValidateBatchInputsDecrement(inputs []RetailerBatchInput) error {
+	if len(inputs) == 0 {
+		return common.NewValidationError(
+			"invalid batch input",
+			common.ErrorDetails{
+				Message: "batch input cannot be empty",
+			},
+		)
+	}
+	for _, input := range inputs {
+		validationErr := ValidateBatchInputDecrement(input)
+		if validationErr != nil {
+			return validationErr
+		}
 	}
 	return nil
 }
@@ -79,6 +116,7 @@ func ValidateBatchInputIncrement(input RetailerBatchInput) error {
 func ValidateBatchInputDecrement(input RetailerBatchInput) error {
 	validationResults := make([]common.ErrorDetails, 0)
 	validationResults = append(validationResults,
+		common.ValidateIdPtr(input.RetailerId, "retailerId"),
 		common.ValidateIdPtr(&input.UnitId, "unitId"),
 		common.ValidateNotZero(input.Quantity, "quantity"),
 		common.ValidateStringLength(input.Sku, "sku", 10, 36),
@@ -92,7 +130,7 @@ func ValidateBatchInputDecrement(input RetailerBatchInput) error {
 		}
 	}
 	if len(errors) > 0 {
-		return common.NewValidationError("invalid retailer batch input", errors...)
+		return common.NewValidationError("invalid batch input", errors...)
 	}
 	return nil
 }
@@ -102,27 +140,4 @@ func (b RetailerBatch) GetCursorValue() []string {
 		common.GetUtcDateOnlyStringFromTime(b.ExpiresAt),
 		strconv.Itoa(*b.Id),
 	}
-}
-
-func ValidateRetailerBatchFromWarehouseInput(input RetailerBatchFromWarehouseInput) error {
-	validationResults := make([]common.ErrorDetails, 0)
-	validationResults = append(validationResults,
-		common.ValidateId(input.UnitId, "unitId"),
-		common.ValidateNotZero(input.Quantity, "quantity"),
-		common.ValidateStringLength(input.Sku, "sku", 10, 36),
-		common.ValidateIdPtr(input.Id, "id"),
-		common.ValidateId(input.BatchId, "fromBatchId"),
-		common.ValidateId(input.RetailerId, "retailerId"),
-		common.ValidateAmountPositive[float64](input.Quantity, "quantity"),
-	)
-	errors := make([]common.ErrorDetails, 0)
-	for _, result := range validationResults {
-		if len(result.Message) > 0 {
-			errors = append(errors, result)
-		}
-	}
-	if len(errors) > 0 {
-		return common.NewValidationError("invalid retailer batch input", errors...)
-	}
-	return nil
 }
