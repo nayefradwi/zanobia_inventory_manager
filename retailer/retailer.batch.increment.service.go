@@ -57,11 +57,11 @@ func (s *RetailerBatchService) createIncrementBatchesUpdateRequest(
 	bulkUpdateBatchInfo BulkRetailerBatchUpdateInfo,
 ) (
 	map[string]RetailerBatchUpdateRequest,
-	[]transactions.CreateWarehouseTransactionCommand,
+	[]transactions.CreateRetailerTransactionCommand,
 	error,
 ) {
 	batchUpdateRequestLookup := make(map[string]RetailerBatchUpdateRequest)
-	transactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
+	transactionHistory := make([]transactions.CreateRetailerTransactionCommand, 0)
 	for _, batchInput := range bulkUpdateBatchInfo.BatchInputMapToUpdate {
 		batchBase, ok := bulkUpdateBatchInfo.BatchBasesLookup[batchInput.Sku]
 		if !ok {
@@ -77,22 +77,22 @@ func (s *RetailerBatchService) createIncrementBatchesUpdateRequest(
 		}
 		totalCost := batchVariantMetaInfo.Cost * convertedBatchInput.Quantity
 		updateValue := batchBase.Quantity + convertedBatchInput.Quantity
-		batchUpdateRequestLookup[batchInput.Sku] = RetailerBatchUpdateRequest{
-			BatchId:    batchInput.Id,
+		batchUpdateRequestLookup[convertedBatchInput.Sku] = RetailerBatchUpdateRequest{
+			BatchId:    convertedBatchInput.Id,
 			NewValue:   updateValue,
-			Reason:     batchInput.Reason,
-			Sku:        batchInput.Sku,
+			Reason:     convertedBatchInput.Reason,
+			Sku:        convertedBatchInput.Sku,
 			ModifiedBy: convertedBatchInput.Quantity,
 		}
-		// TODO: make the transaction command be retailer transaction command
-		transactionCommand := transactions.CreateWarehouseTransactionCommand{
-			BatchId:  *batchBase.Id,
-			Quantity: convertedBatchInput.Quantity,
-			UnitId:   batchVariantMetaInfo.UnitId,
-			Reason:   batchInput.Reason,
-			Comment:  batchInput.Comment,
-			Cost:     totalCost,
-			Sku:      batchInput.Sku,
+		transactionCommand := transactions.CreateRetailerTransactionCommand{
+			RetailerBatchId: *batchBase.Id,
+			RetailerId:      *convertedBatchInput.RetailerId,
+			Quantity:        convertedBatchInput.Quantity,
+			UnitId:          batchVariantMetaInfo.UnitId,
+			Reason:          convertedBatchInput.Reason,
+			Comment:         convertedBatchInput.Comment,
+			Cost:            totalCost,
+			Sku:             convertedBatchInput.Sku,
 		}
 		transactionHistory = append(transactionHistory, transactionCommand)
 	}
@@ -104,11 +104,11 @@ func (s *RetailerBatchService) createBatchCreateRequest(
 	bulkUpdateBatchInfo BulkRetailerBatchUpdateInfo,
 ) (
 	map[string]RetailerBatchCreateRequest,
-	[]transactions.CreateWarehouseTransactionCommand,
+	[]transactions.CreateRetailerTransactionCommand,
 	error,
 ) {
 	batchCreateRequestLookup := make(map[string]RetailerBatchCreateRequest, 0)
-	transactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
+	transactionHistory := make([]transactions.CreateRetailerTransactionCommand, 0)
 	for _, batchInput := range bulkUpdateBatchInfo.BatchInputMapToCreate {
 		batchVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[batchInput.Sku]
 		if !ok {
@@ -120,20 +120,20 @@ func (s *RetailerBatchService) createBatchCreateRequest(
 		}
 		totalCost := batchVariantMetaInfo.Cost * convertedBatchInput.Quantity
 		expiryDate := time.Now().AddDate(0, 0, batchVariantMetaInfo.ExpiresInDays)
-		batchCreateRequestLookup[batchInput.Sku] = RetailerBatchCreateRequest{
-			BatchSku:   batchInput.Sku,
+		batchCreateRequestLookup[convertedBatchInput.Sku] = RetailerBatchCreateRequest{
+			BatchSku:   convertedBatchInput.Sku,
 			Quantity:   convertedBatchInput.Quantity,
 			UnitId:     batchVariantMetaInfo.UnitId,
 			ExpiryDate: expiryDate,
 		}
-		// TODO: make the transaction command be retailer transaction command
-		transactionCommand := transactions.CreateWarehouseTransactionCommand{
-			Quantity: convertedBatchInput.Quantity,
-			UnitId:   batchVariantMetaInfo.UnitId,
-			Reason:   batchInput.Reason,
-			Comment:  batchInput.Comment,
-			Cost:     totalCost,
-			Sku:      batchInput.Sku,
+		transactionCommand := transactions.CreateRetailerTransactionCommand{
+			RetailerId: *convertedBatchInput.RetailerId,
+			Quantity:   convertedBatchInput.Quantity,
+			UnitId:     batchVariantMetaInfo.UnitId,
+			Reason:     convertedBatchInput.Reason,
+			Comment:    convertedBatchInput.Comment,
+			Cost:       totalCost,
+			Sku:        convertedBatchInput.Sku,
 		}
 		transactionHistory = append(transactionHistory, transactionCommand)
 	}

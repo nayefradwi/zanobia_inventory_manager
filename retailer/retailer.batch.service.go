@@ -90,3 +90,45 @@ func (s *RetailerBatchService) DeleteBatchesOfRetailer(ctx context.Context, reta
 		return s.repo.DeleteBatchesOfRetailer(ctx, retailerId)
 	})
 }
+
+func (s *RetailerBatchService) convertBatchInput(
+	ctx context.Context,
+	batchInput RetailerBatchInput,
+	batchVariantMetaInfo product.BatchVariantMetaInfo,
+) (
+	RetailerBatchInput,
+	error,
+) {
+	convertInput := unit.ConvertUnitInput{
+		ToUnitId:   &batchVariantMetaInfo.UnitId,
+		Quantity:   batchInput.Quantity,
+		FromUnitId: &batchInput.UnitId,
+	}
+	conversionOutput, err := s.unitService.ConvertUnit(ctx, convertInput)
+	if err != nil {
+		return RetailerBatchInput{}, err
+	}
+	batchInput.Quantity = conversionOutput.Quantity
+	batchInput.UnitId = *conversionOutput.Unit.Id
+	return batchInput, nil
+}
+
+func (s *RetailerBatchService) processBulkBatchUnitOfWork(
+	ctx context.Context,
+	bulkBatchUpdateUnitOfWork BulkRetailerBatchUpdateUnitOfWork,
+) error {
+	pgxBatch, err := s.transactionService.(*transactions.TransactionService).
+		CreateTransactionHistoryBatches(
+			ctx,
+			bulkBatchUpdateUnitOfWork.BatchTransactionHistory,
+		)
+	if err != nil {
+		return err
+	}
+	return s.repo.(*RetailerBatchRepository).
+		processBulkBatchUnitOfWork(
+			ctx,
+			bulkBatchUpdateUnitOfWork,
+			pgxBatch,
+		)
+}

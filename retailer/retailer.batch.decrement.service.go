@@ -52,11 +52,11 @@ func (s *RetailerBatchService) createDecrementBatchesUpdateRequest(
 	bulkUpdateBatchInfo BulkRetailerBatchUpdateInfo,
 ) (
 	map[string]RetailerBatchUpdateRequest,
-	[]transactions.CreateWarehouseTransactionCommand,
+	[]transactions.CreateRetailerTransactionCommand,
 	error,
 ) {
 	batchUpdateRequestLookup := make(map[string]RetailerBatchUpdateRequest)
-	transactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
+	transactionHistory := make([]transactions.CreateRetailerTransactionCommand, 0)
 	for _, batchInput := range bulkUpdateBatchInfo.BatchInputMapToUpdate {
 		batchBase, ok := bulkUpdateBatchInfo.BatchBasesLookup[batchInput.Sku]
 		if !ok {
@@ -76,21 +76,21 @@ func (s *RetailerBatchService) createDecrementBatchesUpdateRequest(
 			return nil, nil, common.NewBadRequestFromMessage("insufficient quantity")
 		}
 		batchUpdateRequestLookup[batchInput.Sku] = RetailerBatchUpdateRequest{
-			BatchId:    batchInput.Id,
+			BatchId:    convertedBatchInput.Id,
 			NewValue:   updateValue,
-			Reason:     batchInput.Reason,
-			Sku:        batchInput.Sku,
+			Reason:     convertedBatchInput.Reason,
+			Sku:        convertedBatchInput.Sku,
 			ModifiedBy: convertedBatchInput.Quantity,
 		}
-		// TODO: make the transaction command be retailer transaction command
-		transactionCommand := transactions.CreateWarehouseTransactionCommand{
-			BatchId:  *batchBase.Id,
-			Quantity: convertedBatchInput.Quantity,
-			UnitId:   batchVariantMetaInfo.UnitId,
-			Reason:   batchInput.Reason,
-			Comment:  batchInput.Comment,
-			Cost:     totalCost,
-			Sku:      batchInput.Sku,
+		transactionCommand := transactions.CreateRetailerTransactionCommand{
+			RetailerBatchId: *batchBase.Id,
+			RetailerId:      *convertedBatchInput.RetailerId,
+			Quantity:        convertedBatchInput.Quantity,
+			UnitId:          batchVariantMetaInfo.UnitId,
+			Reason:          convertedBatchInput.Reason,
+			Comment:         convertedBatchInput.Comment,
+			Cost:            totalCost,
+			Sku:             convertedBatchInput.Sku,
 		}
 		transactionHistory = append(transactionHistory, transactionCommand)
 	}

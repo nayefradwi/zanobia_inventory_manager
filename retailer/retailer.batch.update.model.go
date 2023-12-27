@@ -37,5 +37,5 @@ type RetailerBatchCreateRequest struct {
 type BulkRetailerBatchUpdateUnitOfWork struct {
 	BatchUpdateRequestLookup map[string]RetailerBatchUpdateRequest
 	BatchCreateRequestLookup map[string]RetailerBatchCreateRequest
-	BatchTransactionHistory  []transactions.CreateWarehouseTransactionCommand
+	BatchTransactionHistory  []transactions.CreateRetailerTransactionCommand
 }
