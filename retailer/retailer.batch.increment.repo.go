@@ -194,3 +194,42 @@ func (r *RetailerBatchRepository) parseBatchVariantMetaInfoLookupFromResults(
 	}
 	return batchVariantMetaInfoLookup, nil
 }
+
+func (r *RetailerBatchRepository) processBulkBatchUnitOfWork(
+	ctx context.Context,
+	bulkBatchUpdateUnitOfWork BulkRetailerBatchUpdateUnitOfWork,
+	transactionsBatch *pgx.Batch,
+) error {
+	// create update sql batches
+	// create create sql batches
+	op := common.GetOperator(ctx, r.Pool)
+	warehouseId := warehouse.GetWarehouseId(ctx)
+	for _, batchUpdateRequest := range bulkBatchUpdateUnitOfWork.BatchUpdateRequestLookup {
+		transactionsBatch.Queue(
+			"UPDATE batches SET quantity = $1 WHERE id = $2 and warehouse_id = $3",
+			batchUpdateRequest.NewValue,
+			batchUpdateRequest.BatchId,
+			warehouseId,
+		)
+	}
+	for _, batchCreateRequest := range bulkBatchUpdateUnitOfWork.BatchCreateRequestLookup {
+		transactionsBatch.Queue(
+			"INSERT INTO batches (sku, warehouse_id, quantity, unit_id, expires_at) VALUES ($1, $2, $3, $4, $5)",
+			batchCreateRequest.BatchSku,
+			warehouseId,
+			batchCreateRequest.Quantity,
+			batchCreateRequest.UnitId,
+			common.GetUtcDateOnlyStringFromTime(batchCreateRequest.ExpiryDate),
+		)
+	}
+	results := op.SendBatch(ctx, transactionsBatch)
+	defer results.Close()
+	for i := 0; i < transactionsBatch.Len(); i++ {
+		_, err := results.Exec()
+		if err != nil {
+			common.LoggerFromCtx(ctx).Error("Failed to process bulk batch unit of work", zap.Error(err))
+			return common.NewBadRequestFromMessage("Failed to process bulk batch unit of work")
+		}
+	}
+	return nil
+}
