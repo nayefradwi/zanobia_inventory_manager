@@ -75,21 +75,21 @@ func (s *BatchService) createDecrementBatchesUpdateRequest(
 		if updateValue < 0 {
 			return nil, nil, common.NewBadRequestFromMessage("insufficient quantity")
 		}
-		batchUpdateRequestLookup[batchInput.Sku] = BatchUpdateRequest{
-			BatchId:    batchInput.Id,
+		batchUpdateRequestLookup[convertedBatchInput.Sku] = BatchUpdateRequest{
+			BatchId:    convertedBatchInput.Id,
 			NewValue:   updateValue,
-			Reason:     batchInput.Reason,
-			Sku:        batchInput.Sku,
+			Reason:     convertedBatchInput.Reason,
+			Sku:        convertedBatchInput.Sku,
 			ModifiedBy: convertedBatchInput.Quantity,
 		}
 		transactionCommand := transactions.CreateWarehouseTransactionCommand{
 			BatchId:  *batchBase.Id,
 			Quantity: convertedBatchInput.Quantity,
 			UnitId:   batchVariantMetaInfo.UnitId,
-			Reason:   batchInput.Reason,
-			Comment:  batchInput.Comment,
+			Reason:   convertedBatchInput.Reason,
+			Comment:  convertedBatchInput.Comment,
 			Cost:     totalCost,
-			Sku:      batchInput.Sku,
+			Sku:      convertedBatchInput.Sku,
 		}
 		transactionHistory = append(transactionHistory, transactionCommand)
 	}
