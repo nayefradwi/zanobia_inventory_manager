@@ -21,6 +21,7 @@ type IRetailerBatchRepository interface {
 	SearchRetailerBatchesBySku(ctx context.Context, retailerId int, sku string, params common.PaginationParams) ([]RetailerBatch, error)
 	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
 	GetBulkBatchUpdateInfo(ctx context.Context, inputs []RetailerBatchInput) (BulkRetailerBatchUpdateInfo, error)
+	GetBatches(ctx context.Context, params common.PaginationParams) ([]RetailerBatch, error)
 }
 
 type RetailerBatchRepository struct {
@@ -103,7 +104,7 @@ func (r *RetailerBatchRepository) GetRetailerBatches(ctx context.Context, retail
 	lang := common.GetLanguageParam(ctx)
 	rows, err := common.NewPaginationQueryBuilder(
 		baseBatchListingSql,
-		[]string{"b.expires_at DESC", "b.id DESC"},
+		baseBatchOrdering,
 	).
 		WithOperator(op).
 		WithConditions([]string{
@@ -113,7 +114,7 @@ func (r *RetailerBatchRepository) GetRetailerBatches(ctx context.Context, retail
 		}).
 		WithCursorKeys([]string{"b.expires_at", "b.id"}).
 		WithParams(params).
-		WithCompareSymbols("<", "<=", ">").
+		WithCompareSymbols(">", ">=", "<").
 		Build().
 		Query(ctx, lang, retailerId)
 	if err != nil {
@@ -132,7 +133,7 @@ func (r *RetailerBatchRepository) SearchRetailerBatchesBySku(
 	lang := common.GetLanguageParam(ctx)
 	rows, err := common.NewPaginationQueryBuilder(
 		baseBatchListingSql,
-		[]string{"b.expires_at DESC", "b.id DESC"},
+		baseBatchOrdering,
 	).
 		WithOperator(op).
 		WithConditions([]string{
@@ -144,9 +145,36 @@ func (r *RetailerBatchRepository) SearchRetailerBatchesBySku(
 		}).
 		WithCursorKeys([]string{"b.expires_at", "b.id"}).
 		WithParams(params).
-		WithCompareSymbols("<", "<=", ">").
+		WithCompareSymbols(">", ">=", "<").
 		Build().
 		Query(ctx, lang, retailerId, sku)
+	if err != nil {
+		common.LoggerFromCtx(ctx).Error("Failed to get retailer batches", zap.Error(err))
+		return nil, common.NewBadRequestFromMessage("Failed to get retailer batches")
+	}
+	defer rows.Close()
+	return r.parseRetailerBatchRows(rows)
+}
+
+func (r *RetailerBatchRepository) GetBatches(
+	ctx context.Context,
+	params common.PaginationParams,
+) ([]RetailerBatch, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	lang := common.GetLanguageParam(ctx)
+	rows, err := common.NewPaginationQueryBuilder(
+		baseBatchListingSql,
+		baseBatchOrdering,
+	).
+		WithOperator(op).
+		WithConditions([]string{
+			"utx.language_code = $1",
+		}).
+		WithCursorKeys([]string{"b.expires_at", "b.id"}).
+		WithParams(params).
+		WithCompareSymbols(">", ">=", "<").
+		Build().
+		Query(ctx, lang)
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("Failed to get retailer batches", zap.Error(err))
 		return nil, common.NewBadRequestFromMessage("Failed to get retailer batches")
@@ -166,6 +194,8 @@ join product_translations ptx on ptx.product_id = pvar.product_id
 join product_variant_translations pvartx on pvartx.product_variant_id = pvar.id and utx.language_code = pvartx.language_code
 join retailer_translations rtx on rtx.retailer_id = b.retailer_id and utx.language_code = rtx.language_code
 `
+
+var baseBatchOrdering = []string{"b.expires_at ASC", "b.id ASC"}
 
 func (r *RetailerBatchRepository) parseRetailerBatchRows(rows pgx.Rows) ([]RetailerBatch, error) {
 	var retailerBatches []RetailerBatch

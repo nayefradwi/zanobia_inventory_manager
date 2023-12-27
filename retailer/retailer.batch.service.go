@@ -15,9 +15,10 @@ type IRetailerBatchService interface {
 	DecrementBatch(ctx context.Context, input RetailerBatchInput) error
 	BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error
 	BulkDecrementBatch(ctx context.Context, inputs []RetailerBatchInput) error
-	GetBatches(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error)
+	GetBatchesOfRetailer(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error)
 	SearchBatchesBySku(ctx context.Context, retailerId int, sku string) (common.PaginatedResponse[RetailerBatch], error)
 	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
+	GetBatches(ctx context.Context) (common.PaginatedResponse[RetailerBatch], error)
 }
 
 type RetailerBatchService struct {
@@ -36,7 +37,7 @@ func NewRetailerBatchService(
 	unitService unit.IUnitService,
 	transactionService transactions.ITransactionService,
 	batchService product.IBatchService,
-) *RetailerBatchService {
+) IRetailerBatchService {
 	return &RetailerBatchService{
 		repo,
 		productService,
@@ -51,7 +52,7 @@ func GenerateRetailerBatchLockKey(fieldValue string) string {
 	return "retailer-batch:" + fieldValue + ":lock"
 }
 
-func (s *RetailerBatchService) GetBatches(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error) {
+func (s *RetailerBatchService) GetBatchesOfRetailer(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error) {
 	paginationParam := common.GetPaginationParams(ctx)
 	batches, err := s.repo.GetRetailerBatches(ctx, retailerId, paginationParam)
 	if err != nil {
@@ -63,6 +64,15 @@ func (s *RetailerBatchService) GetBatches(ctx context.Context, retailerId int) (
 func (s *RetailerBatchService) SearchBatchesBySku(ctx context.Context, retailerId int, sku string) (common.PaginatedResponse[RetailerBatch], error) {
 	paginationParam := common.GetPaginationParams(ctx)
 	batches, err := s.repo.SearchRetailerBatchesBySku(ctx, retailerId, sku, paginationParam)
+	if err != nil {
+		return common.PaginatedResponse[RetailerBatch]{}, err
+	}
+	return s.createBatchesPage(batches, paginationParam.PageSize), nil
+}
+
+func (s *RetailerBatchService) GetBatches(ctx context.Context) (common.PaginatedResponse[RetailerBatch], error) {
+	paginationParam := common.GetPaginationParams(ctx)
+	batches, err := s.repo.GetBatches(ctx, paginationParam)
 	if err != nil {
 		return common.PaginatedResponse[RetailerBatch]{}, err
 	}

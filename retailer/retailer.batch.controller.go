@@ -60,9 +60,9 @@ func (c RetailerBatchController) BulkDecrementBatch(w http.ResponseWriter, r *ht
 	})
 }
 
-func (c RetailerBatchController) GetBatches(w http.ResponseWriter, r *http.Request) {
+func (c RetailerBatchController) GetBatchesOfRetailer(w http.ResponseWriter, r *http.Request) {
 	id := common.GetIntURLParam(r, "id")
-	batchesPage, err := c.service.GetBatches(r.Context(), id)
+	batchesPage, err := c.service.GetBatchesOfRetailer(r.Context(), id)
 	common.WriteResponse[common.PaginatedResponse[RetailerBatch]](
 		common.Result[common.PaginatedResponse[RetailerBatch]]{
 			Error:  err,
@@ -76,6 +76,17 @@ func (c RetailerBatchController) SearchBatchesBySku(w http.ResponseWriter, r *ht
 	sku := r.URL.Query().Get("sku")
 	id := common.GetIntURLParam(r, "id")
 	batchesPage, err := c.service.SearchBatchesBySku(r.Context(), id, sku)
+	common.WriteResponse[common.PaginatedResponse[RetailerBatch]](
+		common.Result[common.PaginatedResponse[RetailerBatch]]{
+			Error:  err,
+			Writer: w,
+			Data:   batchesPage,
+		},
+	)
+}
+
+func (c RetailerBatchController) GetBatches(w http.ResponseWriter, r *http.Request) {
+	batchesPage, err := c.service.GetBatches(r.Context())
 	common.WriteResponse[common.PaginatedResponse[RetailerBatch]](
 		common.Result[common.PaginatedResponse[RetailerBatch]]{
 			Error:  err,
