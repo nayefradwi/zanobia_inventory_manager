@@ -79,6 +79,7 @@ func (s *RetailerBatchService) createIncrementBatchesUpdateRequest(
 		updateValue := batchBase.Quantity + convertedBatchInput.Quantity
 		batchUpdateRequestLookup[convertedBatchInput.Sku] = RetailerBatchUpdateRequest{
 			BatchId:    convertedBatchInput.Id,
+			RetailerId: convertedBatchInput.RetailerId,
 			NewValue:   updateValue,
 			Reason:     convertedBatchInput.Reason,
 			Sku:        convertedBatchInput.Sku,
@@ -122,6 +123,7 @@ func (s *RetailerBatchService) createBatchCreateRequest(
 		expiryDate := time.Now().AddDate(0, 0, batchVariantMetaInfo.ExpiresInDays)
 		batchCreateRequestLookup[convertedBatchInput.Sku] = RetailerBatchCreateRequest{
 			BatchSku:   convertedBatchInput.Sku,
+			RetailerId: *convertedBatchInput.RetailerId,
 			Quantity:   convertedBatchInput.Quantity,
 			UnitId:     batchVariantMetaInfo.UnitId,
 			ExpiryDate: expiryDate,

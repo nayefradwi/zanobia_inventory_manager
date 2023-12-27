@@ -20,6 +20,7 @@ type BulkRetailerBatchUpdateInfo struct {
 
 type RetailerBatchUpdateRequest struct {
 	BatchId    *int
+	RetailerId *int
 	NewValue   float64
 	Reason     string
 	Sku        string

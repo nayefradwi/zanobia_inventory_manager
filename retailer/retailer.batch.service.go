@@ -18,8 +18,6 @@ type IRetailerBatchService interface {
 	GetBatches(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error)
 	SearchBatchesBySku(ctx context.Context, retailerId int, sku string) (common.PaginatedResponse[RetailerBatch], error)
 	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
-	MoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error
-	ReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error
 }
 
 type RetailerBatchService struct {

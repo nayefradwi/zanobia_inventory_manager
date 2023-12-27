@@ -77,6 +77,7 @@ func (s *RetailerBatchService) createDecrementBatchesUpdateRequest(
 		}
 		batchUpdateRequestLookup[batchInput.Sku] = RetailerBatchUpdateRequest{
 			BatchId:    convertedBatchInput.Id,
+			RetailerId: convertedBatchInput.RetailerId,
 			NewValue:   updateValue,
 			Reason:     convertedBatchInput.Reason,
 			Sku:        convertedBatchInput.Sku,
