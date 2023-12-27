@@ -118,7 +118,7 @@ func (s *RetailerBatchService) processBulkBatchUnitOfWork(
 	bulkBatchUpdateUnitOfWork BulkRetailerBatchUpdateUnitOfWork,
 ) error {
 	pgxBatch, err := s.transactionService.(*transactions.TransactionService).
-		CreateTransactionHistoryBatches(
+		CreateRetailerTransactionHistoryBatches(
 			ctx,
 			bulkBatchUpdateUnitOfWork.BatchTransactionHistory,
 		)

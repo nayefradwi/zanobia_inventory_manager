@@ -89,3 +89,18 @@ func (r *TransactionService) CreateTransactionHistoryBatches(
 	}
 	return batch, nil
 }
+
+func (r *TransactionService) CreateRetailerTransactionHistoryBatches(
+	ctx context.Context,
+	transactionCommands []CreateRetailerTransactionCommand,
+) (*pgx.Batch, error) {
+	batch := &pgx.Batch{}
+	for _, command := range transactionCommands {
+		input, err := ForRetailerTransactions(ctx, command)
+		if err != nil {
+			return nil, err
+		}
+		r.repo.InsertTransactionToBatch(ctx, input, batch)
+	}
+	return batch, nil
+}
