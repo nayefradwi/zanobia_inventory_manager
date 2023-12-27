@@ -11,20 +11,20 @@ import (
 
 type RetailerBatchInput struct {
 	Id         *int    `json:"id,omitempty"`
+	RetailerId *int    `json:"retailerId,omitempty"`
 	Sku        string  `json:"Sku,omitempty"`
 	Quantity   float64 `json:"quantity"`
 	UnitId     int     `json:"unitId"`
-	RetailerId int     `json:"retailerId"`
 	Reason     string  `json:"reason,omitempty"`
-	CostPerQty float64
+	Comment    string  `json:"comment,omitempty"`
 }
 
 type RetailerBatchFromWarehouseInput struct {
 	Id         *int    `json:"id,omitempty"`
+	RetailerId int     `json:"retailerId"`
 	Sku        string  `json:"Sku,omitempty"`
 	Quantity   float64 `json:"quantity"`
 	UnitId     int     `json:"unitId"`
-	RetailerId int     `json:"retailerId"`
 	Reason     string  `json:"reason,omitempty"`
 	BatchId    int     `json:"batchId"`
 }
