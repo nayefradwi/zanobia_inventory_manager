@@ -20,6 +20,7 @@ type IRetailerBatchRepository interface {
 	GetRetailerBatches(ctx context.Context, retailerId int, params common.PaginationParams) ([]RetailerBatch, error)
 	SearchRetailerBatchesBySku(ctx context.Context, retailerId int, sku string, params common.PaginationParams) ([]RetailerBatch, error)
 	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
+	GetBulkBatchUpdateInfo(ctx context.Context, inputs []RetailerBatchInput) (BulkRetailerBatchUpdateInfo, error)
 }
 
 type RetailerBatchRepository struct {

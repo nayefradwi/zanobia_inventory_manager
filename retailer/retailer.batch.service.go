@@ -4,7 +4,6 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/product"
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
@@ -19,8 +18,6 @@ type IRetailerBatchService interface {
 	GetBatches(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error)
 	SearchBatchesBySku(ctx context.Context, retailerId int, sku string) (common.PaginatedResponse[RetailerBatch], error)
 	DeleteBatchesOfRetailer(ctx context.Context, retailerId int) error
-	MoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error
-	ReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error
 }
 
 type RetailerBatchService struct {
@@ -52,203 +49,6 @@ func NewRetailerBatchService(
 
 func GenerateRetailerBatchLockKey(fieldValue string) string {
 	return "retailer-batch:" + fieldValue + ":lock"
-}
-
-func (s *RetailerBatchService) getConvertedBatch(ctx context.Context, input *RetailerBatchInput) (RetailerBatchBase, error) {
-	var batchBase RetailerBatchBase
-	if input.Id != nil {
-		batchBase, _ = s.repo.GetRetailerBatchBaseById(ctx, input.Id, input.RetailerId)
-	}
-	unitId := batchBase.UnitId
-	if batchBase.Id == nil {
-		unitId, _ = s.productService.GetUnitIdOfProductVariantBySku(ctx, input.Sku)
-	}
-	if unitId != input.UnitId {
-		convertedQty, err := s.convertUnit(ctx, unitId, *input)
-		if err != nil {
-			return batchBase, err
-		}
-		input.Quantity = convertedQty
-		input.UnitId = unitId
-	}
-	return batchBase, nil
-}
-
-func (s *RetailerBatchService) convertUnit(ctx context.Context, unitId int, input RetailerBatchInput) (float64, error) {
-	if unitId == input.UnitId {
-		return input.Quantity, nil
-	}
-	out, err := s.unitService.ConvertUnit(ctx, unit.ConvertUnitInput{
-		ToUnitId:   &unitId,
-		FromUnitId: &input.UnitId,
-		Quantity:   input.Quantity,
-	})
-	if err != nil {
-		return 0, err
-	}
-	return out.Quantity, nil
-}
-
-func (s *RetailerBatchService) IncrementBatch(ctx context.Context, batchInput RetailerBatchInput) error {
-	if err := ValidateBatchInputIncrement(batchInput); err != nil {
-		return err
-	}
-	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		return s.tryToIncrementBatch(ctx, batchInput)
-	})
-	return err
-
-}
-
-func (s *RetailerBatchService) tryToIncrementBatch(ctx context.Context, input RetailerBatchInput) error {
-	batchBase, err := s.getConvertedBatch(ctx, &input)
-	if err != nil {
-		return err
-	}
-	if batchBase.Id == nil {
-		return s.tryToCreateBatch(ctx, input)
-	}
-	return s.incrementBatch(ctx, batchBase, input)
-}
-
-func (s *RetailerBatchService) tryToCreateBatch(ctx context.Context, input RetailerBatchInput) error {
-	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(input.Sku), func() error {
-		expiresAt, price, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
-		if err != nil {
-			return err
-		}
-
-		id, err := s.repo.CreateRetailerBatch(ctx, input, common.GetUtcDateOnlyStringFromTime(expiresAt))
-		if err != nil {
-			return err
-		}
-		transactionCommand := transactions.CreateRetailerTransactionCommand{
-			RetailerBatchId: id,
-			Quantity:        input.Quantity,
-			UnitId:          input.UnitId,
-			Reason:          input.Reason,
-			Sku:             input.Sku,
-			RetailerId:      input.RetailerId,
-			Cost:            price,
-			Comment:         "Created retailer batch",
-		}
-		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)
-	})
-}
-
-func (s *RetailerBatchService) incrementBatch(ctx context.Context, batch RetailerBatchBase, input RetailerBatchInput) error {
-	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(strconv.Itoa(*batch.Id)), func() error {
-		batch = batch.SetQuantity(batch.Quantity + input.Quantity)
-		err := s.repo.UpdateRetailerBatch(ctx, batch)
-		if err != nil {
-			return err
-		}
-		_, price, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
-		if err != nil {
-			return err
-		}
-		transactionCommand := transactions.CreateRetailerTransactionCommand{
-			RetailerBatchId: *batch.Id,
-			Quantity:        input.Quantity,
-			UnitId:          input.UnitId,
-			Reason:          input.Reason,
-			Sku:             input.Sku,
-			RetailerId:      *batch.RetailerId,
-			Cost:            price,
-			Comment:         "Incremented retailer batch",
-		}
-		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)
-	})
-}
-
-func (s *RetailerBatchService) DecrementBatch(ctx context.Context, input RetailerBatchInput) error {
-	if err := ValidateBatchInputDecrement(input); err != nil {
-		return err
-	}
-	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		return s.tryToDecrementBatch(ctx, input)
-	})
-	return err
-}
-
-func (s *RetailerBatchService) tryToDecrementBatch(ctx context.Context, input RetailerBatchInput) error {
-	batchBase, err := s.getConvertedBatch(ctx, &input)
-	if err != nil {
-		return err
-	}
-	if batchBase.Id == nil {
-		return common.NewBadRequestFromMessage("retailer batch not found")
-	}
-	return s.decrementBatch(ctx, batchBase, input)
-}
-
-func (s *RetailerBatchService) decrementBatch(ctx context.Context, batchBase RetailerBatchBase, input RetailerBatchInput) error {
-	return s.lockingService.RunWithLock(ctx, GenerateRetailerBatchLockKey(strconv.Itoa(*batchBase.Id)), func() error {
-		newQty := batchBase.Quantity - input.Quantity
-		if newQty < 0 {
-			return common.NewBadRequestFromMessage("retailer batch not enough")
-		}
-		batchBase = batchBase.SetQuantity(newQty)
-		if input.CostPerQty == 0 {
-			_, costPerQty, err := s.productService.GetProductVariantExpirationDateAndCost(ctx, input.Sku)
-			if err != nil {
-				return err
-			}
-			input.CostPerQty = costPerQty
-		}
-		if err := s.repo.UpdateRetailerBatch(ctx, batchBase); err != nil {
-			return err
-		}
-		transactionCommand := transactions.CreateRetailerTransactionCommand{
-			RetailerBatchId: *batchBase.Id,
-			Quantity:        input.Quantity,
-			UnitId:          batchBase.UnitId,
-			Reason:          input.Reason,
-			Sku:             batchBase.Sku,
-			RetailerId:      *batchBase.RetailerId,
-			Cost:            input.CostPerQty,
-			Comment:         "decremented retailer batch",
-		}
-		return s.transactionService.CreateRetailerTransaction(ctx, transactionCommand)
-
-	})
-}
-
-func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
-	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		return s.bulkIncrementBatch(ctx, inputs)
-	})
-	return err
-}
-func (s *RetailerBatchService) bulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
-	for _, input := range inputs {
-		if err := ValidateBatchInputIncrement(input); err != nil {
-			return err
-		}
-		if err := s.tryToIncrementBatch(ctx, input); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *RetailerBatchService) BulkDecrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
-	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		return s.bulkDecrementBatch(ctx, inputs)
-	})
-	return err
-}
-
-func (s *RetailerBatchService) bulkDecrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
-	for _, input := range inputs {
-		if err := ValidateBatchInputDecrement(input); err != nil {
-			return err
-		}
-		if err := s.tryToDecrementBatch(ctx, input); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (s *RetailerBatchService) GetBatches(ctx context.Context, retailerId int) (common.PaginatedResponse[RetailerBatch], error) {
@@ -289,68 +89,44 @@ func (s *RetailerBatchService) DeleteBatchesOfRetailer(ctx context.Context, reta
 	})
 }
 
-func (s *RetailerBatchService) MoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
-	if err := ValidateRetailerBatchFromWarehouseInput(moveInput); err != nil {
+func (s *RetailerBatchService) convertBatchInput(
+	ctx context.Context,
+	batchInput RetailerBatchInput,
+	batchVariantMetaInfo product.BatchVariantMetaInfo,
+) (
+	RetailerBatchInput,
+	error,
+) {
+	convertInput := unit.ConvertUnitInput{
+		ToUnitId:   &batchVariantMetaInfo.UnitId,
+		Quantity:   batchInput.Quantity,
+		FromUnitId: &batchInput.UnitId,
+	}
+	conversionOutput, err := s.unitService.ConvertUnit(ctx, convertInput)
+	if err != nil {
+		return RetailerBatchInput{}, err
+	}
+	batchInput.Quantity = conversionOutput.Quantity
+	batchInput.UnitId = *conversionOutput.Unit.Id
+	return batchInput, nil
+}
+
+func (s *RetailerBatchService) processBulkBatchUnitOfWork(
+	ctx context.Context,
+	bulkBatchUpdateUnitOfWork BulkRetailerBatchUpdateUnitOfWork,
+) error {
+	pgxBatch, err := s.transactionService.(*transactions.TransactionService).
+		CreateRetailerTransactionHistoryBatches(
+			ctx,
+			bulkBatchUpdateUnitOfWork.BatchTransactionHistory,
+		)
+	if err != nil {
 		return err
 	}
-	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		return s.tryToMoveFromWarehouseToRetailer(ctx, moveInput)
-	})
-	return err
-}
-
-func (s *RetailerBatchService) tryToMoveFromWarehouseToRetailer(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
-	// retailerBatchInput := RetailerBatchInput{
-	// 	Id:         moveInput.Id,
-	// 	Sku:        moveInput.Sku,
-	// 	Quantity:   moveInput.Quantity,
-	// 	UnitId:     moveInput.UnitId,
-	// 	RetailerId: moveInput.RetailerId,
-	// 	Reason:     transactions.TransactionReasonTypeTransferIn,
-	// }
-	// if err := s.tryToIncrementBatch(ctx, retailerBatchInput); err != nil {
-	// 	return err
-	// }
-	// batchInput := product.BatchInput{
-	// 	Id:       &moveInput.BatchId,
-	// 	Sku:      moveInput.Sku,
-	// 	Quantity: moveInput.Quantity,
-	// 	UnitId:   moveInput.UnitId,
-	// 	Reason:   transactions.TransactionReasonTypeTransferIn,
-	// }
-	// return s.batchService.DecrementForRetailer(ctx, batchInput)
-	return nil
-}
-
-func (s *RetailerBatchService) ReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
-	if err := ValidateRetailerBatchFromWarehouseInput(moveInput); err != nil {
-		return err
-	}
-	err := common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
-		return s.tryToReturnBatchToWarehouse(ctx, moveInput)
-	})
-	return err
-}
-
-func (s *RetailerBatchService) tryToReturnBatchToWarehouse(ctx context.Context, moveInput RetailerBatchFromWarehouseInput) error {
-	// retailerBatchInput := RetailerBatchInput{
-	// 	Id:         moveInput.Id,
-	// 	Sku:        moveInput.Sku,
-	// 	Quantity:   moveInput.Quantity,
-	// 	UnitId:     moveInput.UnitId,
-	// 	RetailerId: moveInput.RetailerId,
-	// 	Reason:     transactions.TransactionReasonTypeTransferOut,
-	// }
-	// if err := s.tryToDecrementBatch(ctx, retailerBatchInput); err != nil {
-	// 	return err
-	// }
-	// batchInput := product.BatchInput{
-	// 	Id:       &moveInput.BatchId,
-	// 	Sku:      moveInput.Sku,
-	// 	Quantity: moveInput.Quantity,
-	// 	UnitId:   moveInput.UnitId,
-	// 	Reason:   transactions.TransactionReasonTypeReturn,
-	// }
-	// return s.batchService.ReturnToWarehouse(ctx, batchInput)
-	return nil
+	return s.repo.(*RetailerBatchRepository).
+		processBulkBatchUnitOfWork(
+			ctx,
+			bulkBatchUpdateUnitOfWork,
+			pgxBatch,
+		)
 }

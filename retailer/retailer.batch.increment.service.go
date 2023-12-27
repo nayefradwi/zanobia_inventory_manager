@@ -1,4 +1,4 @@
-package product
+package retailer
 
 import (
 	"context"
@@ -9,39 +9,26 @@ import (
 	"github.com/nayefradwi/zanobia_inventory_manager/transactions"
 )
 
-/*
-incase i need to refactor this code, it does the following in the simplest terms
-1. get all that it needs to update the batch:
-  - the original units of the product variants in the batch
-  - the original batch bases of those product variants
-  - the original expiry dates of those product variants
-  - the original cost of those product variants (cost per original unit)
-
-2.  convert all batch inputs to the original units of the product variants
-3. create batches if it needs to
-4. update batches if it needs to
-5  create transaction history
-*/
-func (s *BatchService) IncrementBatch(ctx context.Context, batchInput BatchInput) error {
-	return s.BulkIncrementBatch(ctx, []BatchInput{batchInput})
+func (s *RetailerBatchService) IncrementBatch(ctx context.Context, batchInput RetailerBatchInput) error {
+	return s.BulkIncrementBatch(ctx, []RetailerBatchInput{batchInput})
 }
 
-func (s *BatchService) BulkIncrementBatch(ctx context.Context, inputs []BatchInput) error {
+func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error {
 	if err := ValidateBatchInputsIncrement(inputs); err != nil {
 		return err
 	}
-	bulkBatchUpdateInfo, err := s.batchRepo.GetBulkBatchUpdateInfo(ctx, inputs)
+	bulkBatchUpdateInfo, err := s.repo.GetBulkBatchUpdateInfo(ctx, inputs)
 	if err != nil {
 		return common.NewBadRequestFromMessage("failed to process batch increment")
 	}
-	return common.RunWithTransaction(ctx, s.batchRepo.(*BatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
+	return common.RunWithTransaction(ctx, s.repo.(*RetailerBatchRepository).Pool, func(ctx context.Context, tx pgx.Tx) error {
 		return s.processBulkBatchIncrement(ctx, bulkBatchUpdateInfo)
 	})
 }
 
-func (s *BatchService) processBulkBatchIncrement(
+func (s *RetailerBatchService) processBulkBatchIncrement(
 	ctx context.Context,
-	bulkBatchUpdateInfo BulkBatchUpdateInfo,
+	bulkBatchUpdateInfo BulkRetailerBatchUpdateInfo,
 ) error {
 	bulkBatchUpdateInfo, lockErr := s.lockBatchUpdateRequest(ctx, bulkBatchUpdateInfo)
 	defer s.unlockBatchUpdateRequest(ctx, bulkBatchUpdateInfo)
@@ -57,7 +44,7 @@ func (s *BatchService) processBulkBatchIncrement(
 		return err
 	}
 	transactionHistory := append(transactionHistory1, transactionHistory2...)
-	bulkBatchUpdateUnitOfWork := BulkBatchUpdateUnitOfWork{
+	bulkBatchUpdateUnitOfWork := BulkRetailerBatchUpdateUnitOfWork{
 		BatchUpdateRequestLookup: batchUpdateRequestLookup,
 		BatchCreateRequestLookup: batchCreateRequestLookup,
 		BatchTransactionHistory:  transactionHistory,
@@ -65,16 +52,16 @@ func (s *BatchService) processBulkBatchIncrement(
 	return s.processBulkBatchUnitOfWork(ctx, bulkBatchUpdateUnitOfWork)
 }
 
-func (s *BatchService) createIncrementBatchesUpdateRequest(
+func (s *RetailerBatchService) createIncrementBatchesUpdateRequest(
 	ctx context.Context,
-	bulkUpdateBatchInfo BulkBatchUpdateInfo,
+	bulkUpdateBatchInfo BulkRetailerBatchUpdateInfo,
 ) (
-	map[string]BatchUpdateRequest,
-	[]transactions.CreateWarehouseTransactionCommand,
+	map[string]RetailerBatchUpdateRequest,
+	[]transactions.CreateRetailerTransactionCommand,
 	error,
 ) {
-	batchUpdateRequestLookup := make(map[string]BatchUpdateRequest)
-	transactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
+	batchUpdateRequestLookup := make(map[string]RetailerBatchUpdateRequest)
+	transactionHistory := make([]transactions.CreateRetailerTransactionCommand, 0)
 	for _, batchInput := range bulkUpdateBatchInfo.BatchInputMapToUpdate {
 		batchBase, ok := bulkUpdateBatchInfo.BatchBasesLookup[batchInput.Sku]
 		if !ok {
@@ -90,37 +77,39 @@ func (s *BatchService) createIncrementBatchesUpdateRequest(
 		}
 		totalCost := batchVariantMetaInfo.Cost * convertedBatchInput.Quantity
 		updateValue := batchBase.Quantity + convertedBatchInput.Quantity
-		batchUpdateRequestLookup[convertedBatchInput.Sku] = BatchUpdateRequest{
+		batchUpdateRequestLookup[convertedBatchInput.Sku] = RetailerBatchUpdateRequest{
 			BatchId:    convertedBatchInput.Id,
+			RetailerId: convertedBatchInput.RetailerId,
 			NewValue:   updateValue,
 			Reason:     convertedBatchInput.Reason,
 			Sku:        convertedBatchInput.Sku,
 			ModifiedBy: convertedBatchInput.Quantity,
 		}
-		transactionCommand := transactions.CreateWarehouseTransactionCommand{
-			BatchId:  *batchBase.Id,
-			Quantity: convertedBatchInput.Quantity,
-			UnitId:   batchVariantMetaInfo.UnitId,
-			Reason:   convertedBatchInput.Reason,
-			Comment:  convertedBatchInput.Comment,
-			Cost:     totalCost,
-			Sku:      convertedBatchInput.Sku,
+		transactionCommand := transactions.CreateRetailerTransactionCommand{
+			RetailerBatchId: *batchBase.Id,
+			RetailerId:      *convertedBatchInput.RetailerId,
+			Quantity:        convertedBatchInput.Quantity,
+			UnitId:          batchVariantMetaInfo.UnitId,
+			Reason:          convertedBatchInput.Reason,
+			Comment:         convertedBatchInput.Comment,
+			Cost:            totalCost,
+			Sku:             convertedBatchInput.Sku,
 		}
 		transactionHistory = append(transactionHistory, transactionCommand)
 	}
 	return batchUpdateRequestLookup, transactionHistory, nil
 }
 
-func (s *BatchService) createBatchCreateRequest(
+func (s *RetailerBatchService) createBatchCreateRequest(
 	ctx context.Context,
-	bulkUpdateBatchInfo BulkBatchUpdateInfo,
+	bulkUpdateBatchInfo BulkRetailerBatchUpdateInfo,
 ) (
-	map[string]BatchCreateRequest,
-	[]transactions.CreateWarehouseTransactionCommand,
+	map[string]RetailerBatchCreateRequest,
+	[]transactions.CreateRetailerTransactionCommand,
 	error,
 ) {
-	batchCreateRequestLookup := make(map[string]BatchCreateRequest, 0)
-	transactionHistory := make([]transactions.CreateWarehouseTransactionCommand, 0)
+	batchCreateRequestLookup := make(map[string]RetailerBatchCreateRequest, 0)
+	transactionHistory := make([]transactions.CreateRetailerTransactionCommand, 0)
 	for _, batchInput := range bulkUpdateBatchInfo.BatchInputMapToCreate {
 		batchVariantMetaInfo, ok := bulkUpdateBatchInfo.BatchVariantMetaInfoLookup[batchInput.Sku]
 		if !ok {
@@ -132,19 +121,21 @@ func (s *BatchService) createBatchCreateRequest(
 		}
 		totalCost := batchVariantMetaInfo.Cost * convertedBatchInput.Quantity
 		expiryDate := time.Now().AddDate(0, 0, batchVariantMetaInfo.ExpiresInDays)
-		batchCreateRequestLookup[convertedBatchInput.Sku] = BatchCreateRequest{
+		batchCreateRequestLookup[convertedBatchInput.Sku] = RetailerBatchCreateRequest{
 			BatchSku:   convertedBatchInput.Sku,
+			RetailerId: *convertedBatchInput.RetailerId,
 			Quantity:   convertedBatchInput.Quantity,
 			UnitId:     batchVariantMetaInfo.UnitId,
 			ExpiryDate: expiryDate,
 		}
-		transactionCommand := transactions.CreateWarehouseTransactionCommand{
-			Quantity: convertedBatchInput.Quantity,
-			UnitId:   batchVariantMetaInfo.UnitId,
-			Reason:   convertedBatchInput.Reason,
-			Comment:  convertedBatchInput.Comment,
-			Cost:     totalCost,
-			Sku:      convertedBatchInput.Sku,
+		transactionCommand := transactions.CreateRetailerTransactionCommand{
+			RetailerId: *convertedBatchInput.RetailerId,
+			Quantity:   convertedBatchInput.Quantity,
+			UnitId:     batchVariantMetaInfo.UnitId,
+			Reason:     convertedBatchInput.Reason,
+			Comment:    convertedBatchInput.Comment,
+			Cost:       totalCost,
+			Sku:        convertedBatchInput.Sku,
 		}
 		transactionHistory = append(transactionHistory, transactionCommand)
 	}
