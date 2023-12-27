@@ -84,6 +84,7 @@ func (s *RetailerBatchService) createIncrementBatchesUpdateRequest(
 			Sku:        batchInput.Sku,
 			ModifiedBy: convertedBatchInput.Quantity,
 		}
+		// TODO: make the transaction command be retailer transaction command
 		transactionCommand := transactions.CreateWarehouseTransactionCommand{
 			BatchId:  *batchBase.Id,
 			Quantity: convertedBatchInput.Quantity,
@@ -125,6 +126,7 @@ func (s *RetailerBatchService) createBatchCreateRequest(
 			UnitId:     batchVariantMetaInfo.UnitId,
 			ExpiryDate: expiryDate,
 		}
+		// TODO: make the transaction command be retailer transaction command
 		transactionCommand := transactions.CreateWarehouseTransactionCommand{
 			Quantity: convertedBatchInput.Quantity,
 			UnitId:   batchVariantMetaInfo.UnitId,
