@@ -2,6 +2,8 @@ package retailer
 
 import "context"
 
-func (s *BatchService) IncrementBatch(ctx context.Context, batchInput BatchInput) error {
-	return s.BulkIncrementBatch(ctx, []BatchInput{batchInput})
+func (s *RetailerBatchService) IncrementBatch(ctx context.Context, batchInput RetailerBatchInput) error {
+	return s.BulkIncrementBatch(ctx, []RetailerBatchInput{batchInput})
 }
+
+func (s *RetailerBatchService) BulkIncrementBatch(ctx context.Context, inputs []RetailerBatchInput) error
