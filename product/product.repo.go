@@ -32,6 +32,8 @@ type IProductRepo interface {
 	DeleteProduct(ctx context.Context, product Product) error
 	UpdateProductArchiveStatus(ctx context.Context, id int, isArchived bool) error
 	UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchived bool) error
+	GetProductVariantBySku(ctx context.Context, sku string) (ProductVariant, error)
+	SearchProductVariantsByName(ctx context.Context, paginationParams common.PaginationParams, name string) ([]ProductVariant, error)
 }
 
 type ProductRepo struct {

@@ -124,6 +124,8 @@ func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider
 	productVariantRouter.Put("/{id}/archive", productController.ArchiveProductVariant)
 	productVariantRouter.Put("/{id}/unarchive", productController.UnarchiveProductVariant)
 	productVariantRouter.Post("/options/values", productController.AddOptionValue)
+	productVariantRouter.Get("/sku/{sku}", productController.GetProductVariantBySku)
+	productVariantRouter.Post("/search", productController.SearchProductVariantByName)
 	registerRecipeRoutes(productVariantRouter, provider)
 	registerBatchesRoutes(productVariantRouter, provider)
 	mainRouter.Mount("/product-variants", productVariantRouter)

@@ -26,6 +26,8 @@ type IProductService interface {
 	DeleteProduct(ctx context.Context, id int) error
 	UpdateProductArchiveStatus(ctx context.Context, id int, isArchive bool) error
 	UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchive bool) error
+	SearchProductVariantByName(ctx context.Context, name string) (common.PaginatedResponse[ProductVariant], error)
+	GetProductVariantBySku(ctx context.Context, sku string) (ProductVariant, error)
 }
 
 type ProductService struct {
@@ -248,4 +250,29 @@ func (s *ProductService) UpdateProductVariantArchiveStatus(ctx context.Context, 
 		return common.NewBadRequestFromMessage("cannot archive default variant")
 	}
 	return s.repo.UpdateProductVariantArchiveStatus(ctx, id, isArchive)
+}
+
+func (s *ProductService) SearchProductVariantByName(
+	ctx context.Context,
+	name string,
+) (common.PaginatedResponse[ProductVariant], error) {
+	paginationParams := common.GetPaginationParams(ctx)
+	productVariants, err := s.repo.SearchProductVariantsByName(ctx, paginationParams, name)
+	if err != nil {
+		return common.CreateEmptyPaginatedResponse[ProductVariant](paginationParams.PageSize), err
+	}
+	if len(productVariants) == 0 {
+		return common.CreateEmptyPaginatedResponse[ProductVariant](paginationParams.PageSize), nil
+	}
+	first, last := productVariants[0], productVariants[len(productVariants)-1]
+	return common.CreatePaginatedResponse[ProductVariant](
+		paginationParams.PageSize,
+		last,
+		first,
+		productVariants,
+	), nil
+}
+
+func (s *ProductService) GetProductVariantBySku(ctx context.Context, sku string) (ProductVariant, error) {
+	return s.repo.GetProductVariantBySku(ctx, sku)
 }

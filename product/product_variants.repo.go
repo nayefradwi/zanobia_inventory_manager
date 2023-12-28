@@ -59,6 +59,10 @@ func (r *ProductRepo) GetProductVariant(ctx context.Context, productVariantId in
 	op := common.GetOperator(ctx, r.Pool)
 	langCode := common.GetLanguageParam(ctx)
 	row := op.QueryRow(ctx, sql, productVariantId, langCode)
+	return r.parseProductVariantRow(ctx, row)
+}
+
+func (r *ProductRepo) parseProductVariantRow(ctx context.Context, row pgx.Row) (ProductVariant, error) {
 	var productVariant ProductVariant
 	var unit unit.Unit
 	err := row.Scan(
@@ -279,4 +283,83 @@ func (r *ProductRepo) UpdateProductVariantArchiveStatus(ctx context.Context, id 
 		return common.NewBadRequestFromMessage("Failed to archive product variant")
 	}
 	return nil
+}
+
+func (r *ProductRepo) GetProductVariantBySku(ctx context.Context, sku string) (ProductVariant, error) {
+	sql := `
+	select pvar.id, pvar.product_id, pvartx.name, pvar.sku, pvar.image, pvar.price,
+	pvar.width_in_cm, pvar.height_in_cm, pvar.depth_in_cm, pvar.weight_in_g,
+	pvar.is_archived, pvar.is_default, pvar.expires_in_days, 
+	utx.unit_id, utx.name, utx.symbol, ptx.name product_name, p.is_ingredient
+	from product_variants pvar 
+	join product_variant_translations pvartx on pvar.id = pvartx.product_variant_id
+	join unit_translations utx on utx.unit_id = pvar.standard_unit_id AND utx.language_code = pvartx.language_code
+	join product_translations ptx on ptx.product_id = pvar.product_id AND ptx.language_code = pvartx.language_code
+	join products p on p.id = pvar.product_id
+	where pvar.sku = $1 and pvartx.language_code = $2
+	`
+	op := common.GetOperator(ctx, r.Pool)
+	langCode := common.GetLanguageParam(ctx)
+	row := op.QueryRow(ctx, sql, sku, langCode)
+	return r.parseProductVariantRow(ctx, row)
+}
+
+func (r *ProductRepo) SearchProductVariantsByName(
+	ctx context.Context,
+	paginationParams common.PaginationParams,
+	name string,
+) ([]ProductVariant, error) {
+	searchTerm := "%" + name + "%"
+	op := common.GetOperator(ctx, r.Pool)
+	lang := common.GetLanguageParam(ctx)
+	rows, err := common.NewPaginationQueryBuilder(
+		`
+	select pvar.id, pvar.product_id, pvartx.name, pvar.sku, pvar.image, pvar.price,
+	pvar.width_in_cm, pvar.height_in_cm, pvar.depth_in_cm, pvar.weight_in_g,
+	pvar.is_archived, pvar.is_default, pvar.expires_in_days, 
+	utx.unit_id, utx.name, utx.symbol, ptx.name product_name, p.is_ingredient
+	from product_variants pvar 
+	join product_variant_translations pvartx on pvar.id = pvartx.product_variant_id
+	join unit_translations utx on utx.unit_id = pvar.standard_unit_id AND utx.language_code = pvartx.language_code
+	join product_translations ptx on ptx.product_id = pvar.product_id AND ptx.language_code = pvartx.language_code
+	join products p on p.id = pvar.product_id
+	`,
+		[]string{"pvar.id DESC"},
+	).
+		WithOperator(op).
+		WithConditions([]string{
+			"pvartx.language_code = $1",
+			"AND",
+			"(pvartx.name LIKE $2 OR ptx.name LIKE $2)",
+		}).
+		WithCursorKeys([]string{"pvar.id"}).
+		WithCompareSymbols(">", ">=", "<").
+		WithParams(paginationParams).
+		Build().
+		Query(ctx, lang, searchTerm)
+
+	if err != nil {
+		common.LoggerFromCtx(ctx).Error("failed to search product variants", zap.Error(err))
+		return []ProductVariant{}, common.NewBadRequestFromMessage("Failed to search product variants")
+	}
+	defer rows.Close()
+	productVariants := make([]ProductVariant, 0)
+	for rows.Next() {
+		var productVariant ProductVariant
+		var unit unit.Unit
+		err := rows.Scan(
+			&productVariant.Id, &productVariant.ProductId, &productVariant.Name, &productVariant.Sku,
+			&productVariant.Image, &productVariant.Price, &productVariant.WidthInCm, &productVariant.HeightInCm,
+			&productVariant.DepthInCm, &productVariant.WeightInG, &productVariant.IsArchived, &productVariant.IsDefault,
+			&productVariant.ExpiresInDays, &unit.Id, &unit.Name, &unit.Symbol, &productVariant.ProductName,
+			&productVariant.IsIngredient,
+		)
+		if err != nil {
+			common.LoggerFromCtx(ctx).Error("failed to scan product variant", zap.Error(err))
+			return nil, common.NewBadRequestError("failed to get product variant", zimutils.GetErrorCodeFromError(err))
+		}
+		productVariant.StandardUnit = &unit
+		productVariants = append(productVariants, productVariant)
+	}
+	return productVariants, nil
 }

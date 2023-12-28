@@ -3,6 +3,7 @@ package product
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 )
 
@@ -183,4 +184,24 @@ func (c ProductController) UnarchiveProductVariant(w http.ResponseWriter, r *htt
 			Message: "Product variant unarchived successfully",
 		},
 	)
+}
+
+func (c ProductController) SearchProductVariantByName(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	variantsPage, err := c.service.SearchProductVariantByName(r.Context(), name)
+	common.WriteResponse(common.Result[common.PaginatedResponse[ProductVariant]]{
+		Error:  err,
+		Writer: w,
+		Data:   variantsPage,
+	})
+}
+
+func (c ProductController) GetProductVariantBySku(w http.ResponseWriter, r *http.Request) {
+	sku := chi.URLParam(r, "sku")
+	variant, err := c.service.GetProductVariantBySku(r.Context(), sku)
+	common.WriteResponse(common.Result[ProductVariant]{
+		Error:  err,
+		Writer: w,
+		Data:   variant,
+	})
 }

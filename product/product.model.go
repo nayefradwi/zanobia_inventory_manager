@@ -173,3 +173,7 @@ func SortOptionValues(values []ProductOptionValue) {
 		return valueJ > valueI
 	})
 }
+
+func (pvar ProductVariant) GetCursorValue() []string {
+	return []string{strconv.Itoa(*pvar.Id)}
+}
