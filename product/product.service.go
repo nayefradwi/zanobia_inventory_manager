@@ -27,7 +27,7 @@ type IProductService interface {
 	UpdateProductArchiveStatus(ctx context.Context, id int, isArchive bool) error
 	UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchive bool) error
 	SearchProductVariantByName(ctx context.Context, name string) (common.PaginatedResponse[ProductVariant], error)
-	GetProductVariantBySku(ctx context.Context, sku string) (ProductVariant, error)
+	GetProductVariantBySku(ctx context.Context, sku string, getRecipe bool) (ProductVariant, error)
 }
 
 type ProductService struct {
@@ -100,19 +100,24 @@ func (s *ProductService) GetProductVariant(ctx context.Context, productVariantId
 	if productVariant.Id == nil {
 		return ProductVariant{}, common.NewNotFoundError("product variant not found")
 	}
-	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariantSku(ctx, productVariant.Sku)
+	recipes, totalCost := s.getRecipeOfProductVariant(ctx, productVariant.Sku)
+	productVariant.Recipes = recipes
+	productVariant.TotalCost = totalCost
+	return productVariant, nil
+}
+
+func (s *ProductService) getRecipeOfProductVariant(ctx context.Context, sku string) ([]Recipe, float64) {
+	var totalCost float64
+	recipes, recipeErr := s.recipeService.GetRecipeOfProductVariantSku(ctx, sku)
 	if recipeErr != nil {
 		common.LoggerFromCtx(ctx).Error("failed to get recipe of product variant", zap.Error(recipeErr))
 	} else if len(recipes) > 0 {
-		productVariant.Recipes = recipes
-		TotalCost, err := s.recipeService.GetTotalCostOfRecipes(ctx, recipes)
-		if err != nil {
-			common.LoggerFromCtx(ctx).Error("failed to get total cost of recipes", zap.Error(err))
-		} else {
-			productVariant.TotalCost = TotalCost
+		totalCost, recipeErr = s.recipeService.GetTotalCostOfRecipes(ctx, recipes)
+		if recipeErr != nil {
+			common.LoggerFromCtx(ctx).Error("failed to get total cost of recipes", zap.Error(recipeErr))
 		}
 	}
-	return productVariant, nil
+	return recipes, totalCost
 }
 
 func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVariantInput) error {
@@ -273,6 +278,18 @@ func (s *ProductService) SearchProductVariantByName(
 	), nil
 }
 
-func (s *ProductService) GetProductVariantBySku(ctx context.Context, sku string) (ProductVariant, error) {
-	return s.repo.GetProductVariantBySku(ctx, sku)
+func (s *ProductService) GetProductVariantBySku(ctx context.Context, sku string, withRecipe bool) (ProductVariant, error) {
+	productVariant, err := s.repo.GetProductVariantBySku(ctx, sku)
+	if err != nil {
+		return ProductVariant{}, err
+	}
+	if productVariant.Id == nil {
+		return ProductVariant{}, common.NewNotFoundError("product variant not found")
+	}
+	if withRecipe {
+		recipes, totalCost := s.getRecipeOfProductVariant(ctx, sku)
+		productVariant.Recipes = recipes
+		productVariant.TotalCost = totalCost
+	}
+	return productVariant, nil
 }

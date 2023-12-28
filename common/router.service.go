@@ -50,3 +50,12 @@ func GetIntURLParam(r *http.Request, key string) int {
 	}
 	return intVal
 }
+
+func GetBoolURLParam(r *http.Request, key string) bool {
+	val := chi.URLParam(r, key)
+	boolVal, err := strconv.ParseBool(val)
+	if err != nil {
+		GetLogger().Warn("Failed to parse bool url param", zap.String("error", err.Error()))
+	}
+	return boolVal
+}
