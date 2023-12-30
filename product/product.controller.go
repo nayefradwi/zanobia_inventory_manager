@@ -198,7 +198,7 @@ func (c ProductController) SearchProductVariantByName(w http.ResponseWriter, r *
 
 func (c ProductController) GetProductVariantBySku(w http.ResponseWriter, r *http.Request) {
 	sku := chi.URLParam(r, "sku")
-	withRecipe := common.GetBoolURLParam(r, "withRecipe")
+	withRecipe := common.GetBoolQueryParam(r, "withRecipe")
 	variant, err := c.service.GetProductVariantBySku(r.Context(), sku, withRecipe)
 	common.WriteResponse(common.Result[ProductVariant]{
 		Error:  err,
