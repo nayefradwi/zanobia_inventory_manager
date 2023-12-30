@@ -201,7 +201,7 @@ func (s *BatchService) createRecipeUpdateFromBatchUpdate(
 		}
 		transactionCommand := transactions.CreateWarehouseTransactionCommand{
 			BatchId:  *recipeBatchBase.Id,
-			Quantity: convertedRecipeInput.Quantity,
+			Quantity: recipeTotalModifyBy,
 			UnitId:   recipeVariantMetaInfo.UnitId,
 			Reason:   transactions.TransactionReasonTypeRecipeUse,
 			Comment:  recipeBatchInput.Comment,
@@ -270,7 +270,7 @@ func (s *BatchService) createRecipeUpdateFromBatchCreate(
 		}
 		transactionCommand := transactions.CreateWarehouseTransactionCommand{
 			BatchId:  *recipeBatchBase.Id,
-			Quantity: convertedRecipeInput.Quantity,
+			Quantity: recipeTotalModifyBy,
 			UnitId:   recipeVariantMetaInfo.UnitId,
 			Reason:   transactions.TransactionReasonTypeRecipeUse,
 			Comment:  recipeBatchInput.Comment,
