@@ -286,7 +286,7 @@ func (s *ProductService) GetProductVariantBySku(ctx context.Context, sku string,
 	if productVariant.Id == nil {
 		return ProductVariant{}, common.NewNotFoundError("product variant not found")
 	}
-	if withRecipe {
+	if withRecipe && !productVariant.IsIngredient {
 		recipes, totalCost := s.getRecipeOfProductVariant(ctx, sku)
 		productVariant.Recipes = recipes
 		productVariant.TotalCost = totalCost
