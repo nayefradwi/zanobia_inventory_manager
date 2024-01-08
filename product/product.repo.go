@@ -51,6 +51,7 @@ func (r *ProductRepo) CreateProduct(ctx context.Context, product ProductInput) e
 	return err
 }
 
+// TODO: this will probably need to be optimized
 func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) error {
 	id, addErr := r.addProduct(ctx, product)
 	if addErr != nil {
@@ -65,15 +66,18 @@ func (r *ProductRepo) createProduct(ctx context.Context, product ProductInput) e
 	if err != nil {
 		return err
 	}
-	defaultProductVariantId, addVariantErr := r.addProductVariant(ctx, product.Id, product.DefaultProductVariant)
-	if addVariantErr != nil {
-		return addVariantErr
+
+	variantIdsLookup, addVariantsErr := r.addProductVariants(ctx, product.Id, product.ProductVariants)
+	if addVariantsErr != nil {
+		return addVariantsErr
 	}
-	product.DefaultProductVariant.Id = &defaultProductVariantId
-	for _, value := range product.DefaultOptionValues {
-		id := optionValueIdMap[value.Value]
-		if err := r.addProductVariantSelectedValue(ctx, product.DefaultProductVariant.Id, id); err != nil {
-			return err
+	for sku, variantId := range variantIdsLookup {
+		values := product.skuOptionValuesLookup[sku]
+		for _, value := range values {
+			valueId := optionValueIdMap[value.Value]
+			if err := r.addProductVariantSelectedValue(ctx, &variantId, valueId); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -114,6 +118,18 @@ func (r *ProductRepo) AddProductVariants(ctx context.Context, productId *int, pr
 		}
 	}
 	return nil
+}
+
+func (r *ProductRepo) addProductVariants(ctx context.Context, productId *int, variants []ProductVariant) (map[string]int, error) {
+	ids := make(map[string]int, len(variants))
+	for _, variant := range variants {
+		id, err := r.addProductVariant(ctx, productId, variant)
+		if err != nil {
+			return map[string]int{}, err
+		}
+		ids[variant.Sku] = id
+	}
+	return ids, nil
 }
 
 func (r *ProductRepo) addProductVariant(ctx context.Context, productId *int, productVariant ProductVariant) (int, error) {

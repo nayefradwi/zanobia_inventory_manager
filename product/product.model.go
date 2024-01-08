@@ -63,8 +63,7 @@ type ProductInput struct {
 	Price                 float64         `json:"price"`
 	Options               []ProductOption `json:"options,omitempty"`
 	ProductVariants       []ProductVariant
-	DefaultProductVariant ProductVariant
-	DefaultOptionValues   []ProductOptionValue
+	skuOptionValuesLookup map[string]OptionValueSet
 }
 
 type ProductVariantBase struct {
@@ -110,11 +109,16 @@ type ProductVariantInput struct {
 }
 
 func (p ProductInput) GenerateProductDetails() ProductInput {
-	productVariant, defaultValues := p.generateProductVariant()
-	p.ProductVariants = []ProductVariant{productVariant}
-	p.DefaultProductVariant = productVariant
-	p.DefaultOptionValues = defaultValues
+	productVariants, valuesLookup := p.generateProductVariant()
+	p.ProductVariants = productVariants
+	p.skuOptionValuesLookup = valuesLookup
 	return p
+}
+
+type OptionValueSet []ProductOptionValue
+
+func (p ProductInput) createNormalProductVariant() ([]ProductVariant, map[string]OptionValueSet) {
+	return []ProductVariant{p.createProductVariant("normal", true)}, map[string]OptionValueSet{}
 }
 
 // assume you have packaging, weight, and flavor
@@ -122,17 +126,31 @@ func (p ProductInput) GenerateProductDetails() ProductInput {
 // the reset can be added in any order by the user
 // the selected variant values will be mapped to the product to limit the options
 // the first variant is the default one
-func (p ProductInput) generateProductVariant() (ProductVariant, []ProductOptionValue) {
+func (p ProductInput) generateProductVariant() ([]ProductVariant, map[string]OptionValueSet) {
 	if len(p.Options) == 0 {
-		return p.createProductVariant("normal", true), []ProductOptionValue{}
+		return p.createNormalProductVariant()
 	}
-	optionValues := make([]ProductOptionValue, len(p.Options))
-	for i, variant := range p.Options {
-		optionValues[i] = variant.Values[0]
+	return p.createCrossProductOfVariants()
+}
+
+func (p ProductInput) createCrossProductOfVariants() ([]ProductVariant, map[string]OptionValueSet) {
+	cartesianLength := 1
+	for _, options := range p.Options {
+		cartesianLength *= len(options.Values)
 	}
-	name := GenerateName(optionValues)
-	productVariant := p.createProductVariant(name, true)
-	return productVariant, optionValues
+	productVariants := make([]ProductVariant, cartesianLength)
+	allValues := make([]OptionValueSet, cartesianLength)
+	skuLookup := make(map[string]OptionValueSet)
+	for i := 0; i < cartesianLength; i++ {
+		allValues[i] = make([]ProductOptionValue, len(p.Options))
+		for optionIndex, option := range p.Options {
+			allValues[i][optionIndex] = option.Values[i%len(option.Values)]
+		}
+		name := GenerateName(allValues[i])
+		productVariants[i] = p.createProductVariant(name, i == 0)
+		skuLookup[productVariants[i].Sku] = allValues[i]
+	}
+	return productVariants, skuLookup
 }
 
 func (p ProductInput) createProductVariant(value string, isDefault bool) ProductVariant {
@@ -152,7 +170,6 @@ func (p ProductInput) createProductVariant(value string, isDefault bool) Product
 }
 
 func GenerateName(values []ProductOptionValue) string {
-	// sort alphabetically with numbers first
 	name := ""
 	SortOptionValues(values)
 	for _, value := range values {
