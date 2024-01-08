@@ -159,7 +159,7 @@ func (p ProductInput) createProductVariant(value string, isDefault bool) Product
 		ProductVariantBase: ProductVariantBase{
 			Price:          p.Price,
 			IsArchived:     p.IsArchived,
-			IsDefault:      true,
+			IsDefault:      isDefault,
 			Image:          p.Image,
 			StandardUnitId: p.StandardUnitId,
 			ExpiresInDays:  p.ExpiresInDays,
