@@ -127,10 +127,11 @@ func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVar
 			Field:   "productId",
 		})
 	}
-	options, optionsErr := s.repo.GetProductOptions(ctx, *input.ProductVariant.ProductId)
-	if optionsErr != nil {
-		return optionsErr
+	product, productErr := s.repo.GetProduct(ctx, *input.ProductVariant.ProductId)
+	if productErr != nil {
+		return productErr
 	}
+	options := product.Options
 	if len(options) == 0 {
 		return common.NewBadRequestFromMessage("product has no options")
 	}
@@ -156,6 +157,7 @@ func (s *ProductService) AddProductVariant(ctx context.Context, input ProductVar
 	input.ProductVariant.Name = GenerateName(optionValues)
 	input.OptionValues = optionValues
 	input.ProductVariant.IsDefault = false
+	input.ProductVariant.IsIngredient = product.IsIngredient
 	return s.repo.AddProductVariant(ctx, input)
 }
 
