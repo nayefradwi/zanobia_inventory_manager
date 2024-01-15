@@ -366,6 +366,10 @@ func (r *ProductRepo) SearchProductVariantsByName(
 
 func (r *ProductRepo) AddProductOption(ctx context.Context, input ProductOptionInput) error {
 	return common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
+		productOptions, err := r.GetProductOptions(ctx, input.ProductId)
+		if err != nil {
+			return err
+		}
 		optionId, insertErr := r.InsertProductOption(ctx, &input.ProductId, input.Name)
 		if insertErr != nil {
 			return insertErr
@@ -389,7 +393,11 @@ func (r *ProductRepo) AddProductOption(ctx context.Context, input ProductOptionI
 		if err != nil {
 			return err
 		}
-		updateProductVariantNamesBatch := r.createUpdateProductVariantNamesBatch(productVariants, defaultValue.Value)
+		updateProductVariantNamesBatch := r.createUpdateProductVariantNamesBatch(
+			productVariants,
+			defaultValue.Value,
+			len(productOptions) == 0,
+		)
 		if err := r.processUpdateProductVariantNamesBatch(ctx, updateProductVariantNamesBatch); err != nil {
 			return err
 		}
@@ -435,14 +443,19 @@ func (r *ProductRepo) processInsertProductOptionValuesBatch(ctx context.Context,
 func (r *ProductRepo) createUpdateProductVariantNamesBatch(
 	productVariants []ProductVariant,
 	valueAdded string,
+	hasNoOptions bool,
 ) *pgx.Batch {
 	batch := &pgx.Batch{}
+	sql := `UPDATE product_variant_translations SET name = $1 WHERE product_variant_id = $2 AND language_code = $3`
+	if hasNoOptions && len(productVariants) == 1 {
+		productVariant := productVariants[0]
+		productVariant.Name = valueAdded
+		batch.Queue(sql, productVariant.Name, productVariant.Id, common.DefaultLang)
+		return batch
+	}
 	for _, productVariant := range productVariants {
 		productVariant = productVariant.AddValueToName(valueAdded)
-		batch.Queue(`
-			UPDATE product_variant_translations SET name = $1 WHERE product_variant_id = $2 AND language_code = $3
-		`, productVariant.Name, productVariant.Id, common.DefaultLang,
-		)
+		batch.Queue(sql, productVariant.Name, productVariant.Id, common.DefaultLang)
 	}
 	return batch
 }
