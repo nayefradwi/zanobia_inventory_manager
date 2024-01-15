@@ -3,6 +3,7 @@ package product
 import (
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/unit"
@@ -108,6 +109,17 @@ type ProductVariantInput struct {
 	OptionValues   []ProductOptionValue
 }
 
+type ProductOptionInput struct {
+	ProductId int                       `json:"productId"`
+	Name      string                    `json:"optionName"`
+	Values    []ProductOptionValueInput `json:"values"`
+}
+
+type ProductOptionValueInput struct {
+	Value     string `json:"value"`
+	IsDefault bool   `json:"isDefault"`
+}
+
 func (p ProductInput) GenerateProductDetails() ProductInput {
 	productVariants, valuesLookup := p.generateProductVariant()
 	p.ProductVariants = productVariants
@@ -193,4 +205,18 @@ func SortOptionValues(values []ProductOptionValue) {
 
 func (pvar ProductVariant) GetCursorValue() []string {
 	return []string{strconv.Itoa(*pvar.Id)}
+}
+
+func (pvar ProductVariant) AddValueToName(value string) ProductVariant {
+	variantNameSplit := strings.Split(pvar.Name, "_")
+	variantNameSplit = append(variantNameSplit, value)
+	values := make([]ProductOptionValue, len(variantNameSplit))
+	for i, value := range variantNameSplit {
+		values[i] = ProductOptionValue{
+			Value: value,
+		}
+	}
+	newName := GenerateName(values)
+	pvar.Name = newName
+	return pvar
 }

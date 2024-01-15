@@ -80,7 +80,7 @@ func GetOperator(ctx context.Context, defaultOp DbOperator) DbOperator {
 		GetLogger().Info("operator is nil, using default operator")
 		return defaultOp
 	}
-	message := fmt.Sprintf("operator is not of type %T", op)
+	message := fmt.Sprintf("operator is of type %T", op)
 	GetLogger().Info(message)
 	return op.(DbOperator)
 }

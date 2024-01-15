@@ -147,3 +147,33 @@ func ValidateProductVariantSelectedValues(valueIds []int, min, max int) common.E
 	}
 	return common.ErrorDetails{}
 }
+
+func ValidateProductOptionInput(input ProductOptionInput) error {
+	details := make([]common.ErrorDetails, 0)
+	details = append(details,
+		common.ValidateId(input.ProductId, "productId"),
+		common.ValidateStringLength(input.Name, "name", 1, 50),
+	)
+	if len(input.Values) == 0 {
+		details = append(details, common.ErrorDetails{
+			Message: "values cannot be empty",
+			Field:   "values",
+		})
+	}
+	for _, value := range input.Values {
+		if len(value.Value) < 1 || len(value.Value) > 50 {
+			details = append(details, common.ErrorDetails{Message: "value must be between 1 and 50 characters", Field: "values"})
+			continue
+		}
+	}
+	errors := make([]common.ErrorDetails, 0)
+	for _, detail := range details {
+		if len(detail.Message) > 0 {
+			errors = append(errors, detail)
+		}
+	}
+	if len(errors) > 0 {
+		return common.NewValidationError("invalid product option input", errors...)
+	}
+	return nil
+}

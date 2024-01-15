@@ -34,6 +34,7 @@ type IProductRepo interface {
 	UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchived bool) error
 	GetProductVariantBySku(ctx context.Context, sku string) (ProductVariant, error)
 	SearchProductVariantsByName(ctx context.Context, paginationParams common.PaginationParams, name string) ([]ProductVariant, error)
+	AddProductOption(ctx context.Context, input ProductOptionInput) error
 }
 
 type ProductRepo struct {
@@ -204,7 +205,7 @@ func (r *ProductRepo) addProductVariantSelectedValue(ctx context.Context, produc
 func (r *ProductRepo) addProductOptions(ctx context.Context, productId *int, variants []ProductOption) (map[string]int, error) {
 	optionValueIdMap := make(map[string]int)
 	for _, variant := range variants {
-		optionId, insertErr := r.InsertProductOption(ctx, productId, variant)
+		optionId, insertErr := r.InsertProductOption(ctx, productId, variant.Name)
 		if insertErr != nil {
 			return map[string]int{}, insertErr
 		}
@@ -218,7 +219,7 @@ func (r *ProductRepo) addProductOptions(ctx context.Context, productId *int, var
 	}
 	return optionValueIdMap, nil
 }
-func (r *ProductRepo) InsertProductOption(ctx context.Context, productId *int, option ProductOption) (int, error) {
+func (r *ProductRepo) InsertProductOption(ctx context.Context, productId *int, option string) (int, error) {
 	id, addErr := r.addProductOption(ctx, productId, option, common.DefaultLang)
 	if addErr != nil {
 		return 0, addErr
@@ -226,11 +227,11 @@ func (r *ProductRepo) InsertProductOption(ctx context.Context, productId *int, o
 	return id, nil
 }
 
-func (r *ProductRepo) addProductOption(ctx context.Context, productId *int, option ProductOption, languageCode string) (int, error) {
+func (r *ProductRepo) addProductOption(ctx context.Context, productId *int, option string, languageCode string) (int, error) {
 	op := common.GetOperator(ctx, r.Pool)
 	sql := `INSERT INTO product_options (product_id, name, language_code) VALUES ($1, $2, $3) returning id`
 	var id int
-	err := op.QueryRow(ctx, sql, productId, option.Name, languageCode).Scan(&id)
+	err := op.QueryRow(ctx, sql, productId, option, languageCode).Scan(&id)
 	if err != nil {
 		common.LoggerFromCtx(ctx).Error("failed to translate product option", zap.Error(err))
 		return 0, common.NewBadRequestError("Failed to translate product option", zimutils.GetErrorCodeFromError(err))
@@ -328,8 +329,6 @@ func (r *ProductRepo) GetProduct(ctx context.Context, id int) (Product, error) {
 	var product Product
 	options := map[string]ProductOption{}
 	for rows.Next() {
-		// var option *ProductOption
-		// var optionValue *ProductOptionValue
 		var optionId, optionValueId *int
 		var optionName, optionValueName *string
 		err := rows.Scan(

@@ -363,3 +363,132 @@ func (r *ProductRepo) SearchProductVariantsByName(
 	}
 	return productVariants, nil
 }
+
+func (r *ProductRepo) AddProductOption(ctx context.Context, input ProductOptionInput) error {
+	return common.RunWithTransaction(ctx, r.Pool, func(ctx context.Context, tx pgx.Tx) error {
+		optionId, insertErr := r.InsertProductOption(ctx, &input.ProductId, input.Name)
+		if insertErr != nil {
+			return insertErr
+		}
+		values := common.Map[ProductOptionValueInput, string](input.Values, func(povi ProductOptionValueInput) string {
+			return povi.Value
+		})
+		defaultValue := common.FirstWhere[ProductOptionValueInput](input.Values, func(povi ProductOptionValueInput) bool {
+			return povi.IsDefault
+		})
+		if defaultValue == nil {
+			defaultValue = &input.Values[0]
+		}
+		insertOptionValuesBatch := r.createInsertProductOptionValuesBatch(optionId, values, common.DefaultLang)
+		valueIdsMap, insertOptionValuesErr := r.processInsertProductOptionValuesBatch(ctx, insertOptionValuesBatch)
+		if insertOptionValuesErr != nil {
+			return insertOptionValuesErr
+		}
+		defaultValueId := valueIdsMap[defaultValue.Value]
+		productVariants, err := r.GetProductVariantsOfProduct(ctx, input.ProductId)
+		if err != nil {
+			return err
+		}
+		updateProductVariantNamesBatch := r.createUpdateProductVariantNamesBatch(productVariants, defaultValue.Value)
+		if err := r.processUpdateProductVariantNamesBatch(ctx, updateProductVariantNamesBatch); err != nil {
+			return err
+		}
+		linkProductVariantNamesBatch := r.createLinkProductVariantsToValueBatch(defaultValueId, productVariants)
+		return r.processLinkProductVariantsToValueBatch(ctx, linkProductVariantNamesBatch)
+	})
+}
+
+func (r *ProductRepo) createInsertProductOptionValuesBatch(
+	productOptionId int,
+	values []string,
+	languageCode string,
+) *pgx.Batch {
+	batch := &pgx.Batch{}
+	for _, value := range values {
+		batch.Queue(`
+		INSERT INTO product_option_values(product_option_id, value, language_code) 
+		VALUES ($1, $2, $3) returning id, value
+		`, productOptionId, value, languageCode)
+	}
+	return batch
+}
+
+func (r *ProductRepo) processInsertProductOptionValuesBatch(ctx context.Context, batch *pgx.Batch) (map[string]int, error) {
+	op := common.GetOperator(ctx, r.Pool)
+	results := op.SendBatch(ctx, batch)
+	defer results.Close()
+	valueIds := make(map[string]int)
+	for i := 0; i < batch.Len(); i++ {
+		row := results.QueryRow()
+		var id int
+		var value string
+		err := row.Scan(&id, &value)
+		if err != nil {
+			common.LoggerFromCtx(ctx).Error("failed to scan product option value", zap.Error(err))
+			return map[string]int{}, common.NewBadRequestFromMessage("Failed to insert product option to product")
+		}
+		valueIds[value] = id
+	}
+	return valueIds, nil
+}
+
+func (r *ProductRepo) createUpdateProductVariantNamesBatch(
+	productVariants []ProductVariant,
+	valueAdded string,
+) *pgx.Batch {
+	batch := &pgx.Batch{}
+	for _, productVariant := range productVariants {
+		productVariant = productVariant.AddValueToName(valueAdded)
+		batch.Queue(`
+			UPDATE product_variant_translations SET name = $1 WHERE product_variant_id = $2 AND language_code = $3
+		`, productVariant.Name, productVariant.Id, common.DefaultLang,
+		)
+	}
+	return batch
+}
+
+func (r *ProductRepo) processUpdateProductVariantNamesBatch(ctx context.Context, batch *pgx.Batch) error {
+	op := common.GetOperator(ctx, r.Pool)
+	results := op.SendBatch(ctx, batch)
+	defer results.Close()
+	for i := 0; i < batch.Len(); i++ {
+		_, err := results.Exec()
+		if err != nil {
+			common.LoggerFromCtx(ctx).Error("failed to update product variant name", zap.Error(err))
+			return common.NewBadRequestFromMessage("Failed to update product variant name")
+		}
+	}
+	return nil
+}
+
+func (r *ProductRepo) createLinkProductVariantsToValueBatch(
+	valueId int,
+	productVariants []ProductVariant,
+) *pgx.Batch {
+	batch := &pgx.Batch{}
+	for _, productVariant := range productVariants {
+		batch.Queue(`
+			INSERT INTO product_variant_values(product_variant_id, product_option_value_id) 
+			VALUES ($1, $2)
+		`, productVariant.Id, valueId,
+		)
+	}
+	return batch
+}
+
+func (r *ProductRepo) processLinkProductVariantsToValueBatch(
+	ctx context.Context,
+	batch *pgx.Batch,
+) error {
+	op := common.GetOperator(ctx, r.Pool)
+	results := op.SendBatch(ctx, batch)
+	defer results.Close()
+	for i := 0; i < batch.Len(); i++ {
+		_, err := results.Exec()
+		if err != nil {
+			common.LoggerFromCtx(ctx).Error("failed to link product variants to value", zap.Error(err))
+			return common.NewBadRequestFromMessage("Failed to link product variants to value")
+		}
+	}
+	return nil
+}

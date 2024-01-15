@@ -28,6 +28,7 @@ type IProductService interface {
 	UpdateProductVariantArchiveStatus(ctx context.Context, id int, isArchive bool) error
 	SearchProductVariantByName(ctx context.Context, name string) (common.PaginatedResponse[ProductVariant], error)
 	GetProductVariantBySku(ctx context.Context, sku string, getRecipe bool) (ProductVariant, error)
+	AddProductOption(ctx context.Context, input ProductOptionInput) error
 }
 
 type ProductService struct {
@@ -294,4 +295,11 @@ func (s *ProductService) GetProductVariantBySku(ctx context.Context, sku string,
 		productVariant.TotalCost = totalCost
 	}
 	return productVariant, nil
+}
+
+func (s *ProductService) AddProductOption(ctx context.Context, input ProductOptionInput) error {
+	if err := ValidateProductOptionInput(input); err != nil {
+		return err
+	}
+	return s.repo.AddProductOption(ctx, input)
 }

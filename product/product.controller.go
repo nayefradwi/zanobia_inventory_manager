@@ -206,3 +206,14 @@ func (c ProductController) GetProductVariantBySku(w http.ResponseWriter, r *http
 		Data:   variant,
 	})
 }
+
+func (c ProductController) AddProductOptionToProduct(w http.ResponseWriter, r *http.Request) {
+	common.ParseBody[ProductOptionInput](w, r.Body, func(input ProductOptionInput) {
+		err := c.service.AddProductOption(r.Context(), input)
+		common.WriteCreatedResponse(common.EmptyResult{
+			Error:   err,
+			Writer:  w,
+			Message: "Product option added successfully",
+		})
+	})
+}
