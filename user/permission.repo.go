@@ -23,7 +23,7 @@ const (
 )
 
 type IPermissionRepository interface {
-	AddAll(ctx context.Context, permissions []Permission) error
+	InitiateAll(ctx context.Context, permissions []Permission) error
 	FindByHandle(ctx context.Context, handle string) (Permission, error)
 	DoesPermissionExist(ctx context.Context, handle string) bool
 	CreatePermssion(ctx context.Context, permission Permission) error
@@ -55,24 +55,10 @@ func (r *PermissionRepository) FindByHandle(ctx context.Context, handle string) 
 	return permission, nil
 }
 
-func (r *PermissionRepository) AddAll(ctx context.Context, permissions []Permission) error {
-	tx, err := r.Begin(ctx)
-	if err != nil {
-		common.LoggerFromCtx(ctx).Error("failed to start transaction", zap.Error(err))
-		return common.NewInternalServerError()
-	}
-	defer tx.Rollback(ctx)
+func (r *PermissionRepository) InitiateAll(ctx context.Context, permissions []Permission) error {
 	sql := "INSERT INTO permissions (handle, name, description, is_secret) VALUES ($1, $2, $3, $4)"
 	for _, p := range permissions {
-		_, err := tx.Exec(ctx, sql, p.Handle, p.Name, p.Description, p.IsSecret)
-		if err != nil {
-			common.LoggerFromCtx(ctx).Error("failed to add permission", zap.Error(err))
-			return common.NewBadRequestError("failed to add permissions", zimutils.GetErrorCodeFromError(err))
-		}
-	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		return common.NewInternalServerError()
+		r.Exec(ctx, sql, p.Handle, p.Name, p.Description, p.IsSecret)
 	}
 	return nil
 }

@@ -21,10 +21,7 @@ func NewPermissionService(repository IPermissionRepository) IPermissionService {
 
 func (s *PermissionService) InitiateInitialPermissions(ctx context.Context) error {
 	permissions := generateInitialPermissions()
-	err := s.repository.AddAll(ctx, permissions)
-	if err != nil {
-		return err
-	}
+	s.repository.InitiateAll(ctx, permissions)
 	return nil
 }
 
