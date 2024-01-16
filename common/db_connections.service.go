@@ -12,7 +12,7 @@ import (
 func ConnectDatabasePool(ctx context.Context, connectionUrl string) *pgxpool.Pool {
 	dbPool, err := pgxpool.Connect(ctx, connectionUrl)
 	if err != nil {
-		GetLogger().Error("failed to set up db connection", zap.Error(err))
+		GetLogger().Panic("failed to set up db connection", zap.Error(err))
 	}
 	GetLogger().Info("connected to db successfully")
 	return dbPool
@@ -21,13 +21,13 @@ func ConnectDatabasePool(ctx context.Context, connectionUrl string) *pgxpool.Poo
 func ConnectRedis(ctx context.Context, connectionUrl string) *redis.Client {
 	opt, parsingErr := redis.ParseURL(connectionUrl)
 	if parsingErr != nil {
-		GetLogger().Error("failed to parse redis connection url", zap.Error(parsingErr))
+		GetLogger().Panic("failed to parse redis connection url", zap.Error(parsingErr))
 	}
 	opt.MaxRetries = 5
 	redisClient := redis.NewClient(opt)
 	_, connectionErr := redisClient.Ping(ctx).Result()
 	if connectionErr != nil {
-		GetLogger().Error("failed to set up redis connection", zap.Error(connectionErr))
+		GetLogger().Panic("failed to set up redis connection", zap.Error(connectionErr))
 	}
 	GetLogger().Info("connected to redis successfully")
 	return redisClient
