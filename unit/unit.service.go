@@ -200,10 +200,11 @@ func (s *UnitService) SetupUnitsMap(ctx context.Context) error {
 }
 
 func (s *UnitService) InitiateAll(ctx context.Context) error {
-	if err := s.initiateAllUnits(ctx); err != nil {
-		return err
-	}
-	return s.initiateAllUnitConversions(ctx)
+	s.initiateAllUnits(ctx)
+	s.initiateAllUnitConversions(ctx)
+	s.SetupUnitsMap(ctx)
+	s.SetupUnitConversionsMap(ctx)
+	return nil
 }
 
 func (s *UnitService) initiateAllUnits(ctx context.Context) error {
@@ -212,6 +213,7 @@ func (s *UnitService) initiateAllUnits(ctx context.Context) error {
 	}
 	return nil
 }
+
 func (s *UnitService) initiateAllUnitConversions(ctx context.Context) error {
 	for _, input := range initialConversions {
 		toUnit, err := s.repo.GetUnitFromName(ctx, input.ToUnitName)
