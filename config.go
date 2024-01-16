@@ -14,6 +14,7 @@ type ApiConfig struct {
 	InitialSysAdminEmail string
 	InitialSysAdminPass  string
 	RedisUrl             string
+	Secret               string
 }
 
 func LoadEnv() ApiConfig {
@@ -24,6 +25,7 @@ func LoadEnv() ApiConfig {
 		InitialSysAdminPass:  os.Getenv("INITIAL_SYSTEM_ADMIN_PASSWORD"),
 		RedisUrl:             os.Getenv("REDIS_CACHE_URL"),
 		Port:                 os.Getenv("PORT"),
+		Secret:               os.Getenv("SECRET"),
 	}
 }
 

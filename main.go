@@ -30,6 +30,7 @@ func setUserIdExtractor() {
 func setUp() chi.Router {
 	common.ConfigEssentials()
 	RegisteredApiConfig = LoadEnv()
+	common.SetSecret(RegisteredApiConfig.Secret)
 	RegisteredServiceProvider = &ServiceProvider{}
 	RegisteredServiceProvider.initiate(RegisteredApiConfig)
 	setUserIdExtractor()
