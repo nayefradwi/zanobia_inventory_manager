@@ -1,4 +1,5 @@
 .prod.env
+.staging.env
 .command.env
 __debug_bin.exe
 __debug_bin*.exe
