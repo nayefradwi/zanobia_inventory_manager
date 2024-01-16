@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/nayefradwi/zanobia_inventory_manager/common"
 	"github.com/nayefradwi/zanobia_inventory_manager/user"
-	"go.uber.org/zap"
 )
 
 var RegisteredServiceProvider *ServiceProvider
@@ -16,8 +15,7 @@ var RegisteredApiConfig ApiConfig
 func main() {
 	r := setUp()
 	defer cleanUp()
-	common.GetLogger().Info("listening on", zap.String("host", RegisteredApiConfig.Host))
-	http.ListenAndServe(RegisteredApiConfig.Host, r)
+	http.ListenAndServe(RegisteredApiConfig.GetListeningAddress("3000"), r)
 }
 
 func setUserIdExtractor() {
