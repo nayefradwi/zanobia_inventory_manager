@@ -86,3 +86,12 @@ func (c TransactionController) GetTransactionsOfMyWarehouse(w http.ResponseWrite
 		Data:   transactions,
 	})
 }
+
+func (c TransactionController) InitiateAllReasons(w http.ResponseWriter, r *http.Request) {
+	c.service.InitiateAllReasons(r.Context())
+	common.WriteCreatedResponse(common.EmptyResult{
+		Writer:  w,
+		Error:   nil,
+		Message: "Transaction reasons initiated successfully",
+	})
+}

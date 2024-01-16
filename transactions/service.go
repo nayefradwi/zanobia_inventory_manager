@@ -4,9 +4,12 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v4"
+	"github.com/nayefradwi/zanobia_inventory_manager/common"
+	"go.uber.org/zap"
 )
 
 type ITransactionService interface {
+	InitiateAllReasons(ctx context.Context) error
 	CreateTransactionReason(ctx context.Context, reason TransactionReason) error
 	GetTransactionReasons(ctx context.Context) ([]TransactionReason, error)
 	CreateWarehouseTransaction(ctx context.Context, command CreateWarehouseTransactionCommand) error
@@ -103,4 +106,17 @@ func (r *TransactionService) CreateRetailerTransactionHistoryBatches(
 		r.repo.InsertTransactionToBatch(ctx, input, batch)
 	}
 	return batch, nil
+}
+
+func (r *TransactionService) InitiateAllReasons(ctx context.Context) error {
+	for _, reason := range initalTransactionReasons {
+		if err := r.repo.CreateTransactionReason(ctx, reason); err != nil {
+			common.LoggerFromCtx(ctx).Error(
+				"failed to initiate reason",
+				zap.String("reason", reason.Name),
+				zap.Error(err),
+			)
+		}
+	}
+	return nil
 }

@@ -121,3 +121,61 @@ func ForRetailerTransactions(ctx context.Context, command CreateRetailerTransact
 		WarehouseId:     &warehouseId,
 	}, nil
 }
+
+var initalTransactionReasons = []TransactionReason{
+	{
+		Name:        TransactionReasonTypeSold,
+		Description: "Sold to customer",
+		IsPositive:  false,
+	},
+	{
+		Name:        TransactionReasonTypeBought,
+		Description: "Bought from supplier",
+		IsPositive:  true,
+	},
+	{
+		Name:        TransactionReasonTypeExpired,
+		Description: "Expired",
+		IsPositive:  false,
+	},
+	{
+		Name:        TransactionReasonTypeDamaged,
+		Description: "Damaged",
+		IsPositive:  false,
+	},
+	{
+		Name:        TransactionReasonTypeLost,
+		Description: "Lost",
+		IsPositive:  false,
+	},
+	{
+		Name:        TransactionReasonTypeFound,
+		Description: "Found",
+		IsPositive:  true,
+	},
+	{
+		Name:        TransactionReasonTypeReturn,
+		Description: "Returned to supplier",
+		IsPositive:  false,
+	},
+	{
+		Name:        TransactionReasonTypeAuditIncrease,
+		Description: "Audit increase",
+		IsPositive:  true,
+	},
+	{
+		Name:        TransactionReasonTypeAuditDecrease,
+		Description: "Audit decrease",
+		IsPositive:  false,
+	},
+	{
+		Name:        TransactionReasonTypeRecipeUse,
+		Description: "Recipe use",
+		IsPositive:  false,
+	},
+	{
+		Name:        TransactionReasonTypeProduced,
+		Description: "Produced",
+		IsPositive:  true,
+	},
+}
