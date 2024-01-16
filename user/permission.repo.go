@@ -10,16 +10,12 @@ import (
 )
 
 const (
-	SysAdminPermissionHandle       = "sys_admin"
-	HasUserControlPermission       = "has_user_control"
-	HasInventoryControlPermission  = "has_inventory_control"
-	HasProductControlPermission    = "has_product_control"
-	HasIngredientControlPermission = "has_ingredient_control"
-	HasBatchControlPermission      = "has_batch_control"
-	CanDeleteProductPermission     = "can_delete_product"
-	CanDeleteInventoryPermission   = "can_delete_inventory"
-	CanDeleteIngredientPermission  = "can_delete_ingredient"
-	CanDeleteBatchPermission       = "can_delete_batch"
+	SysAdminPermissionHandle    = "sys_admin"
+	HasUserControlPermission    = "has_user_control"
+	HasProductControlPermission = "has_product_control"
+	HasBatchControlPermission   = "has_batch_control"
+	CanDeleteProductPermission  = "can_delete_product"
+	CanDeleteBatchPermission    = "can_delete_batch"
 )
 
 type IPermissionRepository interface {

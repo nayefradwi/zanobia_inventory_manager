@@ -9,6 +9,7 @@ import (
 )
 
 type IUnitService interface {
+	InitiateAll(ctx context.Context) error
 	CreateUnit(ctx context.Context, unit Unit) error
 	GetAllUnits(ctx context.Context) ([]Unit, error)
 	CreateConversion(ctx context.Context, conversion UnitConversion) error
@@ -195,5 +196,40 @@ func (s *UnitService) SetupUnitsMap(ctx context.Context) error {
 		"units map setup",
 		zap.Any("units_map", s.unitsMap),
 	)
+	return nil
+}
+
+func (s *UnitService) InitiateAll(ctx context.Context) error {
+	if err := s.initiateAllUnits(ctx); err != nil {
+		return err
+	}
+	return s.initiateAllUnitConversions(ctx)
+}
+
+func (s *UnitService) initiateAllUnits(ctx context.Context) error {
+	for _, unit := range initialUnits {
+		s.CreateUnit(ctx, unit)
+	}
+	return nil
+}
+func (s *UnitService) initiateAllUnitConversions(ctx context.Context) error {
+	for _, input := range initialConversions {
+		toUnit, err := s.repo.GetUnitFromName(ctx, input.ToUnitName)
+		if err != nil {
+			common.GetLogger().Error("failed to get unit from name", zap.String("unit", input.ToUnitName), zap.Error(err))
+			continue
+		}
+		fromUnit, err := s.repo.GetUnitFromName(ctx, input.FromUnitName)
+		if err != nil {
+			common.GetLogger().Error("failed to get unit from name", zap.String("unit", input.FromUnitName), zap.Error(err))
+			continue
+		}
+		unitConversion := UnitConversion{
+			ToUnitId:         toUnit.Id,
+			FromUnitId:       fromUnit.Id,
+			ConversionFactor: input.ConversionFactor,
+		}
+		s.CreateConversion(ctx, unitConversion)
+	}
 	return nil
 }

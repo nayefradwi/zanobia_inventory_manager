@@ -20,7 +20,6 @@ func generateInitialPermissions() []Permission {
 	return []Permission{
 		{Name: "system admin", IsSecret: true, Handle: SysAdminPermissionHandle},
 		{Name: "has user control", Handle: HasUserControlPermission},
-		{Name: "has inventory control", Handle: HasInventoryControlPermission},
 		{Name: "has product control", Handle: HasProductControlPermission},
 		{Name: "has batch control", Handle: HasBatchControlPermission},
 		{Name: "can delete product", Handle: CanDeleteProductPermission},

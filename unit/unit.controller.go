@@ -77,3 +77,13 @@ func (c UnitController) TranslateUnit(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 }
+
+func (c UnitController) InitiateUnits(w http.ResponseWriter, r *http.Request) {
+	err := c.service.InitiateAll(r.Context())
+	common.WriteCreatedResponse(common.EmptyResult{
+		Writer:  w,
+		Error:   err,
+		Message: "Initiated units and conversions successfully",
+	})
+
+}

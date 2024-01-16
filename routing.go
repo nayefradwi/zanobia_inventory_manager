@@ -62,6 +62,7 @@ func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 		middleware := user.NewUserMiddleware(provider.services.userService)
 		r.Use(common.AuthenticationHeaderMiddleware)
 		r.Use(middleware.SetUserFromHeader)
+		r.Use(middleware.HasPermissions(user.SysAdminPermissionHandle))
 		r.Post("/", permissionController.CreatePermission)
 		r.Get("/", permissionController.GetAllPermissions)
 		getPermissionByHandleRoute := fmt.Sprintf("/{%s}", user.PermissionHandleParam)
@@ -73,7 +74,9 @@ func registerPermissionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	roleRouter := chi.NewRouter()
 	roleController := user.NewRoleController(provider.services.roleService)
+	userMiddleware := newUserMiddleWare(provider)
 	roleRouter.Use(common.AuthenticationHeaderMiddleware)
+	roleRouter.Use(userMiddleware.HasPermissions(user.SysAdminPermissionHandle))
 	roleRouter.Post("/", roleController.CreateRole)
 	roleRouter.Get("/", roleController.GetRoles)
 	mainRouter.Mount("/roles", roleRouter)
@@ -82,14 +85,20 @@ func registerRoleRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productRouter := chi.NewRouter()
 	productController := product.NewProductController(provider.services.productService)
-	productRouter.Post("/", productController.CreateProduct)
+	productRouter.Group(func(r chi.Router) {
+		userMiddlware := newUserMiddleWare(provider)
+		controlProductMiddlware := userMiddlware.HasPermissions(user.HasProductControlPermission)
+		deleteProductMiddleware := userMiddlware.HasPermissions(user.CanDeleteProductPermission)
+		r.Use(controlProductMiddlware)
+		r.Post("/", productController.CreateProduct)
+		r.Put("/{id}/archive", productController.ArchiveProduct)
+		r.Put("/{id}/unarchive", productController.UnarchiveProduct)
+		r.Post("/translation", productController.TranslateProduct)
+		r.Post("/options", productController.AddProductOptionToProduct)
+		r.With(deleteProductMiddleware).Delete("/{id}", productController.DeleteProduct)
+	})
 	productRouter.Get("/", productController.GetProducts)
 	productRouter.Get("/{id}", productController.GetProduct)
-	productRouter.Delete("/{id}", productController.DeleteProduct)
-	productRouter.Put("/{id}/archive", productController.ArchiveProduct)
-	productRouter.Put("/{id}/unarchive", productController.UnarchiveProduct)
-	productRouter.Post("/translation", productController.TranslateProduct)
-	productRouter.Post("/options", productController.AddProductOptionToProduct)
 	registerUnitRoutes(productRouter, provider)
 	registerProductVariantRoutes(productRouter, provider)
 	mainRouter.Mount("/products", productRouter)
@@ -98,10 +107,15 @@ func registerProductRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitRouter := chi.NewRouter()
 	unitController := unit.NewUnitController(provider.services.unitService)
-	unitRouter.Post("/", unitController.CreateUnit)
 	unitRouter.Get("/{id}", unitController.GetUnitById)
 	unitRouter.Get("/", unitController.GetAllUnits)
-	unitRouter.Post("/translation", unitController.TranslateUnit)
+	unitRouter.Group(func(r chi.Router) {
+		userMiddleware := newUserMiddleWare(provider)
+		adminPermissionMiddleware := userMiddleware.HasPermissions(user.SysAdminPermissionHandle)
+		r.Use(adminPermissionMiddleware)
+		r.Post("/", unitController.CreateUnit)
+		r.Post("/translation", unitController.TranslateUnit)
+	})
 	registerUnitConversions(unitRouter, provider)
 	mainRouter.Mount("/units", unitRouter)
 }
@@ -109,7 +123,9 @@ func registerUnitRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 	unitConversionRouter := chi.NewRouter()
 	unitConversionController := unit.NewUnitController(provider.services.unitService)
-	unitConversionRouter.Post("/", unitConversionController.CreateConversion)
+	userMiddleware := newUserMiddleWare(provider)
+	adminPermissionMiddleware := userMiddleware.HasPermissions(user.SysAdminPermissionHandle)
+	unitConversionRouter.With(adminPermissionMiddleware).Post("/", unitConversionController.CreateConversion)
 	unitConversionRouter.Post("/convert", unitConversionController.ConvertUnit)
 	mainRouter.Mount("/unit-conversions", unitConversionRouter)
 }
@@ -117,14 +133,20 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	productVariantRouter := chi.NewRouter()
 	productController := product.NewProductController(provider.services.productService)
-	productVariantRouter.Post("/", productController.CreateProductVariant)
+	productVariantRouter.Group(func(r chi.Router) {
+		userMiddleware := newUserMiddleWare(provider)
+		controlProductMiddleware := userMiddleware.HasPermissions(user.HasProductControlPermission)
+		deleteProductMiddleware := userMiddleware.HasPermissions(user.CanDeleteProductPermission)
+		r.Use(controlProductMiddleware)
+		r.Post("/", productController.CreateProductVariant)
+		r.Put("/", productController.UpdateProductVariantDetails)
+		r.Put("/sku", productController.UpdateProductVariantSku)
+		r.Put("/{id}/archive", productController.ArchiveProductVariant)
+		r.Put("/{id}/unarchive", productController.UnarchiveProductVariant)
+		r.Post("/options/values", productController.AddOptionValue)
+		r.With(deleteProductMiddleware).Delete("/{id}", productController.DeleteProductVariant)
+	})
 	productVariantRouter.Get("/{id}", productController.GetProductVariant)
-	productVariantRouter.Delete("/{id}", productController.DeleteProductVariant)
-	productVariantRouter.Put("/", productController.UpdateProductVariantDetails)
-	productVariantRouter.Put("/sku", productController.UpdateProductVariantSku)
-	productVariantRouter.Put("/{id}/archive", productController.ArchiveProductVariant)
-	productVariantRouter.Put("/{id}/unarchive", productController.UnarchiveProductVariant)
-	productVariantRouter.Post("/options/values", productController.AddOptionValue)
 	productVariantRouter.Get("/sku/{sku}", productController.GetProductVariantBySku)
 	productVariantRouter.Post("/search", productController.SearchProductVariantByName)
 	registerRecipeRoutes(productVariantRouter, provider)
@@ -135,6 +157,9 @@ func registerProductVariantRoutes(mainRouter *chi.Mux, provider *ServiceProvider
 func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	recipeRouter := chi.NewRouter()
 	recipeController := product.NewRecipeController(provider.services.recipeService)
+	newUserMiddleWare := newUserMiddleWare(provider)
+	controlProductMiddleware := newUserMiddleWare.HasPermissions(user.HasProductControlPermission)
+	recipeRouter.Use(controlProductMiddleware)
 	recipeRouter.Post("/", recipeController.CreateRecipe)
 	recipeRouter.Put("/recipe", recipeController.AddIngredientToRecipe)
 	recipeRouter.Delete("/{id}", recipeController.DeleteRecipe)
@@ -144,12 +169,17 @@ func registerRecipeRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	batchRouter := chi.NewRouter()
 	batchController := product.NewBatchController(provider.services.batchService)
-	batchRouter.Post("/batch/stock", batchController.IncrementBatch)
-	batchRouter.Delete("/batch/stock", batchController.DecrementBatch)
-	batchRouter.Post("/stock", batchController.BulkIncrementBatch)
-	batchRouter.Delete("/stock", batchController.BulkDecrementBatch)
-	batchRouter.Post("/batch/stock/with-recipe", batchController.IncrementBatchWithRecipe)
-	batchRouter.Post("/stock/with-recipe", batchController.BulkIncrementBatchWithRecipe)
+	batchRouter.Group(func(r chi.Router) {
+		newUserMiddleWare := newUserMiddleWare(provider)
+		controlBatchMiddleware := newUserMiddleWare.HasPermissions(user.HasBatchControlPermission)
+		r.Use(controlBatchMiddleware)
+		r.Post("/batch/stock", batchController.IncrementBatch)
+		r.Delete("/batch/stock", batchController.DecrementBatch)
+		r.Post("/stock", batchController.BulkIncrementBatch)
+		r.Delete("/stock", batchController.BulkDecrementBatch)
+		r.Post("/batch/stock/with-recipe", batchController.IncrementBatchWithRecipe)
+		r.Post("/stock/with-recipe", batchController.BulkIncrementBatchWithRecipe)
+	})
 	batchRouter.Get("/", batchController.GetBatches)
 	batchRouter.Get("/search", batchController.SearchBatchesBySku)
 	batchRouter.Get("/{id}", batchController.GetBatchById)
@@ -157,22 +187,18 @@ func registerBatchesRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 }
 
 func registerWarehouseRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
-	middleware := newUserMiddleWare(provider)
 	warehouseRouter := chi.NewRouter()
 	warehouseController := warehouse.NewWarehouseController(provider.services.warehouseService)
-	warehouseRouter.Post("/", warehouseController.CreateWarehouse)
-	warehouseRouter.
-		With(middleware.HasPermissions(
-			user.SysAdminPermissionHandle,
-		)).
-		Post("/user", warehouseController.AddUserToWarehouse)
+	warehouseRouter.Group(func(r chi.Router) {
+		middleware := newUserMiddleWare(provider)
+		adminMiddleware := middleware.HasPermissions(user.SysAdminPermissionHandle)
+		r.Use(adminMiddleware)
+		r.Post("/user", warehouseController.AddUserToWarehouse)
+		r.Put("/", warehouseController.UpdateWarehouse)
+		r.Post("/", warehouseController.CreateWarehouse)
+	})
 	warehouseRouter.Get("/current", warehouseController.GetCurrentWarehouse)
 	warehouseRouter.Get("/", warehouseController.GetWarehouses)
-	warehouseRouter.
-		With(middleware.HasPermissions(
-			user.SysAdminPermissionHandle,
-		)).
-		Put("/", warehouseController.UpdateWarehouse)
 	mainRouter.Mount("/warehouses", warehouseRouter)
 }
 
@@ -215,7 +241,9 @@ func registerRetailerBatchRoutes(mainRouter *chi.Mux, provider *ServiceProvider)
 func registerTransactionRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	transactionRouter := chi.NewRouter()
 	transactionController := transactions.NewTransactionController(provider.services.transactionService)
-	transactionRouter.Post("/reasons", transactionController.CreateTransactionReason)
+	userMiddleware := newUserMiddleWare(provider)
+	adminMiddleware := userMiddleware.HasPermissions(user.SysAdminPermissionHandle)
+	transactionRouter.With(adminMiddleware).Post("/reasons", transactionController.CreateTransactionReason)
 	transactionRouter.Get("/reasons", transactionController.GetTransactionReasons)
 	transactionRouter.Get("/retailer/{id}", transactionController.GetTransactionsOfRetailer)
 	transactionRouter.Get("/retailer/{id}/batch/{batchId}", transactionController.GetTransactionsOfRetailerBatch)
