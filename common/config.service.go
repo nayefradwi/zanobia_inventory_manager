@@ -25,6 +25,7 @@ func isAlreadyLoaded() bool {
 	env := os.Getenv("ENV")
 	isLoaded := env == PROD || env == DEV || env == STAGING
 	if isLoaded {
+		setEnv(env)
 		GetLogger().Info("Environment already loaded: " + env)
 	}
 	return isLoaded
