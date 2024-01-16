@@ -36,18 +36,15 @@ func registerUserRoutes(mainRouter *chi.Mux, provider *ServiceProvider) {
 	userRouter := chi.NewRouter()
 	userRouter.Group(func(r chi.Router) {
 		middleware := user.NewUserMiddleware(provider.services.userService)
+		adminMiddleware := middleware.HasPermissions(user.SysAdminPermissionHandle)
 		r.Use(common.AuthenticationHeaderMiddleware)
 		r.Use(middleware.SetUserFromHeader)
-		r.With(middleware.HasPermissions(
-			user.SysAdminPermissionHandle,
-		)).Post("/", userController.CreateUser)
-		r.With(middleware.HasPermissions(
-			user.SysAdminPermissionHandle,
-		)).Get("/", userController.GetAllUsers)
 		r.Get("/me", userController.GetUserByContext)
-		r.With(middleware.HasPermissions(
-			user.SysAdminPermissionHandle,
-		)).Post("/ban", userController.BanUser)
+		r.Group(func(r chi.Router) {
+			r.With(adminMiddleware).Get("/", userController.GetAllUsers)
+			r.With(adminMiddleware).Post("/", userController.CreateUser)
+			r.With(adminMiddleware).Post("/ban", userController.BanUser)
+		})
 	})
 	userRouter.Post("/initial-sys-admin", userController.InitiateSysAdminUser)
 	userRouter.Post("/login", userController.LoginUser)
