@@ -15,15 +15,26 @@ const (
 
 var ENV = PROD
 
-func GetEnvArgument() string {
+func getEnvArgument() string {
 	if len(os.Args) > 1 {
 		return os.Args[1]
 	}
 	return PROD
 }
+func isAlreadyLoaded() bool {
+	env := os.Getenv("ENV")
+	isLoaded := env == PROD || env == DEV || env == STAGING
+	if isLoaded {
+		GetLogger().Info("Environment already loaded: " + env)
+	}
+	return isLoaded
+}
 
 func LoadEnv() {
-	env := GetEnvArgument()
+	if isAlreadyLoaded() {
+		return
+	}
+	env := getEnvArgument()
 	setEnv(env)
 	envFileName := "." + ENV + ".env"
 	GetLogger().Info("Loading environment: " + envFileName)
