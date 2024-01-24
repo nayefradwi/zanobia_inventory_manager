@@ -330,7 +330,7 @@ func (r *ProductRepo) SearchProductVariantsByName(
 		WithConditions([]string{
 			"pvartx.language_code = $1",
 			"AND",
-			"(pvartx.name LIKE $2 OR ptx.name LIKE $2)",
+			"(LOWER(pvartx.name) LIKE LOWER($2) OR LOWER(ptx.name) LIKE LOWER($2))",
 		}).
 		WithCursorKeys([]string{"pvar.id"}).
 		WithCompareSymbols(">", ">=", "<").
