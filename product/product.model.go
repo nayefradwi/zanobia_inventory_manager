@@ -142,26 +142,15 @@ func (p ProductInput) generateProductVariant() ([]ProductVariant, map[string]Opt
 	if len(p.Options) == 0 {
 		return p.createNormalProductVariant()
 	}
-	return p.createCrossProductOfVariants()
-}
-
-func (p ProductInput) createCrossProductOfVariants() ([]ProductVariant, map[string]OptionValueSet) {
-	cartesianLength := 1
-	for _, options := range p.Options {
-		cartesianLength *= len(options.Values)
-	}
-	productVariants := make([]ProductVariant, cartesianLength)
-	allValues := make([]OptionValueSet, cartesianLength)
+	productVariants := make([]ProductVariant, 1)
 	skuLookup := make(map[string]OptionValueSet)
-	for i := 0; i < cartesianLength; i++ {
-		allValues[i] = make([]ProductOptionValue, len(p.Options))
-		for optionIndex, option := range p.Options {
-			allValues[i][optionIndex] = option.Values[i%len(option.Values)]
-		}
-		name := GenerateName(allValues[i])
-		productVariants[i] = p.createProductVariant(name, i == 0)
-		skuLookup[productVariants[i].Sku] = allValues[i]
+	allValues := make([]OptionValueSet, 1)
+	for _, option := range p.Options {
+		firstValue := option.Values[0]
+		allValues[0] = append(allValues[0], firstValue)
 	}
+	name := GenerateName(allValues[0])
+	productVariants[0] = p.createProductVariant(name, true)
 	return productVariants, skuLookup
 }
 

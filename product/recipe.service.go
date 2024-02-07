@@ -30,9 +30,8 @@ func NewRecipeService(repo IRecipeRepository, unitService unit.IUnitService) IRe
 }
 
 func (s *RecipeService) CreateRecipes(ctx context.Context, recipes []RecipeBase) error {
-	validationErr := ValidateRecipes(recipes)
-	if validationErr != nil {
-		return validationErr
+	if err := ValidateRecipes(recipes); err != nil {
+		return err
 	}
 	if len(recipes) == 0 {
 		return common.NewBadRequestFromMessage("cannot create empty recipes")
@@ -41,9 +40,8 @@ func (s *RecipeService) CreateRecipes(ctx context.Context, recipes []RecipeBase)
 }
 
 func (s *RecipeService) AddIngredientToRecipe(ctx context.Context, recipe RecipeBase) error {
-	validationErr := ValidateRecipe(recipe)
-	if validationErr != nil {
-		return validationErr
+	if err := ValidateRecipe(recipe); err != nil {
+		return err
 	}
 	return s.repo.AddIngredientToRecipe(ctx, recipe)
 }
@@ -51,6 +49,7 @@ func (s *RecipeService) AddIngredientToRecipe(ctx context.Context, recipe Recipe
 func (s *RecipeService) DeleteRecipe(ctx context.Context, id int) error {
 	return s.repo.DeleteRecipe(ctx, id)
 }
+
 func (s *RecipeService) GetTotalCostOfRecipes(ctx context.Context, recipes []Recipe) (float64, error) {
 	var totalCost float64
 	for _, recipe := range recipes {
@@ -73,7 +72,6 @@ func (s *RecipeService) getCostOfRecipe(ctx context.Context, recipe Recipe) (flo
 	if *recipe.Unit.Id == *recipe.IngredientStandardUnit.Id {
 		return recipe.Quantity * recipe.IngredientCost, nil
 	}
-	// convert unit should be cached
 	newQty, err := s.unitService.ConvertUnit(ctx, unit.ConvertUnitInput{
 		FromUnitId: recipe.Unit.Id,
 		ToUnitId:   recipe.IngredientStandardUnit.Id,

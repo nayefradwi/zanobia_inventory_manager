@@ -85,5 +85,12 @@ func (c UnitController) InitiateUnits(w http.ResponseWriter, r *http.Request) {
 		Error:   err,
 		Message: "Initiated units and conversions successfully",
 	})
+}
 
+func (c UnitController) GetAllUnitConversions(w http.ResponseWriter, r *http.Request) {
+	common.WriteResponse[map[string]UnitConversion](common.Result[map[string]UnitConversion]{
+		Error:  nil,
+		Writer: w,
+		Data:   c.service.GetAllUnitConversions(r.Context()),
+	})
 }
