@@ -19,6 +19,7 @@ type IUnitService interface {
 	SetupUnitConversionsMap(ctx context.Context) error
 	SetupUnitsMap(ctx context.Context) error
 	GetUnitConversionKey(toUnitId int, fromUnitId int) string
+	GetAllUnitConversions(ctx context.Context) map[string]UnitConversion
 }
 
 type UnitService struct {
@@ -37,6 +38,10 @@ func NewUnitService(repo IUnitRepository) IUnitService {
 		unitConversionsMap: make(map[string]UnitConversion),
 		unitsMap:           make(map[int]Unit),
 	}
+}
+
+func (s UnitService) GetAllUnitConversions(ctx context.Context) map[string]UnitConversion {
+	return s.unitConversionsMap
 }
 
 func (s *UnitService) CreateUnit(ctx context.Context, unit Unit) error {

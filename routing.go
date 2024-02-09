@@ -125,6 +125,7 @@ func registerUnitConversions(mainRouter *chi.Mux, provider *ServiceProvider) {
 	adminPermissionMiddleware := userMiddleware.HasPermissions(user.SysAdminPermissionHandle)
 	unitConversionRouter.With(adminPermissionMiddleware).Post("/", unitConversionController.CreateConversion)
 	unitConversionRouter.Post("/convert", unitConversionController.ConvertUnit)
+	unitConversionRouter.Get("/", unitConversionController.GetAllUnitConversions)
 	mainRouter.Mount("/unit-conversions", unitConversionRouter)
 }
 
